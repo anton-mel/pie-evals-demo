@@ -1,0 +1,36 @@
+# Bookkeeping: lift node outputs into the parquet store, render reports,
+# commit both. Reusable from every tier workflow.
+name: collect
+on:
+  workflow_call:
+    inputs:
+      tier: { type: string, required: true }
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main, fetch-depth: 0 }
+      - uses: astral-sh/setup-uv@v3
+      - run: uv venv && uv pip install -e ".[orchestrate]"
+      - uses: actions/download-artifact@v4
+        with: { pattern: "out-*", path: out }
+      - name: import into store
+        run: |
+          shopt -s nullglob
+          dirs=(out/out-*)
+          [ ${#dirs[@]} -gt 0 ] && .venv/bin/pie-evals collect --tier "${{ inputs.tier }}" "${dirs[@]}" || echo "no node outputs"
+      - name: reports
+        id: report
+        run: .venv/bin/pie-evals report --tier "${{ inputs.tier }}" --out reports
+      - name: commit store + reports
+        run: |
+          git config user.name "pie-evals-bot"; git config user.email "pie-evals-bot@users.noreply.github.com"
+          git add store reports
+          git diff --cached --quiet || git commit -m "store: ${{ inputs.tier }} run ${{ github.run_id }}"
+          git pull --rebase --quiet origin main && git push --quiet origin HEAD:main
+      - name: fail on regression
+        if: steps.report.outputs.regressions != '0'
+        run: echo "::error::${{ steps.report.outputs.regressions }} confirmed regressions — see reports/${{ inputs.tier }}/regressions.md"; exit 1

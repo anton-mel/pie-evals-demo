@@ -1,0 +1,173 @@
+# Model artifacts. One base model appears once per (scheme, source_format,
+# kind). `family` selects the pie model text and the miniature layer-pattern
+# rule; `expected_gib` is the LM-only resident weight size used for the fit
+# check and pod selection. Miniatures carry a recipe (see
+# pie_evals.node.miniature) and can never pass an accuracy gate.
+#
+# TODO(user): confirm base_model repo ids for the newer families (Qwen3.5/3.6,
+# gemma-4, DSV4, GLM-5); the ids below follow the names used in the pie wiki.
+artifacts:
+  # ---------------- smoke tier: small real models, one per family ----------
+  - id: qwen3-0.6b-bf16
+    base_model: Qwen/Qwen3-0.6B
+    family: qwen3
+    scheme: bf16
+    expected_gib: 1.2
+    tiers: [smoke, nightly, weekly]
+  - id: llama-3.2-1b-bf16
+    base_model: meta-llama/Llama-3.2-1B-Instruct
+    family: llama
+    scheme: bf16
+    expected_gib: 2.5
+    tiers: [smoke, nightly, weekly]
+  - id: qwen3.5-0.8b-bf16
+    base_model: Qwen/Qwen3.5-0.8B
+    family: qwen3_5      # GDN hybrid
+    scheme: bf16
+    expected_gib: 1.6
+    tiers: [smoke, nightly, weekly]
+  - id: gemma-4-e4b-bf16
+    base_model: google/gemma-4-E4B-it
+    family: gemma4
+    scheme: bf16
+    expected_gib: 8.0
+    tiers: [smoke, nightly, weekly]
+
+  # ---------------- miniatures: real shapes of big architectures, cheap ----
+  - id: qwen3.6-35b-a3b-mini8
+    base_model: Qwen/Qwen3.6-35B-A3B
+    family: qwen3_6_moe   # hybrid MoE, 256 experts top-4
+    scheme: bf16
+    kind: miniature
+    miniature: {layers: "0-7", experts: 32, period: 4, note: "two hybrid periods; 32 of 256 experts"}
+    expected_gib: 14.0
+    tiers: [smoke, nightly, weekly]
+  - id: gpt-oss-20b-mxfp4-mini6
+    base_model: openai/gpt-oss-20b
+    family: gpt_oss
+    scheme: mxfp4
+    kind: miniature
+    miniature: {layers: "0-5", experts: 16, period: 2, note: "three sliding/full pairs; 16 of 32 experts"}
+    expected_gib: 3.0
+    tiers: [smoke, nightly, weekly]
+  - id: deepseek-v4-flash-mini6
+    base_model: deepseek-ai/DeepSeek-V4-Flash
+    family: deepseek_v4   # MLA + NSA + MoE
+    scheme: mlx_2bit
+    source_format: mlx
+    kind: miniature
+    miniature: {layers: "0-5", experts: 16, period: 1, note: "dense lead-in + first MoE layers; 16 experts"}
+    expected_gib: 12.0
+    tiers: [smoke, nightly, weekly]
+  - id: nemotron-h-mini8
+    base_model: nvidia/Nemotron-H-8B-Base-8K
+    family: nemotron_h    # Mamba/SSM hybrid
+    scheme: bf16
+    kind: miniature
+    miniature: {layers: "0-11", period: 6, note: "two M-M-M-A-M-F periods"}
+    expected_gib: 3.0
+    tiers: [smoke, nightly, weekly]
+  - id: mini-dit
+    base_model: pie/mini-dit
+    family: mini_dit
+    scheme: bf16
+    expected_gib: 0.5
+    tiers: [smoke, nightly, weekly]
+
+  # ---------------- nightly: full mid-size, several schemes ----------------
+  - id: gpt-oss-20b-mxfp4
+    base_model: openai/gpt-oss-20b
+    family: gpt_oss
+    scheme: mxfp4
+    expected_gib: 10.4
+    tiers: [nightly, weekly]
+  - id: qwen3-8b-bf16
+    base_model: Qwen/Qwen3-8B
+    family: qwen3
+    scheme: bf16
+    expected_gib: 16.4
+    tiers: [nightly, weekly]
+  - id: qwen3-8b-fp8
+    base_model: Qwen/Qwen3-8B-FP8
+    family: qwen3
+    scheme: fp8
+    expected_gib: 8.2
+    tiers: [nightly, weekly]
+  - id: qwen3-8b-awq
+    base_model: Qwen/Qwen3-8B-AWQ
+    family: qwen3
+    scheme: awq
+    expected_gib: 5.0
+    tiers: [nightly, weekly]
+  - id: qwen3-8b-gguf-q4km
+    base_model: Qwen/Qwen3-8B-GGUF
+    family: qwen3
+    scheme: gguf_q4_k_m
+    source_format: gguf
+    expected_gib: 4.7
+    tiers: [nightly, weekly]
+
+  # ---------------- macOS five (mlx-community 4-bit) + GGUF arms -----------
+  - id: qwen3.6-27b-mlx4
+    base_model: mlx-community/Qwen3.6-27B-4bit
+    family: qwen3_6
+    scheme: affine_u4_g64
+    source_format: mlx
+    expected_gib: 14.09
+    tiers: [nightly, weekly]
+  - id: qwen3.6-35b-a3b-mlx4
+    base_model: mlx-community/Qwen3.6-35B-A3B-4bit
+    family: qwen3_6_moe
+    scheme: affine_u4_g64
+    source_format: mlx
+    expected_gib: 18.17
+    tiers: [nightly, weekly]
+  - id: gemma-4-31b-mlx4
+    base_model: mlx-community/gemma-4-31b-it-4bit
+    family: gemma4
+    scheme: affine_u4_g64
+    source_format: mlx
+    expected_gib: 16.08
+    tiers: [nightly, weekly]
+  - id: gemma-4-26b-a4b-mlx4
+    base_model: mlx-community/gemma-4-26b-a4b-it-4bit
+    family: gemma4_moe
+    scheme: affine_u4_g64
+    source_format: mlx
+    expected_gib: 13.22
+    tiers: [nightly, weekly]
+  - id: gpt-oss-20b-mlx-mxfp4
+    base_model: mlx-community/gpt-oss-20b-MXFP4-Q4
+    family: gpt_oss
+    scheme: mxfp4
+    source_format: mlx
+    expected_gib: 10.41
+    tiers: [nightly, weekly]
+  - id: qwen3.6-27b-gguf-q4km
+    base_model: unsloth/Qwen3.6-27B-GGUF
+    family: qwen3_6
+    scheme: gguf_q4_k_m
+    source_format: gguf
+    expected_gib: 15.6
+    tiers: [nightly, weekly]
+
+  # ---------------- weekly: big ------------------------------------------
+  - id: gpt-oss-120b-mxfp4
+    base_model: openai/gpt-oss-120b
+    family: gpt_oss
+    scheme: mxfp4
+    expected_gib: 61.0
+    tiers: [weekly]
+  - id: deepseek-v4-flash-mlx2
+    base_model: deepseek-ai/DeepSeek-V4-Flash
+    family: deepseek_v4
+    scheme: mlx_2bit
+    source_format: mlx
+    expected_gib: 89.9
+    tiers: [weekly]
+  - id: qwen3.6-27b-bf16
+    base_model: Qwen/Qwen3.6-27B
+    family: qwen3_6
+    scheme: bf16
+    expected_gib: 54.0
+    tiers: [weekly]

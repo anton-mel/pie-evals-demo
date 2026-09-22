@@ -1,0 +1,40 @@
+# Engines. `formats` is what the engine can load; a cell whose artifact format
+# is not in the list is not generated at all (it is not a coverage gap, the
+# engine simply does not take that input). `os` restricts platforms.
+# `recipe` names the competitive-configuration recipe under
+# src/pie_evals/node/engines/recipes/<engine>/. Baselines only run from
+# nightly up; the smoke tier compares pie against its own history.
+engines:
+  - id: pie
+    os: [linux, macos]
+    formats: [hf_safetensors, gguf, mlx]
+    tiers: [smoke, nightly, weekly]
+    recipe: default
+  - id: vllm
+    os: [linux]
+    formats: [hf_safetensors]
+    tiers: [nightly, weekly]
+    recipe: competitive
+    pin: "0.26.1"
+    release_source: pypi:vllm
+  - id: sglang
+    os: [linux]
+    formats: [hf_safetensors]
+    tiers: [nightly, weekly]
+    recipe: competitive
+    pin: "0.5.16"
+    release_source: pypi:sglang
+  - id: llamacpp
+    os: [linux, macos]
+    formats: [gguf]
+    tiers: [nightly, weekly]
+    recipe: competitive
+    pin: "b10270"
+    release_source: github:ggml-org/llama.cpp
+  - id: mlxlm
+    os: [macos]
+    formats: [mlx]
+    tiers: [nightly, weekly]
+    recipe: competitive
+    pin: "0.31.3"
+    release_source: pypi:mlx-lm

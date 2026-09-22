@@ -1,0 +1,101 @@
+# Hardware the matrix knows about. `runner_labels` is what a GitHub self-hosted
+# runner (resident Mac, or an ephemeral RunPod pod) registers with; `runs-on`
+# in the workflows is derived from it. `tiers` restricts how often a platform
+# is used at all (the product rule intersects tiers across every component).
+platforms:
+  - id: l40s-x1
+    os: linux
+    backend: cuda
+    accelerator: NVIDIA L40S
+    arch: ada
+    count: 1
+    memory_gib: 46
+    interconnect: pcie
+    runner_labels: [self-hosted, linux, l40s-x1]
+    runpod_gpu_type: "NVIDIA L40S"
+    tiers: [smoke, nightly, weekly]
+  - id: l40s-x2
+    os: linux
+    backend: cuda
+    accelerator: NVIDIA L40S
+    arch: ada
+    count: 2
+    memory_gib: 92
+    interconnect: pcie
+    runner_labels: [self-hosted, linux, l40s-x2]
+    runpod_gpu_type: "NVIDIA L40S"
+    tp_capable: true
+    tiers: [smoke, nightly, weekly]
+  - id: rtx4090-x1
+    os: linux
+    backend: cuda
+    accelerator: NVIDIA GeForce RTX 4090
+    arch: ada
+    count: 1
+    memory_gib: 24
+    interconnect: pcie
+    runner_labels: [self-hosted, linux, rtx4090-x1]
+    runpod_gpu_type: "NVIDIA GeForce RTX 4090"
+    tiers: [nightly, weekly]
+  - id: h100-sxm-x4
+    os: linux
+    backend: cuda
+    accelerator: NVIDIA H100 80GB HBM3
+    arch: hopper
+    count: 4
+    memory_gib: 320
+    interconnect: nvlink
+    runner_labels: [self-hosted, linux, h100-sxm-x4]
+    runpod_gpu_type: "NVIDIA H100 80GB HBM3"
+    tp_capable: true
+    tiers: [weekly]
+  - id: pro6000-x4
+    os: linux
+    backend: cuda
+    accelerator: NVIDIA RTX PRO 6000 Blackwell Server Edition
+    arch: blackwell
+    count: 4
+    memory_gib: 384
+    interconnect: pcie
+    runner_labels: [self-hosted, linux, pro6000-x4]
+    runpod_gpu_type: "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+    tp_capable: true
+    tiers: [nightly, weekly]
+  - id: pro4500-x1
+    os: linux
+    backend: cuda
+    accelerator: NVIDIA RTX PRO 4500 Blackwell Server Edition
+    arch: blackwell
+    count: 1
+    memory_gib: 32
+    interconnect: pcie
+    runner_labels: [self-hosted, linux, pro4500-x1]
+    tiers: [smoke, nightly, weekly]
+  # ---- resident Macs. Fill in the actual fleet; these are the chips the wiki has numbers for.
+  - id: m1-max-32g
+    os: macos
+    backend: metal
+    accelerator: Apple M1 Max
+    arch: apple7
+    memory_gib: 32
+    interconnect: uma
+    runner_labels: [self-hosted, macos, m1-max-32g]
+    tiers: [smoke, nightly, weekly]
+  - id: m2-max
+    os: macos
+    backend: metal
+    accelerator: Apple M2 Max
+    arch: apple8
+    memory_gib: 64
+    interconnect: uma
+    runner_labels: [self-hosted, macos, m2-max]
+    tiers: [nightly, weekly]
+  - id: m4-pro-48g
+    os: macos
+    backend: metal
+    accelerator: Apple M4 Pro
+    arch: apple9
+    memory_gib: 48
+    interconnect: uma
+    runner_labels: [self-hosted, macos, m4-pro-48g]
+    tiers: [smoke, nightly, weekly]

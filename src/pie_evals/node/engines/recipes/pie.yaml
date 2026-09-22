@@ -1,0 +1,66 @@
+# pie recipes. Every knob maps onto a flag benches/pie_bench.py (or its
+# shared benches/common.py) actually parses; see PieEngine.engine_args for the
+# mapping. Knobs the script has no flag for go through `engine_option`, which
+# is handed to the worker's `[model.engine.options]` verbatim (unknown keys
+# make the server refuse to boot, so only put keys the worker knows there).
+#
+# The smoke tier runs `default`: pie against its own history, engine defaults
+# untouched so a regression in a default is visible. `competitive` is what a
+# baseline comparison runs and mirrors what the baselines are given.
+
+default:
+  knobs:
+    gpu_mem_util:
+      value: 0.90
+      rationale: >
+        Same fraction handed to vLLM (gpu_memory_utilization) and SGLang
+        (mem_fraction_static). Sizes only the planner's logical KV budget on
+        cuda_native; --total-pages is the hard cap and stays unset so the
+        engine derives it, as it would in a deployment.
+    report_timing:
+      value: true
+      rationale: >
+        Per-token client stamps (TTFT, inter-token gaps) are what PerfMetrics
+        reads decode tok/s and ITL from. vLLM and SGLang run with the same
+        flag so all three are measured from the client vantage.
+    pretokenized_prompts:
+      value: false
+      rationale: >
+        Off: pie tokenizes in the guest, which is part of what the serving
+        path costs. Turn on to isolate the engine from the tokenizer.
+
+competitive:
+  extends: default
+  knobs:
+    # Engine-side admission = client concurrency (pie_bench derives it from
+    # --concurrency; nothing to pass). max_forward_requests bounds the batch
+    # the engine can fire; leave it at the script default (512) unless a
+    # shape exceeds it.
+    engine_option:
+      value: {}
+      rationale: >
+        Pass-through to [model.engine.options]. A value of "$pie_sku" is
+        replaced by the artifact's pie_sku, but note the worker takes the SKU
+        as [model] sku, not as an engine option, and pie_bench.py has no flag
+        for it (see the TODO in PieEngine.engine_args) - so leave this empty
+        until the script grows --sku.
+  backend:
+    metal:
+      knobs:
+        gpu_mem_util:
+          value: null
+          rationale: >
+            The Metal engine sizes its own heap and has no memory-fraction
+            knob (pie_bench ignores --gpu-mem-util for --engine metal).
+        max_forward_requests:
+          value: "$concurrency"
+          rationale: >
+            On Metal the fleet width is derived from max_forward_requests and
+            the state-slot pool is sized 2x it (pie_bench); a value narrower
+            than the offered concurrency seats fewer lanes than the run holds
+            open.
+  workload_kind:
+    concurrency:
+      knobs: {}
+    prefix_shared:
+      knobs: {}

@@ -1,0 +1,60 @@
+# SGLang recipes. Knob -> flag mapping lives in SglangEngine.engine_args;
+# every knob maps onto a `--sglang-*` flag from benches/common.py or a flag
+# benches/sglang_bench.py parses.
+
+default:
+  knobs:
+    gpu_mem_util:
+      value: 0.90
+      rationale: mem_fraction_static; same fraction as pie's gpu_mem_utilization.
+    cuda_graph_max_bs:
+      value: "$concurrency"
+      rationale: >
+        SGLang's default graph ceiling is a hardware-tier heuristic (32 on an
+        L40S at tp<4). A decode batch above it silently runs eager and the
+        run measures launch overhead, not the engine: 4,642 vs 14,042 tok/s
+        on the same cell. vLLM captures up to max_num_seqs, so SGLang is given
+        the same ceiling - the shape's concurrency (1 for latency shapes).
+    report_timing:
+      value: true
+      rationale: >
+        Streams every request so TTFT / inter-token gaps are stamped on
+        delivery, the vantage pie and vLLM are measured from.
+    page_size:
+      value: 16
+      rationale: >
+        SGLang's default page is 1 token; 16 matches pie's page and vLLM's
+        block so KV fragmentation is comparable across the three.
+
+competitive:
+  extends: default
+  knobs:
+    attention_backend:
+      value: null
+      rationale: >
+        Unset leaves SGLang's own per-arch choice (fa3 on Hopper, flashinfer
+        elsewhere), which is what a deployment gets. Override per arch below
+        when the auto pick is known to trail.
+    radix_cache:
+      value: false
+      flag: none
+      rationale: >
+        sglang_bench.py hard-codes disable_radix_cache=True and has no flag to
+        turn it on, so the prefix_shared shape cannot give SGLang its cache
+        yet. TODO(pie/benches): add --sglang-radix-cache. Recorded, not emitted.
+    torch_compile:
+      value: false
+      flag: none
+      rationale: >
+        No --sglang-enable-torch-compile flag exists in the script. TODO(pie/benches).
+        Recorded, not emitted.
+  arch:
+    hopper:
+      knobs: {}
+  workload_kind:
+    prefix_shared:
+      knobs:
+        radix_cache:
+          value: true
+          flag: none
+          rationale: Would be on for the prefix shape once the script exposes it.

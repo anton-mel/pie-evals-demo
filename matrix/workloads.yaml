@@ -1,0 +1,105 @@
+# Workload shapes. All synthetic shapes are pre-tokenized with a fixed seed
+# so every engine sees byte-identical token ids (prompt-token parity is then
+# checked, not hoped for). `params` are consumed by
+# pie_evals.node.workloads.<kind>. `est_minutes` feeds the budget check.
+workloads:
+  # -- harness self-check: the engine against itself, must read ~0 difference
+  - id: control-aa
+    kind: control_aa
+    params: {prefill: 128, decode: 64, rounds: 2}
+    tiers: [smoke, nightly, weekly]
+    est_minutes: 0.5
+
+  # -- single stream (the headline on Macs; host-in-the-loop efficiency)
+  - id: ss-128-64
+    kind: single_stream
+    params: {prefill: 128, decode: 64}
+    tiers: [smoke, nightly, weekly]
+    est_minutes: 0.5
+  - id: ss-512-256
+    kind: single_stream
+    params: {prefill: 512, decode: 256}
+    tiers: [nightly, weekly]
+    est_minutes: 1
+
+  # -- concurrency sweep (closed loop; num_requests = 4 x concurrency as in pie-bench)
+  - id: c8
+    kind: concurrency
+    params: {concurrency: 8, num_requests: 32, prefill: 128, decode: 128}
+    tiers: [smoke, nightly, weekly]
+    est_minutes: 1
+  - id: c32
+    kind: concurrency
+    params: {concurrency: 32, num_requests: 128, prefill: 128, decode: 128}
+    tiers: [smoke, nightly, weekly]
+    est_minutes: 1.5
+  - id: c64
+    kind: concurrency
+    params: {concurrency: 64, num_requests: 256, prefill: 128, decode: 256}
+    tiers: [nightly, weekly]
+    est_minutes: 3
+  - id: c256
+    kind: concurrency
+    params: {concurrency: 256, num_requests: 1024, prefill: 128, decode: 256}
+    tiers: [nightly, weekly]
+    est_minutes: 6
+
+  # -- long context
+  - id: lc-2k-128
+    kind: long_context
+    params: {prefill: 2048, decode: 128, concurrency: 1}
+    tiers: [smoke, nightly, weekly]
+    est_minutes: 1
+  - id: lc-8k-128
+    kind: long_context
+    params: {prefill: 8192, decode: 128, concurrency: 1}
+    tiers: [smoke, nightly, weekly]
+    est_minutes: 1.5
+  - id: lc-32k-128
+    kind: long_context
+    params: {prefill: 32768, decode: 128, concurrency: 1}
+    tiers: [nightly, weekly]
+    est_minutes: 3
+  - id: lc-128k-64
+    kind: long_context
+    params: {prefill: 131072, decode: 64, concurrency: 1}
+    tiers: [weekly]
+    est_minutes: 8
+
+  # -- prefix sharing (system prompt + variants); exercises prefix cache / prefix-tree
+  - id: prefix-1k-x64
+    kind: prefix_shared
+    params: {shared_prefix: 1024, unique_suffix: 64, variants: 64, decode: 64, concurrency: 16}
+    tiers: [smoke, nightly, weekly]
+    est_minutes: 1.5
+
+  # -- length mix (lognormal, ShareGPT-like) closed loop
+  - id: mixed-256
+    kind: mixed_length
+    params: {num_requests: 256, concurrency: 32, prompt_lognormal: [6.0, 0.8], output_lognormal: [5.0, 0.7], max_prompt: 4096, max_output: 1024}
+    tiers: [smoke, nightly, weekly]
+    est_minutes: 3
+
+  # -- KV oversubscription (contention shape D): more lanes than the pool holds
+  - id: kv-oversub
+    kind: concurrency
+    params: {concurrency: 128, num_requests: 256, prefill: 2048, decode: 512, kv_oversubscribe: true}
+    tiers: [nightly, weekly]
+    est_minutes: 6
+
+  # -- real traffic replay (open loop, arrival timestamps honored)
+  - id: replay-azure-2024
+    kind: replay
+    params: {trace: azure-llm-2024, minutes: 10, speedup: 1.0}
+    tiers: [weekly]
+    est_minutes: 15
+  - id: replay-mooncake
+    kind: replay
+    params: {trace: mooncake-conv, minutes: 10, speedup: 1.0}
+    tiers: [weekly]
+    est_minutes: 15
+  - id: replay-burstgpt
+    kind: replay
+    params: {trace: burstgpt-v2, minutes: 10, speedup: 1.0}
+    tiers: [weekly]
+    est_minutes: 15

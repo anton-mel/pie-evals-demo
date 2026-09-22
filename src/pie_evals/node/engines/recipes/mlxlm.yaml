@@ -1,0 +1,48 @@
+# mlx-lm recipes. benches/mlx_bench.py spawns `python -m mlx_lm server`
+# itself; --decode-concurrency comes from --concurrency, the rest from the
+# flags below. Knob -> flag mapping is in MlxlmEngine.engine_args.
+
+default:
+  knobs:
+    prompt_cache_size:
+      value: 0
+      rationale: >
+        0 keeps the prompt cache out of the measurement, which is what every
+        other harness here does with its cache on non-prefix shapes.
+    prompt_concurrency:
+      value: 8
+      rationale: mlx-lm's default prefill batch; pinned so a default change is visible.
+    startup_timeout:
+      value: 600
+      rationale: A 30B 4-bit checkpoint takes minutes to page in on a laptop-class Mac.
+    server_module:
+      value: null
+      rationale: >
+        None = `mlx_lm server`. Gemma 4's MTP drafter lives in mlx_vlm.server;
+        set per family when a speculative mode asks for it.
+    server_extra:
+      value: []
+      rationale: Extra server flags, joined into --server-extra.
+
+competitive:
+  extends: default
+  knobs:
+    decode_concurrency:
+      value: "$concurrency"
+      flag: none
+      rationale: >
+        mlx_bench.py sets --decode-concurrency from --concurrency itself (1 in
+        latency mode). Recorded, not emitted.
+    prompt_concurrency:
+      value: 8
+      rationale: >
+        mlx-lm prefills up to this many prompts as one batch; wider than the
+        default gains nothing on unified memory and narrower serialises TTFT.
+  workload_kind:
+    prefix_shared:
+      knobs:
+        prompt_cache_size:
+          value: 64
+          rationale: >
+            The prefix shape is 64 variants of one prefix; a cache that holds
+            them all is mlx-lm's equivalent of pie's prefix tree for this run.

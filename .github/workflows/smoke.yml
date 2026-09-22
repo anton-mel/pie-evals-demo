@@ -1,0 +1,19 @@
+# Smoke tier: pie against its own history on small models + miniatures, many
+# workload shapes, every inferlet on one representative shape. Runs per pie
+# commit (repository_dispatch from the pie repo's CI, or manual).
+name: smoke
+on:
+  workflow_dispatch:
+    inputs:
+      pie_commit: { description: "pie commit to test", required: true }
+      platforms: { description: "comma-separated platform ids (default: all smoke platforms)", required: false, default: "" }
+  repository_dispatch:
+    types: [pie-commit]
+jobs:
+  run:
+    uses: ./.github/workflows/tier.yml
+    with:
+      tier: smoke
+      pie_commit: ${{ github.event.inputs.pie_commit || github.event.client_payload.pie_commit }}
+      platforms: ${{ github.event.inputs.platforms || '' }}
+    secrets: inherit

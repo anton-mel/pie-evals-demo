@@ -1,0 +1,53 @@
+# Explicit support declarations. Anything matched here becomes a
+# `declared_unsupported` cell: it is kept in the matrix and shown in the
+# coverage report, but not run. Anything NOT matched here that then fails
+# is a `fail` — which is the point: the wiki's "real LLMs at tp>1 are blocked
+# by register_program" is a fail, not an unsupported.
+#
+# Selector fields: engine, backend, os, arch, platform, family, scheme,
+# source_format, artifact_kind, program, program_category, workload, tp
+# (int or ">1"/">=4"), spec_dec. All listed fields must match.
+unsupported:
+  - when: {backend: metal, tp: ">1"}
+    reason: "no tensor parallel on Metal"
+  - when: {backend: vulkan, tp: ">1"}
+    reason: "no tensor parallel on Vulkan"
+  - when: {backend: wgpu, tp: ">1"}
+    reason: "no tensor parallel on wgpu"
+  - when: {engine: pie, backend: cuda, spec_dec: dflash2}
+    reason: "CUDA engine exposes no draft head (Metal only) — wiki speculative-decoding/"
+  - when: {scheme: fp8, arch: apple7}
+    reason: "no fp8 path on Apple7"
+  - when: {scheme: fp8, arch: apple8}
+    reason: "no fp8 path on Apple8"
+  - when: {scheme: fp8, arch: apple9}
+    reason: "no fp8 path on Apple9"
+  - when: {scheme: mlx_2bit, engine: vllm}
+    reason: "vLLM does not load MLX quantized checkpoints"
+  - when: {scheme: mlx_2bit, engine: sglang}
+    reason: "SGLang does not load MLX quantized checkpoints"
+  - when: {engine: llamacpp, tp: ">1"}
+    reason: "llama.cpp layer-split is not tensor parallel; compared at tp1 only"
+  - when: {engine: mlxlm, tp: ">1"}
+    reason: "mlx-lm is single device"
+  - when: {program_category: diffusion, engine: vllm}
+    reason: "not an LLM serving workload"
+  - when: {program_category: diffusion, engine: sglang}
+    reason: "not an LLM serving workload"
+  - when: {program_category: diffusion, engine: llamacpp}
+    reason: "not an LLM serving workload"
+  - when: {program_category: diffusion, engine: mlxlm}
+    reason: "not an LLM serving workload"
+  - when: {family: mini_dit, program_category: serving}
+    reason: "diffusion model; no text serving path"
+  - when: {family: mini_dit, program_category: speculative}
+    reason: "diffusion model"
+  - when: {family: mini_dit, program_category: kv_policy}
+    reason: "diffusion model"
+  - when: {family: mini_dit, program_category: adapter}
+    reason: "diffusion model"
+
+# Fit rule: artifact.expected_gib * fit_factor must be <= platform.memory_gib
+# (per TP group). Cells that do not fit are declared_unsupported with reason
+# "does not fit", never silently dropped.
+fit_factor: 1.25

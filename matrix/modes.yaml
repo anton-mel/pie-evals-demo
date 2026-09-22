@@ -1,0 +1,15 @@
+# Execution modes. TP modes only apply on platforms with count >= tp and
+# tp_capable. Speculative modes are attached by the programs that need them.
+modes:
+  - id: tp1
+    tp: 1
+    tiers: [smoke, nightly, weekly]
+  - id: tp2
+    tp: 2
+    tiers: [smoke, nightly, weekly]
+  - id: tp4
+    tp: 4
+    tiers: [nightly, weekly]
+  - id: tp8
+    tp: 8
+    tiers: [weekly]

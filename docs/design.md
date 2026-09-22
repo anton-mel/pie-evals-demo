@@ -1,0 +1,351 @@
+# pie-evals — design
+
+Benchmark & evaluation framework for pie. Two goals, one structure:
+
+1. **Performance lead, everywhere.** Against vLLM / SGLang / llama.cpp / mlx-lm,
+   on every supported platform, across workload shapes, model sizes and
+   architectures, quantization schemes and tensor-parallel degrees.
+2. **Accuracy preserved.** Token-level parity with a reference and unchanged
+   evaluation-benchmark scores.
+
+And as a by-product: errors, missing coverage (a platform where something
+does not run, a regression) are surfaced instead of discovered by hand.
+
+The wiki pages this design is built on: `pie-bench.md` (the L40S three-way
+protocol and its two discarded rounds), `macos-bench.md` (the Apple Silicon
+protocol, what invalidates a run), `tp-verification.md` (first-divergence +
+logit-gap adjudication), `alto/streaming-verification-l40s.md`,
+`issues/sep-4.md` (six retracted findings), `plex/` (workload survey).
+
+---
+
+## 1. The cell
+
+```
+cell = (engine@version, platform, artifact, workload, program, mode)
+```
+
+| component | what it is | declared in |
+|---|---|---|
+| engine | pie, vllm, sglang, llamacpp, mlxlm | `matrix/engines.yaml` |
+| platform | hardware + backend: L40S×1/×2, RTX PRO 6000×4, H100 SXM×4, M1 Max, M4 Pro … | `matrix/platforms.yaml` |
+| artifact | base model × quant scheme × source format × kind(full \| miniature) | `matrix/models.yaml` |
+| workload | shape: single stream, concurrency sweep, long context, prefix-shared, length mix, KV oversubscription, trace replay, control A/A | `matrix/workloads.yaml` |
+| program | the inferlet: `text-completion-bench` is the serving path; every other inferlet is its own ETA program and its own cell | `matrix/programs.yaml` |
+| mode | tp degree, speculative mode | `matrix/modes.yaml` |
+
+Every measurement is a `Record` attached to one cell (`schema/record.py`).
+A cell is always in exactly one status:
+
+| status | meaning |
+|---|---|
+| `pass` | ran, numbers read, gates passed |
+| `fail` | ran or tried to; classified `ErrorClass` (load_fail, crash, hang, oom, doesnt_fit, gate_fail, harness_invalid, input_mismatch) |
+| `declared_unsupported` | listed in `matrix/support.yaml` (or fails the fit rule); shown, not run |
+| `not_run` | expected to work, never scheduled or never reached |
+| `noisy` | ran, but the harness refuses to read the number (CoV over policy, control A/A disagreed, thermal event, GPU not drained) |
+
+The coverage report is the list of cells whose status is not `pass` and not
+`declared_unsupported`. The wiki's "real LLMs at tp>1 are blocked by
+`register_program`" is therefore a `fail`, not an unsupported — the first
+run of the framework is expected to show it.
+
+### Expansion
+
+`orchestrate/matrix.py` takes the product of the six components and prunes
+in three steps: *inapplicable* combinations are not cells (an engine that
+cannot load the format, TP on a one-device platform, a pie-only program on a
+baseline); *declared unsupported* combinations stay as cells; tiers are the
+intersection of each component's `tiers`, adjusted by `matrix/suites.yaml`
+`include`/`exclude` selectors (`not_<field>` negates, `tp: ">1"` compares).
+The expander enforces a per-platform time budget per tier from
+`est_minutes`; `pie-evals check` fails CI when a tier grows past it.
+
+Current size (from `pie-evals expand`): ~21.7k cells, ~3.8k declared
+unsupported, ~650 in smoke, ~12.8k in nightly.
+
+---
+
+## 2. Performance
+
+**Same client.** Every adapter drives the bench scripts in the pinned pie
+checkout (`benches/pie_bench.py`, `vllm_bench.py`, `sglang_bench.py`,
+`llamacpp_bench.py`, `mlx_bench.py`), which share `benches/common.py`: one
+prompt construction, one arrival schedule, one JSON envelope. The adapter
+builds argv, runs under a timeout, classifies failure, lifts the JSON into
+`PerfMetrics`. (`node/engines/base.py`.)
+
+**Input parity is checked, not assumed.** Shapes are defined in tokens and
+realised as seeded word blocks (`node/workloads/synthetic.py`); after a run
+the prompt/output token totals every engine reported are compared and a
+mismatch marks the cell `input_mismatch` — the tok/s column is then not a
+comparison. (Follow-up in pie: `--prompt-tokens-file` on `common.py`, so
+shapes are pre-tokenized once.)
+
+**Protocol, as code.**
+- GPU drained between engine processes (`preflight.await_free_gpu`; vLLM's
+  `EngineCore` child is looked for by name).
+- One model per process; workloads and programs interleaved inside it; a
+  fresh process per model.
+- macOS: AC power, Low Power Mode off, thermal log compared before/after
+  each model, display count recorded; any change invalidates the model's
+  cells (`preflight.Preflight.after_model`).
+- Baseline knobs that silently change the comparison are recipe entries
+  with a rationale (`node/engines/recipes/*.yaml`): SGLang's
+  `--sglang-cuda-graph-max-bs <concurrency>` (the wiki's 4,642 → 14,042
+  tok/s), vLLM's `max-num-seqs`, llama.cpp's `-fa on`, mlx-lm's readback
+  barrier. Every baseline runs its **competitive** recipe; a `default`
+  cell is kept nightly so the report can say what tuning bought.
+- **Control A/A**: the first cell of every process is the engine against
+  itself; if the two arms disagree beyond policy the rest of the process is
+  `harness_invalid`. Six of the wiki's retracted findings were the harness.
+
+**Statistics.** Median of rounds; CoV recorded; a cell whose rounds spread
+more than `cov_noisy_threshold` (2%) is `noisy`. Regression detection is
+noise-aware: the threshold is the cell's own historical CoV × σ (default 3),
+never a fixed percentage (`node/metrics/stats.py`). **Adaptive repetition**
+(smoke): one round; only a value outside the historical band triggers two
+confirmation rounds.
+
+**Metrics.** decode tok/s (single-stream headline), aggregate output tok/s
+(concurrency headline), prefill tok/s, TTFT / ITL / latency p50 & p99,
+resident GiB (LM-only), load time, and `ms_per_token_per_layer` so miniature
+cells can be eyeballed against full ones. pie's internal counters (device
+idle %, host µs per step, guest turnaround, ETA compile) ride along in
+`counters` — they are lower-noise than tok/s and are where an ETA regression
+shows first.
+
+---
+
+## 3. Accuracy
+
+Three tiers; an upper tier only runs when the lower passed. Miniature
+artifacts are `skipped_miniature` by construction and can never `pass`.
+
+| tier | what | reference | data |
+|---|---|---|---|
+| **T0** token parity | greedy, `ignore_eos`, 8 fixed prompts (incl. a 1k-token one); first divergence; every divergence teacher-forced and adjudicated by logit gap: ≤ 1 bf16 ulp (0.125) with both candidates top-2 is benign, else FAIL | HF transformers on Linux, mlx-lm on macOS, on the **same** weights | `node/accuracy/prompts.py` |
+| **T1** distribution | mean KL, top-k agreement, perplexity vs reference | same | wikitext-2 slice + mixed corpus |
+| **T2** tasks | GSM8K, HumanEval, IFEval, MATH-500 (generation); MMLU/ARC/HellaSwag (loglikelihood) | same quant weights, same harness, same sample; bootstrap CI on the difference | stratified 200/nightly, full/weekly |
+
+Rules:
+- The reference is the **same quantized weights** on a reference engine,
+  never a published number. `gate.SAME_WEIGHTS_REFERENCE` maps scheme →
+  reference; a scheme with no same-weights reference uses a declared
+  *degradation budget* vs the bf16 artifact (`ArtifactSpec.degradation_budget`).
+- **Cross-backend parity** is the cheapest strong gate: the same `.zt` on
+  CUDA / Metal / Vulkan / wgpu must agree token-for-token (the wiki's Metal
+  rounding defect was found exactly this way, with no external reference).
+- The reference tokenizes the same rendering as `benches/common.py`
+  (`gate.render_like_bench`); if the engine's reported prompt-token count
+  differs from the reference's, the gate is `skipped_no_reference` with the
+  detail — a template difference must never be reported as a model failure.
+- The quant-block census (`provenance.quant_block_hash`) hashes the **whole**
+  quantization block including per-tensor overrides: the router-at-8-bit
+  defect that produced wrong tokens for a week came from reading only the
+  top-level entry.
+
+**Blocked:** per-token logprobs. `text-completion-bench` returns token ids,
+text and timing only; logits are a trace-time intrinsic inside the ETA
+program. T1 and loglikelihood T2 need a `logprob-probe` inferlet that
+gathers the chosen token's logprob in-graph and returns it through a channel
+(see `tests/inferlets/entropy-adaptive-temperature` for the pattern). Until
+it exists T2 is generation-only.
+
+---
+
+## 4. Programs (inferlets) as a coverage axis
+
+An ETA regression is independent of model and hardware: the compiler
+lowers a different prologue/epilogue and one inferlet gets slower on the
+same GPU. So `program` is its own axis. Categories in `programs.yaml`:
+serving (`text-completion-bench`, `prefill-rows`, `prefix-tree-kv-cache`),
+speculative (dflash, mtp, cacheback/ngram, eagle — gate = acceptance rate),
+kv_policy (h2o, snapkv, snapkv-eviction, quest — gate = token parity after
+eviction), adapter (lora-probe, CFG), diffusion (parity gates = cosine ≥
+0.9999). In smoke each non-serving program runs on exactly one
+representative shape; nightly runs its full list. Baseline cells exist only
+where a comparable feature exists (`baseline_equivalents`); otherwise the
+baseline is pie's own history.
+
+---
+
+## 5. Miniatures
+
+Big architectures are benchmarked cheaply as *miniatures* built by pie's
+`benches/shrink_checkpoint.py`: width dimensions kept exactly (every kernel
+sees production shapes), a handful of source layers chosen to cover the
+family's per-layer pattern in whole periods, the first N routed experts,
+optional repeat. The result is a real checkpoint that loads unmodified in
+pie and vLLM, placed in the HF cache as a snapshot named by the recipe tag
+(`node/miniature.py`).
+
+What is preserved: per-layer kernel shapes, TP communication pattern, ETA
+program structure — so per-layer time and ETA regressions are valid.
+What is not: memory footprint, so high-concurrency throughput is
+over-estimated. Hence: accuracy is always skipped, `ms_per_token_per_layer`
+is recorded, regression comparison is only against the same recipe hash,
+and the report never lines a miniature up against a full cell. Miniatures
+are what make TP coverage cheap: an 8-layer DSV4 on 2×L40S exercises every
+sharding code path per commit.
+
+---
+
+## 6. Quantization and TP
+
+Quantization is part of the artifact (scheme × kv dtype × source format);
+pie carries it in the SKU name (`ArtifactSpec.pie_sku`). The (scheme × GPU
+generation) table is where `declared_unsupported` and `fail` must be kept
+apart (FP4 native only on Blackwell; MXFP4 on Ada takes the dequant path
+that produced the gpt-oss metadata bug). Each scheme has one *home*
+baseline: bf16/fp8 → vLLM & SGLang, GGUF → llama.cpp, mlx → mlx-lm.
+
+TP is a mode (1/2/4/8) × interconnect (PCIe vs NVLink) × NCCL version. All
+TP cells run under a timeout because a rank that throws leaves its peers
+in NCCL forever — a hang is only ever observed as a timeout. Recorded per
+cell: scaling efficiency (tpN ÷ N×tp1) and latency speedup; the only
+absolute expectation is the cell's own history. `NCCL_*` env is recorded and
+applied identically to pie and baselines.
+
+Product coverage by tier: smoke = family miniature × {bf16, one 4-bit} ×
+tp2 on CUDA; nightly = small models × all schemes × tp{1,2,4}; weekly = big
+models × main schemes × tp4/8 on NVLink.
+
+---
+
+## 7. Datasets
+
+Performance: synthetic pre-tokenized shapes (seeded) for everything fast;
+trace replay (Azure LLM 2024, BurstGPT v2, Mooncake) weekly, open-loop with
+arrivals honoured — the only honest way to read TTFT/ITL p99. Prefix
+sharing is synthetic (shared system block + N variants). Agentic shapes are
+synthetic until SWE-agent trajectory replay lands (the plex survey found no
+public source with both arrivals and a workflow DAG).
+
+Accuracy: T0 fixed prompts; T1 wikitext-2 + mixed corpus; T2 as in §3, with
+stratified seeded subsets. Dataset hashes go into provenance.
+
+---
+
+## 8. Tiers and speed
+
+| tier | trigger | what | budget |
+|---|---|---|---|
+| smoke | every pie commit | pie only, vs its own history; small real models + miniatures; ~10 shapes; every program once; tp2 on the 2-GPU platform | ≤ 120 min per platform, adaptive repetition |
+| nightly | cron | subset of full; baselines at competitive + default recipes; all schemes; tp1/2/4 | 8 h per platform |
+| weekly | cron | everything: big models, NVLink TP, replay traces, full T2 | 48 h per platform |
+
+Speed levers in smoke: one process per model with all shapes inside it,
+short outputs (64–128 tokens), adaptive repetition, internal counters as
+the first regression signal, baselines excluded, pie builds cached by
+(commit, features) on the network volume, warm pod during working hours.
+**Escalation**: a confirmed smoke regression in a family promotes that
+family's nightly cells into the next nightly run (`suites.yaml`).
+**Calibration**: `reports/calibration.md` compares `est_minutes` with
+recorded durations; the budgets are provisional until the first runs.
+
+---
+
+## 9. Where things run
+
+Two halves, one repo, decoupled by a CLI boundary:
+
+```
+node/         runs on the machine under test. Input: one JobSpec JSON. Output: records.jsonl + logs.
+orchestrate/  expand-matrix → jobs, launch-pod, collect, report, watch-baselines. CLIs, no daemon.
+```
+
+`node/` does not know about GitHub, RunPod or queues. Today the
+orchestrator is **GitHub Actions**; every node is a **self-hosted runner**
+with only outbound connectivity:
+
+- Macs are resident runners (`infra/mac/setup-runner.sh`), one runner per
+  machine, labels = platform id.
+- RunPod pods are ephemeral runners: `pie-evals launch-pod` creates the pod
+  with a startup script that registers an ephemeral runner carrying the
+  platform's labels; the tier workflow's bench job lands on it; teardown is
+  `if: always()` and `reap.yml` kills orphans hourly (the pod version of the
+  wiki's 41 GB `EngineCore` that never died). HF cache and build cache live
+  on a network volume in a fixed region.
+- Bookkeeping is git: node outputs come back as job artifacts, `collect`
+  lifts them into `store/records/<tier>/<month>/<run>.parquet` and renders
+  `reports/`; both are committed. Provenance is mandatory — a record that
+  cannot say what it measured is refused by the store.
+- Baseline freshness: `watch-baselines` checks PyPI/GitHub against the pins
+  in `engines.yaml`; a newer release re-runs baseline cells only (their
+  results depend on engine version, not pie commit, and are cached).
+
+When the decision loop (adaptive rounds, noisy-pod reassignment, bisect,
+priority) outgrows workflow steps, a small resident coordinator calls the
+same CLIs. Nothing in `node/` changes.
+
+**Pinned pie.** Jobs carry `pie_commit`; the node checks it out and builds
+with the platform's feature (`cuda|metal|vulkan|wgpu`), cached by commit —
+which is also what makes automated bisect possible later.
+
+---
+
+## 10. Repository layout
+
+```
+matrix/           declarations: engines, platforms, models, workloads, programs, modes, support, suites
+src/pie_evals/
+  schema/         Cell, JobSpec, Record (+ parquet schema)
+  node/           runner, engines/ (adapters + recipes), workloads/, metrics/, accuracy/, miniature, preflight, provenance
+  orchestrate/    matrix, jobs, store, report, runpod, baselines, cli
+store/records/    parquet, append-only, committed
+reports/          rendered markdown/json, committed
+infra/            RunPod runner image, Mac runner setup
+.github/workflows tier.yml (reusable), smoke/nightly/weekly, collect, reap, ci
+```
+
+---
+
+## 11. Findings from the first real run (2026-09-22)
+
+Validated end to end on this box (1× RTX PRO 4500 Blackwell, CUDA 13.0): pie
+built at `fa2666956` with the `cuda` feature, the embedded-engine wheel and
+the `text-completion-bench` wasm built, Qwen3-0.6B weights in the HF cache,
+and the node runner driving the real `benches/pie_bench.py`. Confirmed
+working: matrix expansion and budgets, job generation with one-model-per-
+process grouping, the parquet store with mandatory provenance, all reports,
+the control-A/A gate (a failed control isolates the rest of the process as
+`harness_invalid`), and failure classification.
+
+Two things the run surfaced, both for the pie author to decide:
+
+1. **The shipped SKU catalog on `fa2666956` has 7 rows, all large/special
+   models (dsv4, flux2, qwen36-27b, gpt-oss, …). A plain small dense
+   checkpoint — Qwen3-0.6B — matches none**, so both the embedded bench and
+   `pie model import` refuse it ("no SKU this build ships claims this
+   checkpoint"), even though `tests/inferlets/conftest.py` still defaults to
+   `Qwen/Qwen3-0.6B`. The harness caught and classified this as `load_fail`,
+   which is the framework behaving correctly, but every small-model cell in
+   `matrix/models.yaml` will be `fail` until the catalog carries their SKUs
+   or the models are imported with an explicit one. **Decision needed:** the
+   SKU names for the smoke-tier small models, or the intended import flow.
+2. **`benches/pie_bench.py` has no `--sku` flag** (its `ModelConfig` omits
+   the field), so a SKU cannot be passed through the bench even though
+   `ArtifactSpec.pie_sku` is ready to carry it. Once (1) is settled this flag
+   is the last wire.
+
+### CRITICAL fix landed
+`preflight.kill_leftovers` used `pkill -f <name>`; with pie's name it matched
+the runner, its shell and the interactive session (whose cwd contains "pie")
+and killed them — it happened twice. It now kills only PIDs nvidia-smi
+reports as holding a GPU, matched by executable basename, never a PID in our
+ancestor/process-group set, and `pkill` is banned by a test
+(`tests/test_preflight.py`).
+
+## 11. Open items
+
+- Small-model SKU catalog / import flow on the current pie commit (blocks every smoke small-model cell — see §11).
+- `benches/pie_bench.py --sku` so `ArtifactSpec.pie_sku` can reach the engine.
+- `logprob-probe` inferlet in pie (unblocks T1 and loglikelihood T2).
+- `--prompt-tokens-file` and `--trace` on `benches/common.py` (pre-tokenized
+  shapes; true trace replay instead of Poisson at the trace's mean rate).
+- Confirm HF repo ids for the newer families in `models.yaml`; fill in the
+  actual Mac fleet in `platforms.yaml`; calibrate `est_minutes`.
+- Device-tuning gate for new Apple chips (`pie config tune` before the first
+  benchmark on a chip not in the tuning table).
+- Auto-bisect on confirmed regression (builds are already cached by commit).

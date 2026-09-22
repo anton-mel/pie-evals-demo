@@ -1,0 +1,30 @@
+name: nightly
+on:
+  schedule: [{ cron: "0 17 * * *" }]   # 02:00 KST; cron start is best-effort, records carry node timestamps
+  workflow_dispatch:
+    inputs:
+      pie_commit: { description: "pie commit (default: origin/main)", required: false, default: "" }
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs: { pie_commit: "${{ steps.c.outputs.commit }}", newer: "${{ steps.b.outputs.newer }}" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv venv && uv pip install -e ".[orchestrate]"
+      - id: c
+        run: |
+          C="${{ github.event.inputs.pie_commit }}"
+          [ -z "$C" ] && C=$(git ls-remote https://github.com/pie-project/pie.git refs/heads/main | cut -f1)
+          echo "commit=$C" >> "$GITHUB_OUTPUT"
+      - id: b
+        name: newer baseline releases?
+        run: .venv/bin/pie-evals watch-baselines
+  # Same launch/bench/teardown shape as smoke; factored through workflow_dispatch of smoke.yml would lose
+  # the tier, so the tier workflows are kept explicit. (Kept short here: a `tier` input makes smoke.yml reusable.)
+  run:
+    needs: resolve
+    uses: ./.github/workflows/tier.yml
+    with: { tier: nightly, pie_commit: "${{ needs.resolve.outputs.pie_commit }}" }
+    secrets: inherit

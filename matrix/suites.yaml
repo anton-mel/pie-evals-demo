@@ -1,0 +1,54 @@
+# Tier composition. The base rule is the intersection of `tiers` across every
+# component of a cell (engine, platform, artifact, workload, program, mode).
+# `exclude` removes cells from a tier; `include` forces cells in. Selectors
+# use the same fields as support.yaml. `budget_minutes` is the per-platform
+# budget the expander checks against est_minutes (a violation is an error,
+# not a warning — the smoke tier must stay fast).
+suites:
+  smoke:
+    # Target: one GPU or one Mac finishes the tier well inside two hours. est_minutes
+    # are provisional until calibrated from recorded durations (reports/calibration.md).
+    # Enforced: `pie-evals check` fails when smoke outgrows this.
+    budget_minutes_per_platform: 120
+    enforce_budget: true
+    exclude:
+      # every non-serving program runs on exactly one representative shape in smoke;
+      # the full shape list is nightly's job
+      - {program_category: speculative, not_workload: [ss-128-64]}
+      - {program_category: adapter, not_workload: [ss-128-64]}
+      - {program_category: kv_policy, not_workload: [lc-2k-128]}
+      - {program: prefill-rows, not_workload: [lc-2k-128]}
+      - {program: prefix-tree-kv-cache, not_workload: [prefix-1k-x64]}
+      # 8k context and the length mix only on the two cheapest dense models in smoke
+      - {workload: lc-8k-128, not_artifact: [qwen3-0.6b-bf16, qwen3.5-0.8b-bf16]}
+      - {workload: mixed-256, not_artifact: [qwen3-0.6b-bf16, qwen3.6-35b-a3b-mini8]}
+      - {workload: c32, not_artifact: [qwen3-0.6b-bf16, llama-3.2-1b-bf16, qwen3.6-35b-a3b-mini8]}
+      # a multi-GPU platform only runs tp>1 in smoke; tp1 is the single-GPU platform's job
+      - {platform: l40s-x2, tp: 1}
+      # TP smoke is about sharding, not policies or long shapes
+      - {tp: ">=2", program_category: kv_policy}
+      - {tp: ">=2", program_category: adapter}
+      - {tp: ">=2", program_category: speculative}
+      - {tp: ">=2", not_workload: [control-aa, ss-128-64, c8, lc-2k-128]}
+      - {tp: ">=2", not_artifact: [qwen3-0.6b-bf16, qwen3.6-35b-a3b-mini8, gpt-oss-20b-mxfp4-mini6, deepseek-v4-flash-mini6, nemotron-h-mini8]}
+    # smoke never runs baselines (engines.yaml already says so); it compares pie with pie history.
+  nightly:
+    # Not enforced yet: the product is ~4x over this on a single L40S and the pruning
+    # rules are the next calibration step once real durations exist. `check` warns.
+    budget_minutes_per_platform: 480
+    enforce_budget: false
+    exclude:
+      - {engine: vllm, workload: control-aa}
+      - {engine: sglang, workload: control-aa}
+      - {engine: llamacpp, workload: control-aa}
+      - {engine: mlxlm, workload: control-aa}
+  weekly:
+    budget_minutes_per_platform: 2880
+    enforce_budget: false
+    exclude: []
+
+# Escalation: when a smoke cell of a family is flagged (regression confirmed),
+# every nightly cell of that family on the same platform is promoted into the
+# next nightly run even if it would not be scheduled that night.
+escalation:
+  on_smoke_regression_promote_family_to_nightly: true

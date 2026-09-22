@@ -1,0 +1,21 @@
+name: weekly
+on:
+  schedule: [{ cron: "0 15 * * 6" }]   # Sunday 00:00 KST
+  workflow_dispatch:
+    inputs:
+      pie_commit: { description: "pie commit (default: origin/main)", required: false, default: "" }
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs: { pie_commit: "${{ steps.c.outputs.commit }}" }
+    steps:
+      - id: c
+        run: |
+          C="${{ github.event.inputs.pie_commit }}"
+          [ -z "$C" ] && C=$(git ls-remote https://github.com/pie-project/pie.git refs/heads/main | cut -f1)
+          echo "commit=$C" >> "$GITHUB_OUTPUT"
+  run:
+    needs: resolve
+    uses: ./.github/workflows/tier.yml
+    with: { tier: weekly, pie_commit: "${{ needs.resolve.outputs.pie_commit }}" }
+    secrets: inherit
