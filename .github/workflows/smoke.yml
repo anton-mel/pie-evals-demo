@@ -2,6 +2,9 @@
 # workload shapes, every inferlet on one representative shape. Runs per pie
 # commit (repository_dispatch from the pie repo's CI, or manual).
 name: smoke
+concurrency:
+  group: smoke-${{ github.event.inputs.pie_commit || github.event.client_payload.pie_commit }}
+  cancel-in-progress: false
 on:
   workflow_dispatch:
     inputs:

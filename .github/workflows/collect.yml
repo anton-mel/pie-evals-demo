@@ -1,8 +1,10 @@
 # Bookkeeping: lift node outputs into the parquet store, render reports,
 # commit both. Reusable from every tier workflow.
+# Standalone bookkeeping (manual re-collect). tier.yml carries its own inline
+# copy because a called workflow cannot call another reusable workflow.
 name: collect
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       tier: { type: string, required: true }
 
