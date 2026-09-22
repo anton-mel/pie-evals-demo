@@ -56,3 +56,21 @@ def test_reap_uses_name_timestamp(monkeypatch):
         {"id": "other", "name": "someone-elses-pod"},
     ])
     assert runpod.reap(2 * 3600, api_key="k", dry_run=True) == ["old"]
+
+
+def test_placement_prefers_volume_dc_with_stock(monkeypatch):
+    table = {("NVIDIA L40S", "EUR-IS-1"): "None", ("NVIDIA L40S", "US-TX-3"): "Low", ("NVIDIA GeForce RTX 4090", "EUR-IS-1"): "Medium"}
+    monkeypatch.setattr(runpod, "stock", lambda g, dc, n=1, api_key=None: table.get((g, dc), "None"))
+    monkeypatch.setattr(runpod, "data_centers", lambda api_key=None: [{"id": "EU-FR-1", "storageSupport": True}])
+    vols = {"EUR-IS-1": "v1", "US-TX-3": "v2"}
+    pl = runpod.choose_placement("NVIDIA GeForce RTX 4090", 1, volumes=vols, preferred=["EUR-IS-1"])
+    assert (pl.data_center, pl.volume_id) == ("EUR-IS-1", "v1")
+    pl = runpod.choose_placement("NVIDIA L40S", 1, volumes=vols, preferred=["EUR-IS-1"])
+    assert (pl.data_center, pl.volume_id) == ("US-TX-3", "v2")  # second volume DC, has stock
+    pl = runpod.choose_placement("NVIDIA H100 PCIe", 1, volumes=vols, preferred=["EUR-IS-1"])
+    assert pl.data_center is None and pl.volume_id is None  # nowhere: unpinned
+
+
+def test_matrix_loads_runpod_layout():
+    m = Matrix.load(ROOT / "matrix")
+    assert m.runpod["volumes"]["EUR-IS-1"] == "6v0l13yth9"

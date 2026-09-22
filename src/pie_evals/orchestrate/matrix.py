@@ -79,6 +79,7 @@ class Matrix:
     escalation: dict[str, Any]
     root: Path
     global_exclude: list[dict[str, Any]] = field(default_factory=list)
+    runpod: dict[str, Any] = field(default_factory=dict)
     job_budget_minutes: float = 60.0
     kill_factor: float = 1.5
 
@@ -104,12 +105,14 @@ class Matrix:
         sup = read("support.yaml")
         rules = [SupportRule(r["when"], r["reason"]) for r in sup.get("unsupported", [])]
         suites_raw = read("suites.yaml")
+        runpod_raw = read("runpod.yaml") if (root / "runpod.yaml").exists() else {}
         suites = {k: SuiteDecl(**v) for k, v in suites_raw.get("suites", {}).items()}
         return cls(
             engines=eng, platforms=plats, artifacts=arts, workloads=wls, programs=progs, modes=modes,
             unsupported=rules, fit_factor=float(sup.get("fit_factor", 1.25)), suites=suites,
             escalation=suites_raw.get("escalation", {}), root=root,
             global_exclude=list(suites_raw.get("global_exclude", []) or []),
+            runpod=runpod_raw,
             job_budget_minutes=float(suites_raw.get("job_budget_minutes", 60)),
             kill_factor=float(suites_raw.get("kill_factor", 1.5)),
         )

@@ -55,9 +55,36 @@ def _req(method: str, path: str, body: dict | None = None, api_key: str | None =
 
 # ---- discovery -------------------------------------------------------------------
 
+GRAPHQL = "https://api.runpod.io/graphql"
+
+
+def _gql(query: str, api_key: str | None = None) -> dict:
+    """The REST API has no GPU-type listing (verified: /v1/gputypes is not in
+    its spec); discovery stays on GraphQL, which the same key authorizes."""
+    import requests
+
+    key = api_key or os.environ["RUNPOD_API_KEY"]
+    r = requests.post(GRAPHQL, params={"api_key": key}, json={"query": query}, timeout=60)
+    r.raise_for_status()
+    data = r.json()
+    if "errors" in data:
+        raise RuntimeError(json.dumps(data["errors"]))
+    return data["data"]
+
+
 def gpu_types(api_key: str | None = None) -> list[dict]:
     """GPU types: ``id`` is what a pod request's ``gpuTypeIds`` wants."""
-    return list(_req("GET", "/gputypes", api_key=api_key))
+    return _gql("{ gpuTypes { id displayName memoryInGb secureCloud communityCloud } }", api_key)["gpuTypes"]
+
+
+def data_centers(api_key: str | None = None) -> list[dict]:
+    return _gql("{ dataCenters { id name location storageSupport } }", api_key)["dataCenters"]
+
+
+def stock(gpu_type_id: str, data_center_id: str, gpu_count: int = 1, api_key: str | None = None) -> str:
+    q = f'{{ gpuTypes(input:{{id:"{gpu_type_id}"}}) {{ lowestPrice(input:{{gpuCount:{gpu_count}, secureCloud:true, dataCenterId:"{data_center_id}"}}) {{ stockStatus }} }} }}'
+    g = _gql(q, api_key)["gpuTypes"] or [{}]
+    return ((g[0].get("lowestPrice") or {}).get("stockStatus")) or "None"
 
 
 def validate_platforms(platforms: dict[str, PlatformSpec], api_key: str | None = None) -> list[str]:
@@ -68,6 +95,10 @@ def validate_platforms(platforms: dict[str, PlatformSpec], api_key: str | None =
 def network_volume(volume_id: str, api_key: str | None = None) -> dict:
     """The volume record; pods must be created in its ``dataCenterId`` to mount it."""
     return dict(_req("GET", f"/networkvolumes/{volume_id}", api_key=api_key))
+
+
+def create_network_volume(name: str, size_gb: int, data_center_id: str, api_key: str | None = None) -> dict:
+    return dict(_req("POST", "/networkvolumes", {"name": name, "size": size_gb, "dataCenterId": data_center_id}, api_key))
 
 
 # ---- startup ----------------------------------------------------------------------
@@ -110,6 +141,35 @@ sleep 60
 """
 
 
+# ---- placement --------------------------------------------------------------------
+
+@dataclass
+class Placement:
+    data_center: str | None
+    volume_id: str | None
+    stock: str
+    note: str
+
+
+def choose_placement(gpu_type_id: str, gpu_count: int, *, volumes: dict[str, str], preferred: list[str] | None = None, api_key: str | None = None) -> Placement:
+    """Pick where a pod goes: the first data center, in preference order,
+    that has stock for the GPU **and** a volume; else any storage-capable
+    data center with stock (no volume — cold caches, still a valid run);
+    else let RunPod place it anywhere (no pin, no volume)."""
+    order = [dc for dc in (preferred or []) if dc in volumes] + [dc for dc in volumes if dc not in (preferred or [])]
+    seen: dict[str, str] = {}
+    for dc in order:
+        st = stock(gpu_type_id, dc, gpu_count, api_key)
+        seen[dc] = st
+        if st not in ("None", "-", ""):
+            return Placement(dc, volumes[dc], st, f"volume DC with stock ({st})")
+    for dc in [d["id"] for d in data_centers(api_key) if d.get("storageSupport") and d["id"] not in seen]:
+        st = stock(gpu_type_id, dc, gpu_count, api_key)
+        if st not in ("None", "-", ""):
+            return Placement(dc, None, st, f"no volume in any DC with stock; using {dc} without volume (checked {seen})")
+    return Placement(None, None, "None", f"no secure stock anywhere for {gpu_type_id} x{gpu_count} right now (checked {seen}); unpinned request")
+
+
 # ---- lifecycle --------------------------------------------------------------------
 
 def create_pod(
@@ -121,10 +181,13 @@ def create_pod(
     image: str = DEFAULT_IMAGE,
     image_version: str = "latest",
     network_volume_id: str | None = None,
+    volumes: dict[str, str] | None = None,
+    preferred_data_centers: list[str] | None = None,
     container_disk_gb: int = 40,
     cloud_type: str = "SECURE",
     allowed_cuda_versions: list[str] | None = None,
     api_key: str | None = None,
+    log=print,
 ) -> PodHandle:
     if not platform.runpod_gpu_type:
         raise ValueError(f"platform {platform.id} has no runpod_gpu_type")
@@ -152,13 +215,22 @@ def create_pod(
     if allowed_cuda_versions:
         body["allowedCudaVersions"] = allowed_cuda_versions
     data_center = None
-    if network_volume_id:
+    if network_volume_id:  # explicit volume: pin to its DC, no stock check
         vol = network_volume(network_volume_id, key)
         data_center = vol.get("dataCenterId")
         body["networkVolumeId"] = network_volume_id
         body["volumeMountPath"] = VOLUME
         if data_center:
             body["dataCenterIds"] = [data_center]
+    elif volumes:
+        pl = choose_placement(platform.runpod_gpu_type, platform.count, volumes=volumes, preferred=preferred_data_centers, api_key=key)
+        log(f"placement for {platform.id}: dc={pl.data_center} volume={pl.volume_id} — {pl.note}")
+        data_center = pl.data_center
+        if pl.data_center:
+            body["dataCenterIds"] = [pl.data_center]
+        if pl.volume_id:
+            body["networkVolumeId"] = pl.volume_id
+            body["volumeMountPath"] = VOLUME
     data = _req("POST", "/pods", body, key)
     return PodHandle(id=data["id"], labels=platform.runner_labels, data_center=data_center)
 

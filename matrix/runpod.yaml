@@ -1,0 +1,14 @@
+# RunPod account layout. A network volume is bound to one data center and
+# secure-cloud stock is spread across data centers (measured 2026-09-22:
+# L40S only in US-TX-3; 4090/PRO 6000/5090 in EUR-IS-1; H100 in EU-FR-1,
+# EUR-IS-3, US-NE-1), so there is one volume per data center we use and the
+# launcher picks, per pod, a data center that (1) has stock for the GPU and
+# (2) has a volume — falling back to any data center with stock and no
+# volume (cold caches) rather than failing. Add a volume here after creating
+# it (`pie-evals runpod-volume create <DC> <GB>`).
+volumes:
+  EUR-IS-1: "6v0l13yth9"
+# prefer these first (widest GPU coverage), then any other volume DC, then anywhere
+preferred_data_centers: [EUR-IS-1, US-TX-3, EU-RO-1]
+cloud_type: SECURE
+container_disk_gb: 40

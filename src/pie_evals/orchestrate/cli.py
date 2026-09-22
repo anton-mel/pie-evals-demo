@@ -160,9 +160,12 @@ def launch_pod(obj, platform, repo, runner_pat, image, image_version, network_vo
 
     m: Matrix = obj["matrix"]
     plat = m.platforms[platform]
+    rp = m.runpod
     h = runpod.create_pod(plat, repo=repo, runner_pat=runner_pat, kill_minutes=kill_minutes or m.kill_minutes,
                           image=image or runpod.DEFAULT_IMAGE, image_version=image_version, network_volume_id=network_volume_id,
-                          allowed_cuda_versions=list(cuda_versions) or None)
+                          volumes=rp.get("volumes") or None, preferred_data_centers=rp.get("preferred_data_centers"),
+                          container_disk_gb=int(rp.get("container_disk_gb", 40)), cloud_type=str(rp.get("cloud_type", "SECURE")),
+                          allowed_cuda_versions=list(cuda_versions) or None, log=lambda m_: click.echo(m_, err=True))
     click.echo(h.id)
     if os.environ.get("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
@@ -176,6 +179,37 @@ def runpod_gpus():
 
     for g in sorted(runpod.gpu_types(), key=lambda g: str(g.get("id"))):
         click.echo(f"{g.get('id', ''):55s} {g.get('memoryInGb') or '':>4} GB  {g.get('displayName', '')}")
+
+
+@main.command("runpod-stock")
+@click.pass_obj
+def runpod_stock(obj):
+    """Secure-cloud stock per (platform GPU × volume data center) right now."""
+    from . import runpod
+
+    m: Matrix = obj["matrix"]
+    dcs = list((m.runpod.get("volumes") or {}).keys()) or [d["id"] for d in runpod.data_centers() if d.get("storageSupport")]
+    click.echo("platform".ljust(16) + "".join(dc.ljust(10) for dc in dcs))
+    for p in m.platforms.values():
+        if not p.runpod_gpu_type:
+            continue
+        click.echo(p.id.ljust(16) + "".join(runpod.stock(p.runpod_gpu_type, dc, p.count)[:8].ljust(10) for dc in dcs))
+
+
+@main.command("runpod-volume")
+@click.argument("action", type=click.Choice(["list", "create"]))
+@click.argument("data_center", required=False)
+@click.argument("size_gb", type=int, required=False)
+def runpod_volume(action, data_center, size_gb):
+    """List network volumes, or create one: runpod-volume create EUR-IS-1 200 (then add it to matrix/runpod.yaml)."""
+    from . import runpod
+
+    if action == "list":
+        for v in runpod._req("GET", "/networkvolumes"):
+            click.echo(f"{v['id']}  {v.get('dataCenterId')}  {v.get('size')} GB  {v.get('name')}")
+    else:
+        v = runpod.create_network_volume(f"pie-evals-{data_center.lower()}", size_gb, data_center)
+        click.echo(f"{v['id']}  {v.get('dataCenterId')}  {v.get('size')} GB  — add to matrix/runpod.yaml volumes")
 
 
 @main.command("validate-platforms")

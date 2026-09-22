@@ -39,7 +39,7 @@ platforms:
     interconnect: pcie
     runner_labels: [self-hosted, linux, rtx4090-x1]
     runpod_gpu_type: "NVIDIA GeForce RTX 4090"
-    tiers: [nightly, weekly]
+    tiers: [smoke, nightly, weekly]   # sm_89 like L40S, what pie is developed on, and the GPU with the steadiest secure stock
   - id: h100-sxm-x4
     os: linux
     backend: cuda
