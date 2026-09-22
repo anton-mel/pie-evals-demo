@@ -1,24 +1,24 @@
-"""RunPod launcher.
+"""RunPod launcher, on the ``pieproject/runpod-ci-runner`` image
+(github.com/pie-project/runpod-ci-runner: CUDA 13 runtime + NVRTC + NCCL,
+build tools, uv, Node, actions-runner at ``/opt/actions-runner``; Rust and
+every cache on the volume at ``/workspace``).
 
-A pod is created with a startup command that registers an *ephemeral*
-GitHub self-hosted runner carrying the platform's labels; the tier
-workflow's bench job then lands on it. Three layers enforce the time policy
-(job budget × kill_factor):
+That image's own ``runner.sh`` serves a *persistent* pod that pie's CI
+resumes and stops. pie-evals instead creates an ephemeral pod per job, so
+the start command is overridden with ``startup_script``: same env layout as
+``runner.sh`` (``/workspace/.cargo``, ``.pie``, ``.hf`` …), but the token is
+minted in-pod from ``GH_RUNNER_PAT`` exactly as the image does, the runner
+is ``--ephemeral`` and serves ONE job, and the pod terminates itself
+afterwards — and, unconditionally, at ``kill_minutes``.
 
-1. the node runner's watchdog (leaves records behind),
-2. the workflow's ``timeout-minutes`` (cancels the job; the teardown job
-   terminates the pod),
-3. the pod's own self-destruct timer, started by the startup script, which
-   terminates the pod through the API even if GitHub never reaches it.
+Shared network volume + N concurrent pods means two things must be
+pod-local: the pie work tree (cloned from a bare mirror on the volume into
+the container disk) and the cargo target dir. Build artifacts are shared
+through ``$PIE_EVALS_CACHE/builds/<commit>-<features>`` (see
+``node/build.py``); the tier workflow builds once before the fan-out.
 
-``reap`` is the fourth, hourly, for anything that slipped through.
-
-Network volume: pods are pinned to the volume's data center and mount it at
-``/workspace``; the HF cache, pie build cache, miniatures and reference
-cache all live there, so a fresh pod starts warm.
-
-Only outbound connectivity is needed: the runner polls GitHub, results go
-up as job artifacts.
+API: RunPod REST (``https://rest.runpod.io/v1``), the same API pie's CI
+already uses against this image.
 """
 
 from __future__ import annotations
@@ -30,8 +30,9 @@ from dataclasses import dataclass
 
 from pie_evals.schema import PlatformSpec
 
-API = "https://api.runpod.io/graphql"
-RUNNER_VERSION = "2.321.0"
+REST = "https://rest.runpod.io/v1"
+DEFAULT_IMAGE = "pieproject/runpod-ci-runner:latest"
+VOLUME = "/workspace"
 
 
 @dataclass
@@ -41,78 +42,71 @@ class PodHandle:
     data_center: str | None = None
 
 
-def _gql(query: str, variables: dict | None = None, api_key: str | None = None) -> dict:
+def _req(method: str, path: str, body: dict | None = None, api_key: str | None = None, params: dict | None = None) -> dict | list:
     import requests
 
     key = api_key or os.environ["RUNPOD_API_KEY"]
-    r = requests.post(API, params={"api_key": key}, json={"query": query, "variables": variables or {}}, timeout=60)
-    r.raise_for_status()
-    data = r.json()
-    if "errors" in data:
-        raise RuntimeError(json.dumps(data["errors"]))
-    return data["data"]
+    r = requests.request(method, f"{REST}{path}", json=body, params=params, timeout=60,
+                         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+    if r.status_code >= 400:
+        raise RuntimeError(f"runpod {method} {path}: {r.status_code} {r.text[:500]}")
+    return r.json() if r.text.strip() else {}
 
 
 # ---- discovery -------------------------------------------------------------------
 
 def gpu_types(api_key: str | None = None) -> list[dict]:
-    """Every GPU type RunPod knows: id (the string ``gpuTypeId`` wants),
-    display name, memory, secure/community availability."""
-    q = """query { gpuTypes { id displayName memoryInGb secureCloud communityCloud
-             lowestPrice(input: {gpuCount: 1}) { minimumBidPrice uninterruptablePrice stockStatus } } }"""
-    return _gql(q, api_key=api_key)["gpuTypes"]
+    """GPU types: ``id`` is what a pod request's ``gpuTypeIds`` wants."""
+    return list(_req("GET", "/gputypes", api_key=api_key))
 
 
 def validate_platforms(platforms: dict[str, PlatformSpec], api_key: str | None = None) -> list[str]:
-    """Return problems for platforms whose ``runpod_gpu_type`` is not a known id."""
     known = {g["id"] for g in gpu_types(api_key)}
     return [f"platform {p.id}: runpod_gpu_type {p.runpod_gpu_type!r} is not a RunPod GPU type id" for p in platforms.values() if p.runpod_gpu_type and p.runpod_gpu_type not in known]
 
 
 def network_volume(volume_id: str, api_key: str | None = None) -> dict:
-    """The volume's data center — pods must be created there to mount it."""
-    q = "query { myself { networkVolumes { id name size dataCenterId } } }"
-    for v in _gql(q, api_key=api_key)["myself"]["networkVolumes"]:
-        if v["id"] == volume_id:
-            return v
-    raise RuntimeError(f"network volume {volume_id} not found on this account")
+    """The volume record; pods must be created in its ``dataCenterId`` to mount it."""
+    return dict(_req("GET", f"/networkvolumes/{volume_id}", api_key=api_key))
 
 
 # ---- startup ----------------------------------------------------------------------
 
-def startup_script(
-    labels: list[str],
-    *,
-    repo: str,
-    runner_token: str,
-    image_version: str,
-    kill_minutes: int,
-    network_volume_mount: str = "/workspace",
-    runner_version: str = RUNNER_VERSION,
-) -> str:
-    """Bash run inside the pod: self-destruct timer, caches on the volume,
-    install the Actions runner if the image lacks it, register ephemeral,
-    run one job, then terminate the pod."""
+def startup_script(labels: list[str], *, repo: str, kill_minutes: int, image_version: str = "latest", volume: str = VOLUME) -> str:
+    """Runs as the pod's start command on the runpod-ci-runner image."""
     lab = ",".join(labels + [f"img-{image_version}"])
-    return f"""#!/bin/bash
+    return f"""#!/usr/bin/env bash
 set -uo pipefail
-export HF_HUB_CACHE={network_volume_mount}/hf
-export PIE_EVALS_CACHE={network_volume_mount}/pie-evals-cache
-export PIE_ROOT={network_volume_mount}/pie
-mkdir -p "$HF_HUB_CACHE" "$PIE_EVALS_CACHE"
-self_destruct() {{ sleep $(( {kill_minutes} * 60 )); echo "self-destruct: {kill_minutes} min elapsed"; runpodctl remove pod "$RUNPOD_POD_ID" || true; }}
-self_destruct &
-if [ ! -x /actions-runner/run.sh ]; then
-  mkdir -p /actions-runner && cd /actions-runner
-  curl -sL https://github.com/actions/runner/releases/download/v{runner_version}/actions-runner-linux-x64-{runner_version}.tar.gz | tar xz
-  ./bin/installdependencies.sh >/dev/null 2>&1 || true
-fi
-cd /actions-runner
-export RUNNER_ALLOW_RUNASROOT=1
-./config.sh --unattended --ephemeral --url https://github.com/{repo} --token {runner_token} \\
-  --name "runpod-$(hostname)" --labels "{lab}" --work _work
-./run.sh
-runpodctl remove pod "$RUNPOD_POD_ID" || true
+V={volume}
+echo "== $(nvidia-smi --query-gpu=name,driver_version,compute_cap,memory.total --format=csv,noheader 2>/dev/null || echo 'no GPU visible')"
+terminate() {{ curl -fsS -X DELETE -H "Authorization: Bearer $RUNPOD_API_KEY" "https://rest.runpod.io/v1/pods/$RUNPOD_POD_ID" >/dev/null 2>&1 || true; }}
+( sleep $(( {kill_minutes} * 60 )); echo "self-destruct: {kill_minutes} min"; terminate ) &
+# Rust on the volume (shared, read-mostly); the repo's rust-toolchain.toml picks the version
+[ -x "$V/.cargo/bin/rustup" ] || curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none --no-modify-path
+mkdir -p "$V/_work" "$V/.pie" "$V/.hf" "$V/.uv" "$V/.npm" "$V/pie-evals-cache" /tmp/target /tmp/pie
+cat > /opt/actions-runner/.env <<ENV
+RUSTUP_HOME=$V/.rustup
+CARGO_HOME=$V/.cargo
+CARGO_TARGET_DIR=/tmp/target
+PIE_ROOT=/tmp/pie
+PIE_MIRROR=$V/pie.git
+PIE_HOME=$V/.pie
+HF_HOME=$V/.hf
+HF_HUB_CACHE=$V/.hf/hub
+UV_CACHE_DIR=$V/.uv
+npm_config_cache=$V/.npm
+PIE_EVALS_CACHE=$V/pie-evals-cache
+PIE_EVALS_PLATFORM=$PIE_EVALS_PLATFORM
+PATH=$V/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV
+TOKEN=$(curl -fsS -X POST -H "Authorization: Bearer $GH_RUNNER_PAT" -H "Accept: application/vnd.github+json" \\
+  "https://api.github.com/repos/{repo}/actions/runners/registration-token" | jq -r .token)
+cd /opt/actions-runner
+./config.sh --unattended --replace --ephemeral --disableupdate --url "https://github.com/{repo}" --token "$TOKEN" \\
+  --name "runpod-${{RUNPOD_POD_ID:-$(hostname)}}" --labels "{lab}" --work "$V/_work"
+./run.sh || true
+terminate
+sleep 60
 """
 
 
@@ -121,14 +115,13 @@ runpodctl remove pod "$RUNPOD_POD_ID" || true
 def create_pod(
     platform: PlatformSpec,
     *,
-    image: str,
     repo: str,
-    runner_token: str,
-    image_version: str,
+    runner_pat: str,
     kill_minutes: int,
+    image: str = DEFAULT_IMAGE,
+    image_version: str = "latest",
     network_volume_id: str | None = None,
-    volume_gb: int = 200,
-    container_disk_gb: int = 100,
+    container_disk_gb: int = 40,
     cloud_type: str = "SECURE",
     allowed_cuda_versions: list[str] | None = None,
     api_key: str | None = None,
@@ -137,47 +130,45 @@ def create_pod(
         raise ValueError(f"platform {platform.id} has no runpod_gpu_type")
     key = api_key or os.environ["RUNPOD_API_KEY"]
     name = f"pie-evals-{platform.id}-{int(time.time())}"
-    script = startup_script(platform.runner_labels, repo=repo, runner_token=runner_token, image_version=image_version, kill_minutes=kill_minutes)
-    q = """
-    mutation($input: PodFindAndDeployOnDemandInput!) {
-      podFindAndDeployOnDemand(input: $input) { id name }
-    }"""
-    inp: dict = {
+    script = startup_script(platform.runner_labels, repo=repo, kill_minutes=kill_minutes, image_version=image_version)
+    body: dict = {
         "name": name,
         "imageName": image,
-        "gpuTypeId": platform.runpod_gpu_type,
+        "gpuTypeIds": [platform.runpod_gpu_type],
         "gpuCount": platform.count,
         "cloudType": cloud_type,
-        "volumeInGb": 0 if network_volume_id else volume_gb,
+        "computeType": "GPU",
         "containerDiskInGb": container_disk_gb,
-        "dockerArgs": f"bash -lc {json.dumps(script)}",
-        # the pod needs the key only to terminate itself (self-destruct + end of job)
-        "env": [
-            {"key": "PIE_EVALS_PLATFORM", "value": platform.id},
-            {"key": "RUNPOD_API_KEY", "value": key},
-            {"key": "PIE_EVALS_KILL_MINUTES", "value": str(kill_minutes)},
-        ],
+        "volumeInGb": 0,
+        "ports": [],
+        "dockerStartCmd": ["bash", "-lc", script],
+        "env": {
+            "PIE_EVALS_PLATFORM": platform.id,
+            "PIE_EVALS_KILL_MINUTES": str(kill_minutes),
+            "GH_RUNNER_PAT": runner_pat,
+            "RUNPOD_API_KEY": key,  # self-termination only
+        },
     }
     if allowed_cuda_versions:
-        inp["allowedCudaVersions"] = allowed_cuda_versions
+        body["allowedCudaVersions"] = allowed_cuda_versions
     data_center = None
     if network_volume_id:
         vol = network_volume(network_volume_id, key)
-        data_center = vol["dataCenterId"]
-        inp["networkVolumeId"] = network_volume_id
-        inp["volumeMountPath"] = "/workspace"
-        inp["dataCenterId"] = data_center
-    data = _gql(q, {"input": inp}, key)
-    return PodHandle(id=data["podFindAndDeployOnDemand"]["id"], labels=platform.runner_labels, data_center=data_center)
+        data_center = vol.get("dataCenterId")
+        body["networkVolumeId"] = network_volume_id
+        body["volumeMountPath"] = VOLUME
+        if data_center:
+            body["dataCenterIds"] = [data_center]
+    data = _req("POST", "/pods", body, key)
+    return PodHandle(id=data["id"], labels=platform.runner_labels, data_center=data_center)
 
 
 def terminate_pod(pod_id: str, api_key: str | None = None) -> None:
-    _gql("mutation($id: String!) { podTerminate(input: {podId: $id}) }", {"id": pod_id}, api_key)
+    _req("DELETE", f"/pods/{pod_id}", api_key=api_key)
 
 
 def list_pods(api_key: str | None = None) -> list[dict]:
-    data = _gql("query { myself { pods { id name desiredStatus lastStatusChange runtime { uptimeInSeconds } } } }", api_key=api_key)
-    return data["myself"]["pods"]
+    return list(_req("GET", "/pods", api_key=api_key))
 
 
 def reap(max_age_s: int, api_key: str | None = None, dry_run: bool = False) -> list[str]:
@@ -185,10 +176,11 @@ def reap(max_age_s: int, api_key: str | None = None, dry_run: bool = False) -> l
     killed = []
     now = time.time()
     for p in list_pods(api_key):
-        if not p["name"].startswith("pie-evals-"):
+        name = p.get("name", "")
+        if not name.startswith("pie-evals-"):
             continue
         try:
-            created = int(p["name"].rsplit("-", 1)[-1])
+            created = int(name.rsplit("-", 1)[-1])
         except ValueError:
             continue
         if now - created > max_age_s:
@@ -196,3 +188,7 @@ def reap(max_age_s: int, api_key: str | None = None, dry_run: bool = False) -> l
                 terminate_pod(p["id"], api_key)
             killed.append(p["id"])
     return killed
+
+
+def to_json(x) -> str:
+    return json.dumps(x, indent=1)

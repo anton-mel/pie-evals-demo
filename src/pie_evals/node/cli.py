@@ -38,6 +38,29 @@ def run(job_path, pie_root, out, hf_cache, no_build, only):
     click.echo(json.dumps({"run_id": runner.run_id, "records": len(recs), "by_status": by}))
 
 
+@main.command("build")
+@click.option("--pie-commit", required=True)
+@click.option("--features", default="cuda", show_default=True, help="comma-separated pie cargo features")
+@click.option("--pie-root", type=click.Path(), default=os.environ.get("PIE_ROOT", "/root/pie"))
+@click.option("--mirror", type=click.Path(), default=os.environ.get("PIE_MIRROR"), help="bare mirror on the shared volume; updated, then used as clone source")
+@click.option("--target-dir", type=click.Path(), default=os.environ.get("CARGO_TARGET_DIR"))
+@click.option("--force", is_flag=True)
+def build_cmd(pie_commit, features, pie_root, mirror, target_dir, force):
+    """Build pie at a commit and cache the artifacts (binary, engine wheel, bench wasm) under $PIE_EVALS_CACHE/builds.
+    The tier workflow runs this once before the bench fan-out."""
+    from . import build as pb
+
+    feats = [f for f in features.split(",") if f]
+    if mirror:
+        pb.update_mirror(Path(mirror))
+    pb.ensure_checkout(Path(pie_root), pie_commit, mirror=Path(mirror) if mirror else None)
+    if pb.is_cached(pie_commit, feats) and not force:
+        click.echo(f"cache hit: {pb.cache_dir(pie_commit, feats)}")
+        return
+    out = pb.build(Path(pie_root), pie_commit, feats, target_dir=Path(target_dir) if target_dir else None, python=os.environ.get("PIE_PY", "python3"))
+    click.echo(str(out))
+
+
 @main.command("preflight")
 def preflight_cmd():
     """Print the hardware fingerprint and machine state checks."""

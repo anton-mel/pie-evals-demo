@@ -6,41 +6,53 @@ from pie_evals.orchestrate.matrix import Matrix
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_startup_script_has_three_kill_layers_and_caches_on_volume():
-    s = runpod.startup_script(["self-hosted", "linux", "l40s-x1"], repo="o/r", runner_token="T", image_version="v1", kill_minutes=90)
-    assert "sleep $(( 90 * 60 ))" in s and "runpodctl remove pod" in s  # self-destruct
-    assert "--ephemeral" in s and "--labels \"self-hosted,linux,l40s-x1,img-v1\"" in s
-    assert "HF_HUB_CACHE=/workspace/hf" in s and "PIE_EVALS_CACHE=/workspace/pie-evals-cache" in s and "PIE_ROOT=/workspace/pie" in s
-    assert "actions-runner-linux-x64" in s  # installs the runner on a stock image
+def test_startup_script_matches_runner_image_layout():
+    s = runpod.startup_script(["self-hosted", "linux", "l40s-x1"], repo="pie-project/pie-evals", kill_minutes=90)
+    # three-layer kill: self-destruct timer, then terminate after the single job
+    assert "sleep $(( 90 * 60 ))" in s and s.count("terminate") >= 3 and "DELETE" in s
+    # one ephemeral job, labels carry the platform
+    assert "--ephemeral" in s and "--labels \"self-hosted,linux,l40s-x1,img-latest\"" in s
+    assert "/opt/actions-runner" in s  # the image's runner, not a fresh download
+    # env layout of the image's runner.sh, plus what pie-evals adds
+    for k in ("RUSTUP_HOME=$V/.rustup", "CARGO_HOME=$V/.cargo", "PIE_HOME=$V/.pie", "HF_HOME=$V/.hf", "HF_HUB_CACHE=$V/.hf/hub", "PIE_EVALS_CACHE=$V/pie-evals-cache"):
+        assert k in s, k
+    # shared-volume safety: work tree and cargo target are pod-local
+    assert "CARGO_TARGET_DIR=/tmp/target" in s and "PIE_ROOT=/tmp/pie" in s and "PIE_MIRROR=$V/pie.git" in s
+    # token minted in-pod from the PAT, as the image does
+    assert "actions/runners/registration-token" in s and "GH_RUNNER_PAT" in s
 
 
-def test_create_pod_pins_volume_datacenter(monkeypatch):
+def test_create_pod_rest_body(monkeypatch):
     m = Matrix.load(ROOT / "matrix")
     calls = []
 
-    def fake_gql(query, variables=None, api_key=None):
-        calls.append((query, variables))
-        if "networkVolumes" in query:
-            return {"myself": {"networkVolumes": [{"id": "vol1", "name": "n", "size": 500, "dataCenterId": "EU-RO-1"}]}}
-        return {"podFindAndDeployOnDemand": {"id": "pod123", "name": "x"}}
+    def fake_req(method, path, body=None, api_key=None, params=None):
+        calls.append((method, path, body))
+        if path.startswith("/networkvolumes/"):
+            return {"id": "vol1", "dataCenterId": "EU-RO-1", "size": 500}
+        if path == "/pods" and method == "POST":
+            return {"id": "pod123"}
+        return {}
 
-    monkeypatch.setattr(runpod, "_gql", fake_gql)
-    h = runpod.create_pod(m.platforms["l40s-x1"], image="img", repo="o/r", runner_token="T", image_version="v", kill_minutes=90,
-                          network_volume_id="vol1", allowed_cuda_versions=["13.0"], api_key="k")
+    monkeypatch.setattr(runpod, "_req", fake_req)
+    h = runpod.create_pod(m.platforms["l40s-x2"], repo="o/r", runner_pat="PAT", kill_minutes=90, network_volume_id="vol1", allowed_cuda_versions=["13.0"], api_key="k")
     assert h.id == "pod123" and h.data_center == "EU-RO-1"
-    inp = calls[-1][1]["input"]
-    assert inp["dataCenterId"] == "EU-RO-1" and inp["networkVolumeId"] == "vol1" and inp["volumeMountPath"] == "/workspace"
-    assert inp["gpuTypeId"] == "NVIDIA L40S" and inp["gpuCount"] == 1 and inp["allowedCudaVersions"] == ["13.0"]
-    assert any(e["key"] == "PIE_EVALS_KILL_MINUTES" and e["value"] == "90" for e in inp["env"])
+    method, path, body = calls[-1]
+    assert (method, path) == ("POST", "/pods")
+    assert body["gpuTypeIds"] == ["NVIDIA L40S"] and body["gpuCount"] == 2
+    assert body["networkVolumeId"] == "vol1" and body["volumeMountPath"] == "/workspace" and body["dataCenterIds"] == ["EU-RO-1"]
+    assert body["imageName"] == runpod.DEFAULT_IMAGE and body["allowedCudaVersions"] == ["13.0"]
+    assert body["env"]["GH_RUNNER_PAT"] == "PAT" and body["env"]["PIE_EVALS_PLATFORM"] == "l40s-x2"
+    assert body["dockerStartCmd"][:2] == ["bash", "-lc"] and "--ephemeral" in body["dockerStartCmd"][2]
 
 
 def test_reap_uses_name_timestamp(monkeypatch):
     import time
+
     now = int(time.time())
     monkeypatch.setattr(runpod, "list_pods", lambda api_key=None: [
         {"id": "old", "name": f"pie-evals-l40s-x1-{now - 3 * 3600}"},
         {"id": "new", "name": f"pie-evals-l40s-x1-{now - 60}"},
         {"id": "other", "name": "someone-elses-pod"},
     ])
-    killed = runpod.reap(2 * 3600, api_key="k", dry_run=True)
-    assert killed == ["old"]
+    assert runpod.reap(2 * 3600, api_key="k", dry_run=True) == ["old"]

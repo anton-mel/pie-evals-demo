@@ -23,7 +23,6 @@ from __future__ import annotations
 import os
 import random
 import signal
-import subprocess
 import threading
 import time
 import traceback
@@ -132,35 +131,26 @@ class NodeRunner:
 
     # ------------------------------------------------------------------ setup
     def ensure_pie(self) -> None:
-        """Check out the pinned commit and build the CLI for the platform's backend.
-        Builds are cached by (commit, features) under $PIE_EVALS_CACHE/builds."""
+        """Pin the checkout to the job's commit and put the build artifacts in
+        place: cache hit → restore; miss → build here (pod-local cargo target)
+        and cache. The tier workflow runs a build job before the fan-out so
+        bench pods normally hit the cache."""
         if not self.job.pie_commit:
             return
-        commit = self.job.pie_commit
-        head = prov.git_commit(self.pie_root)
-        if head and not head.startswith(commit) and not commit.startswith(head):
-            subprocess.run(["git", "-C", str(self.pie_root), "fetch", "--all", "--quiet"], check=False)
-            subprocess.run(["git", "-C", str(self.pie_root), "checkout", "--quiet", commit], check=True)
+        from . import build as pb
+
+        mirror = Path(os.environ["PIE_MIRROR"]) if os.environ.get("PIE_MIRROR") else None
         if not self.build:
+            # --no-build: use the tree as it is; only pin it if it is a real checkout
+            if (self.pie_root / ".git").exists():
+                pb.ensure_checkout(self.pie_root, self.job.pie_commit, mirror=mirror)
+            else:
+                self.log(f"--no-build and {self.pie_root} is not a git checkout; using it as-is")
             return
-        feats = ",".join(self.job.pie_build_features)
-        cache = Path(os.environ.get("PIE_EVALS_CACHE", Path.home() / ".cache/pie-evals")) / "builds" / f"{commit[:12]}-{feats.replace(',', '+')}"
-        binary = self.pie_root / "target/release/pie"
-        if (cache / "pie").exists():
-            cache_bin = cache / "pie"
-            binary.parent.mkdir(parents=True, exist_ok=True)
-            if not binary.exists() or binary.stat().st_mtime < cache_bin.stat().st_mtime:
-                subprocess.run(["cp", str(cache_bin), str(binary)], check=True)
-            self.log(f"pie build cache hit {cache}")
-        else:
-            self.log(f"building pie {commit[:12]} features={feats}")
-            subprocess.run(["cargo", "build", "--release", "-p", "pie", "--bin", "pie", "--features", feats], cwd=self.pie_root, check=True, timeout=self.job.load_timeout_s * 3)
-            cache.mkdir(parents=True, exist_ok=True)
-            subprocess.run(["cp", str(binary), str(cache / "pie")], check=True)
-        # guest programs (inferlets) are built once per commit as well
-        inferlets = self.pie_root / "tests/inferlets"
-        if inferlets.exists():
-            subprocess.run(["cargo", "build", "--release", "--target", "wasm32-wasip2"], cwd=inferlets, check=False, timeout=self.job.load_timeout_s)
+        pb.ensure_checkout(self.pie_root, self.job.pie_commit, mirror=mirror)
+        pb.ensure(self.pie_root, self.job.pie_commit, self.job.pie_build_features,
+                  target_dir=Path(os.environ["CARGO_TARGET_DIR"]) if os.environ.get("CARGO_TARGET_DIR") else None,
+                  python=os.environ.get("PIE_PY", "python3"), log=self.log)
 
     def snapshot_dir(self, cell: Cell) -> Path:
         from .miniature import ensure_miniature

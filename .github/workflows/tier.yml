@@ -40,10 +40,47 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: jobs, path: jobs/ }
 
+  # Build once, on one pod, before the fan-out: the bench pods then restore
+  # pie from $PIE_EVALS_CACHE/builds/<commit>-cuda on the network volume
+  # instead of each building it.
+  build-launch:
+    needs: expand
+    runs-on: ubuntu-latest
+    outputs: { pod_id: "${{ steps.pod.outputs.pod_id }}" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv venv && uv pip install -e ".[orchestrate]"
+      - id: pod
+        run: .venv/bin/pie-evals launch-pod --platform "${{ vars.RUNPOD_BUILD_PLATFORM || 'l40s-x1' }}" --repo "${{ github.repository }}" --image "${{ vars.RUNPOD_IMAGE || 'pieproject/runpod-ci-runner:latest' }}" --kill-minutes 60
+        env:
+          RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+          GH_RUNNER_PAT: ${{ secrets.GH_RUNNER_PAT }}
+          RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+  build:
+    needs: build-launch
+    runs-on: [self-hosted, linux, "${{ vars.RUNPOD_BUILD_PLATFORM || 'l40s-x1' }}"]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m venv .venv && .venv/bin/pip install -q -e "."
+      - name: build pie at the pinned commit and cache it on the volume
+        run: .venv/bin/pie-evals-node build --pie-commit "$PIE_COMMIT" --features cuda --pie-root "$PIE_ROOT" --mirror "$PIE_MIRROR" --target-dir "$CARGO_TARGET_DIR"
+  build-teardown:
+    needs: [build-launch, build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv venv && uv pip install -e ".[orchestrate]"
+      - run: .venv/bin/pie-evals terminate-pod "${{ needs.build-launch.outputs.pod_id }}" || true
+        env: { RUNPOD_API_KEY: "${{ secrets.RUNPOD_API_KEY }}" }
+
   # RunPod platforms: launch a pod that registers itself as an ephemeral runner,
   # then a second job lands on it. Macs are resident runners and skip the launch.
   launch:
-    needs: expand
+    needs: [expand, build]
     if: ${{ fromJson(needs.expand.outputs.matrix).include[0] != null }}
     runs-on: ubuntu-latest
     strategy:
@@ -58,20 +95,13 @@ jobs:
         if: matrix.runpod
       - run: uv venv && uv pip install -e ".[orchestrate]"
         if: matrix.runpod
-      - name: runner registration token
-        if: matrix.runpod
-        id: token
-        run: |
-          TOKEN=$(gh api -X POST repos/${{ github.repository }}/actions/runners/registration-token --jq .token)
-          echo "::add-mask::$TOKEN"; echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
-        env: { GH_TOKEN: "${{ secrets.RUNNER_ADMIN_PAT }}" }
       - name: launch pod
         if: matrix.runpod
         id: pod
-        run: .venv/bin/pie-evals launch-pod --platform "${{ matrix.platform }}" --image "${{ vars.RUNPOD_IMAGE }}" --repo "${{ github.repository }}" --image-version "${{ vars.RUNPOD_IMAGE_VERSION }}" --kill-minutes "${{ needs.expand.outputs.kill_minutes }}"
+        run: .venv/bin/pie-evals launch-pod --platform "${{ matrix.platform }}" --repo "${{ github.repository }}" --image "${{ vars.RUNPOD_IMAGE || 'pieproject/runpod-ci-runner:latest' }}" --kill-minutes "${{ needs.expand.outputs.kill_minutes }}"
         env:
           RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
-          GH_RUNNER_TOKEN: ${{ steps.token.outputs.token }}
+          GH_RUNNER_PAT: ${{ secrets.GH_RUNNER_PAT }}
           RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
       - name: record pod id
         if: matrix.runpod
@@ -97,18 +127,14 @@ jobs:
         run: |
           uv venv --python 3.12 .venv 2>/dev/null || python3 -m venv .venv
           .venv/bin/pip install -q -e "."
-      - name: pie checkout (pinned commit)
+      - name: pie root
         run: |
-          PIE_ROOT="${PIE_ROOT:-$HOME/pie}"   # on RunPod the startup script sets PIE_ROOT=/workspace/pie (network volume)
-          [ -d "$PIE_ROOT/.git" ] || git clone --quiet git@github.com:pie-project/pie.git "$PIE_ROOT"
-          git -C "$PIE_ROOT" fetch --quiet origin
-          git -C "$PIE_ROOT" checkout --quiet "$PIE_COMMIT"
-          echo "PIE_ROOT=$PIE_ROOT" >> "$GITHUB_ENV"
+          # RunPod: the startup script sets PIE_ROOT=/tmp/pie (pod-local) and PIE_MIRROR (bare mirror on the volume);
+          # the node clones from the mirror and restores the cached build. Macs: a resident checkout under $HOME.
+          echo "PIE_ROOT=${PIE_ROOT:-$HOME/pie}" >> "$GITHUB_ENV"
       - name: run
         run: .venv/bin/pie-evals-node run --job "jobs/${{ matrix.job_id }}.json" --pie-root "$PIE_ROOT" --out "out/${{ matrix.job_id }}"
-        env:
-          PIE_EVALS_CACHE: ${{ runner.os == 'Linux' && '/workspace/pie-evals-cache' || '' }}
-          HF_HUB_CACHE: ${{ runner.os == 'Linux' && '/workspace/hf' || '' }}
+        # on RunPod every cache path comes from the runner's .env (written by the startup script)
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: "out-${{ matrix.job_id }}", path: "out/${{ matrix.job_id }}", retention-days: 30 }

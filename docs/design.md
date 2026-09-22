@@ -282,15 +282,25 @@ with only outbound connectivity:
 
 - Macs are resident runners (`infra/mac/setup-runner.sh`), one runner per
   machine, labels = platform id.
-- RunPod pods are ephemeral runners: `pie-evals launch-pod` creates the pod
-  with a startup script that registers an ephemeral runner carrying the
-  platform's labels; the tier workflow's bench job lands on it; teardown is
-  `if: always()` and `reap.yml` kills orphans hourly (the pod version of the
-  wiki's 41 GB `EngineCore` that never died). Pods are pinned to the
-  **network volume's data center** and mount it at `/workspace`: HF cache,
-  pie checkout + build cache (by commit), miniatures and reference cache all
-  live there, so a fresh pod starts warm. Pods are requested with
-  `allowedCudaVersions` 13.x because pie pins `cudarc cuda-13000`.
+- RunPod pods are ephemeral runners on **`pieproject/runpod-ci-runner`**
+  (github.com/pie-project/runpod-ci-runner — the image pie's own CUDA CI
+  uses: CUDA 13 runtime + NVRTC + NCCL, build tools, uv, actions-runner).
+  `pie-evals launch-pod` creates the pod through the RunPod REST API with a
+  start command that mints a registration token in-pod from `GH_RUNNER_PAT`
+  (as the image's own `runner.sh` does), registers an *ephemeral* runner
+  with the platform's labels, serves one job and terminates the pod. Pods
+  are pinned to the **network volume's data center** and mount it at
+  `/workspace` with the image's layout (`.cargo`, `.rustup`, `.pie`, `.hf`,
+  `.uv`). Two things are pod-local because N pods share the volume: the pie
+  work tree (`/tmp/pie`, cloned from a bare mirror `/workspace/pie.git`) and
+  the cargo target (`/tmp/target`). **Build once:** the tier workflow's
+  `build` job builds pie at the pinned commit on one pod and caches the
+  binary, the embedded-engine wheel and the bench wasm under
+  `/workspace/pie-evals-cache/builds/<commit>-cuda`; bench pods restore
+  from there. pie JIT-compiles its CUDA kernels with NVRTC, so one CUDA
+  build serves every NVIDIA platform. Pods are requested with
+  `allowedCudaVersions` 13.x because pie pins `cudarc cuda-13000`; teardown
+  is `if: always()` and `reap.yml` kills orphans hourly.
   `platforms.yaml` covers L40S ×1/×2, RTX 4090, RTX 5090, L4, A40, A100
   PCIe/SXM ×2, H100 PCIe/SXM ×4, RTX PRO 6000 ×4; `pie-evals
   validate-platforms` checks every `runpod_gpu_type` against the live GPU
@@ -377,9 +387,13 @@ ancestor/process-group set, and `pkill` is banned by a test
   actual Mac fleet in `platforms.yaml`; calibrate `est_minutes` (shard
   counts and the 60-min budget are only as good as these).
 - Org setup for RunPod: `RUNPOD_API_KEY` is set; still needed are the
-  `RUNNER_ADMIN_PAT` secret (runner registration tokens — `GITHUB_TOKEN`
-  cannot mint them) and the `RUNPOD_NETWORK_VOLUME_ID`, `RUNPOD_IMAGE`,
-  `RUNPOD_IMAGE_VERSION` variables; then run `runpod-check`.
+  `GH_RUNNER_PAT` secret (fine-grained, Administration: read/write on
+  pie-evals — the same kind pie's CI already uses for its pod) and the
+  `RUNPOD_NETWORK_VOLUME_ID` variable; optional `RUNPOD_IMAGE` (defaults to
+  the runner image `:latest`) and `RUNPOD_BUILD_PLATFORM` (defaults to
+  `l40s-x1`). Then run `runpod-check`.
+- Baselines are not in the runner image; the node installs them lazily into
+  venvs on the volume (`/workspace/.venv/<engine>-<version>`) — to write.
 - Device-tuning gate for new Apple chips (`pie config tune` before the first
   benchmark on a chip not in the tuning table).
 - Auto-bisect on confirmed regression (builds are already cached by commit).

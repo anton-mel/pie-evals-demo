@@ -147,21 +147,21 @@ def watch_baselines(obj, lock):
 
 @main.command("launch-pod")
 @click.option("--platform", required=True)
-@click.option("--image", required=True)
-@click.option("--repo", required=True, help="owner/name")
-@click.option("--runner-token", envvar="GH_RUNNER_TOKEN", required=True)
-@click.option("--image-version", default="dev")
+@click.option("--repo", required=True, help="owner/name the runner registers with")
+@click.option("--runner-pat", envvar="GH_RUNNER_PAT", required=True, help="fine-grained PAT, Administration: read/write on --repo (minted into a registration token inside the pod)")
+@click.option("--image", default=None, help="default: pieproject/runpod-ci-runner:latest")
+@click.option("--image-version", default="latest")
 @click.option("--network-volume-id", envvar="RUNPOD_NETWORK_VOLUME_ID", default=None)
 @click.option("--kill-minutes", type=int, default=None, help="pod self-destruct; default = job budget × kill_factor")
 @click.option("--cuda", "cuda_versions", multiple=True, default=["13.0", "13.1"], show_default=True, help="allowed host CUDA versions (pie pins cudarc cuda-13000)")
 @click.pass_obj
-def launch_pod(obj, platform, image, repo, runner_token, image_version, network_volume_id, kill_minutes, cuda_versions):
+def launch_pod(obj, platform, repo, runner_pat, image, image_version, network_volume_id, kill_minutes, cuda_versions):
     from . import runpod
 
     m: Matrix = obj["matrix"]
     plat = m.platforms[platform]
-    h = runpod.create_pod(plat, image=image, repo=repo, runner_token=runner_token, image_version=image_version,
-                          kill_minutes=kill_minutes or m.kill_minutes, network_volume_id=network_volume_id,
+    h = runpod.create_pod(plat, repo=repo, runner_pat=runner_pat, kill_minutes=kill_minutes or m.kill_minutes,
+                          image=image or runpod.DEFAULT_IMAGE, image_version=image_version, network_volume_id=network_volume_id,
                           allowed_cuda_versions=list(cuda_versions) or None)
     click.echo(h.id)
     if os.environ.get("GITHUB_OUTPUT"):
@@ -174,9 +174,8 @@ def runpod_gpus():
     """List RunPod GPU type ids (what platforms.yaml runpod_gpu_type must use) with price/stock."""
     from . import runpod
 
-    for g in sorted(runpod.gpu_types(), key=lambda g: g["id"]):
-        lp = g.get("lowestPrice") or {}
-        click.echo(f"{g['id']:55s} {g.get('memoryInGb') or '':>4} GB  ${lp.get('uninterruptablePrice') or '?'}/h  {lp.get('stockStatus') or ''}")
+    for g in sorted(runpod.gpu_types(), key=lambda g: str(g.get("id"))):
+        click.echo(f"{g.get('id', ''):55s} {g.get('memoryInGb') or '':>4} GB  {g.get('displayName', '')}")
 
 
 @main.command("validate-platforms")
