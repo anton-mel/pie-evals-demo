@@ -176,8 +176,9 @@ def create_pod(
     platform: PlatformSpec,
     *,
     repo: str,
-    runner_pat: str,
+    runner_pat: str | None,
     kill_minutes: int,
+    runner_token: str | None = None,
     image: str = DEFAULT_IMAGE,
     image_version: str = "latest",
     network_volume_id: str | None = None,
@@ -191,6 +192,8 @@ def create_pod(
 ) -> PodHandle:
     if not platform.runpod_gpu_type:
         raise ValueError(f"platform {platform.id} has no runpod_gpu_type")
+    if not (runner_pat or runner_token):
+        raise ValueError("need runner_token (pre-minted registration token) or runner_pat")
     key = api_key or os.environ["RUNPOD_API_KEY"]
     name = f"pie-evals-{platform.id}-{int(time.time())}"
     script = startup_script(platform.runner_labels, repo=repo, kill_minutes=kill_minutes, image_version=image_version)
@@ -208,7 +211,8 @@ def create_pod(
         "env": {
             "PIE_EVALS_PLATFORM": platform.id,
             "PIE_EVALS_KILL_MINUTES": str(kill_minutes),
-            "GH_RUNNER_PAT": runner_pat,
+            **({"GH_RUNNER_TOKEN": runner_token} if runner_token else {}),
+            **({"GH_RUNNER_PAT": runner_pat} if runner_pat else {}),
             "RUNPOD_API_KEY": key,  # self-termination only
         },
     }

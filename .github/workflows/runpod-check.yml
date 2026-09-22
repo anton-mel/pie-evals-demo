@@ -9,18 +9,21 @@ on:
     inputs:
       platform: { description: "platform id (a RunPod one)", required: true, default: "l40s-x1" }
       image: { description: "container image", required: false, default: "pieproject/runpod-ci-runner:latest" }
+      pod_id: { description: "an already-running pod whose runner is registered (skips launch; teardown still terminates it)", required: false, default: "" }
 jobs:
   launch:
     runs-on: ubuntu-latest
-    outputs: { pod_id: "${{ steps.pod.outputs.pod_id }}" }
+    outputs: { pod_id: "${{ inputs.pod_id || steps.pod.outputs.pod_id }}" }
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
       - run: uv venv && uv pip install -e ".[orchestrate]"
       - name: GPU ids
+        if: inputs.pod_id == ''
         run: .venv/bin/pie-evals runpod-gpus && .venv/bin/pie-evals validate-platforms
         env: { RUNPOD_API_KEY: "${{ secrets.RUNPOD_API_KEY }}" }
       - name: launch pod (self-destructs in 20 min)
+        if: inputs.pod_id == ''
         id: pod
         run: .venv/bin/pie-evals launch-pod --platform "${{ inputs.platform }}" --image "${{ inputs.image }}" --repo "${{ github.repository }}" --image-version check --kill-minutes 20
         env:
@@ -29,6 +32,7 @@ jobs:
           RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
   probe:
     needs: launch
+    if: always() && needs.launch.result != 'failure'
     runs-on: [self-hosted, linux, "${{ inputs.platform }}"]
     timeout-minutes: 15
     steps:

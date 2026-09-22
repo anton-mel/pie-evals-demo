@@ -148,20 +148,23 @@ def watch_baselines(obj, lock):
 @main.command("launch-pod")
 @click.option("--platform", required=True)
 @click.option("--repo", required=True, help="owner/name the runner registers with")
-@click.option("--runner-pat", envvar="GH_RUNNER_PAT", required=True, help="fine-grained PAT, Administration: read/write on --repo (minted into a registration token inside the pod)")
+@click.option("--runner-pat", envvar="GH_RUNNER_PAT", default=None, help="PAT with Administration: read/write on --repo; minted into a registration token inside the pod")
+@click.option("--runner-token", envvar="GH_RUNNER_TOKEN", default=None, help="pre-minted registration token (preferred: 1 h, registration-only); one of --runner-pat/--runner-token is required")
 @click.option("--image", default=None, help="default: pieproject/runpod-ci-runner:latest")
 @click.option("--image-version", default="latest")
 @click.option("--network-volume-id", envvar="RUNPOD_NETWORK_VOLUME_ID", default=None)
 @click.option("--kill-minutes", type=int, default=None, help="pod self-destruct; default = job budget × kill_factor")
-@click.option("--cuda", "cuda_versions", multiple=True, default=["13.0", "13.1"], show_default=True, help="allowed host CUDA versions (pie pins cudarc cuda-13000)")
+@click.option("--cuda", "cuda_versions", multiple=True, default=["13.0"], show_default=True, help="allowed host CUDA versions (pie pins cudarc cuda-13000)")
 @click.pass_obj
-def launch_pod(obj, platform, repo, runner_pat, image, image_version, network_volume_id, kill_minutes, cuda_versions):
+def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_version, network_volume_id, kill_minutes, cuda_versions):
     from . import runpod
 
     m: Matrix = obj["matrix"]
     plat = m.platforms[platform]
     rp = m.runpod
-    h = runpod.create_pod(plat, repo=repo, runner_pat=runner_pat, kill_minutes=kill_minutes or m.kill_minutes,
+    if not (runner_pat or runner_token):
+        raise click.UsageError("set GH_RUNNER_PAT or GH_RUNNER_TOKEN (the workflow saw GH_RUNNER_PAT empty: check the org secret's name and its repository access list)")
+    h = runpod.create_pod(plat, repo=repo, runner_pat=runner_pat, runner_token=runner_token, kill_minutes=kill_minutes or m.kill_minutes,
                           image=image or runpod.DEFAULT_IMAGE, image_version=image_version, network_volume_id=network_volume_id,
                           volumes=rp.get("volumes") or None, preferred_data_centers=rp.get("preferred_data_centers"),
                           container_disk_gb=int(rp.get("container_disk_gb", 40)), cloud_type=str(rp.get("cloud_type", "SECURE")),
