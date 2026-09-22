@@ -80,9 +80,13 @@ def jobs(obj, tier, pie_commit, platforms, engines, out, label):
     for j in js:
         (outp / f"{j.job_id}.json").write_text(j.model_dump_json(indent=1))
         plat = m.platforms[j.platform_id]
-        gh.append({"job_id": j.job_id, "platform": j.platform_id, "labels": plat.runner_labels, "os": plat.os, "runpod": bool(plat.runpod_gpu_type), "cells": len(j.cells)})
+        gh.append({"job_id": j.job_id, "platform": j.platform_id, "shard": j.shard, "labels": plat.runner_labels, "os": plat.os, "runpod": bool(plat.runpod_gpu_type), "cells": len(j.cells), "est_minutes": round(j.est_minutes, 1)})
     (outp / "gh-matrix.json").write_text(json.dumps({"include": gh}))
+    (outp / "policy.json").write_text(json.dumps({"job_budget_minutes": m.job_budget_minutes, "kill_minutes": m.kill_minutes}))
     click.echo(json.dumps(gh, indent=1))
+    if os.environ.get("GITHUB_OUTPUT"):
+        with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+            f.write(f"kill_minutes={m.kill_minutes}\njobs={len(js)}\n")
 
 
 @main.command("collect")
@@ -148,16 +152,44 @@ def watch_baselines(obj, lock):
 @click.option("--runner-token", envvar="GH_RUNNER_TOKEN", required=True)
 @click.option("--image-version", default="dev")
 @click.option("--network-volume-id", envvar="RUNPOD_NETWORK_VOLUME_ID", default=None)
+@click.option("--kill-minutes", type=int, default=None, help="pod self-destruct; default = job budget × kill_factor")
+@click.option("--cuda", "cuda_versions", multiple=True, default=["13.0", "13.1"], show_default=True, help="allowed host CUDA versions (pie pins cudarc cuda-13000)")
 @click.pass_obj
-def launch_pod(obj, platform, image, repo, runner_token, image_version, network_volume_id):
+def launch_pod(obj, platform, image, repo, runner_token, image_version, network_volume_id, kill_minutes, cuda_versions):
     from . import runpod
 
-    plat = obj["matrix"].platforms[platform]
-    h = runpod.create_pod(plat, image=image, repo=repo, runner_token=runner_token, image_version=image_version, network_volume_id=network_volume_id)
+    m: Matrix = obj["matrix"]
+    plat = m.platforms[platform]
+    h = runpod.create_pod(plat, image=image, repo=repo, runner_token=runner_token, image_version=image_version,
+                          kill_minutes=kill_minutes or m.kill_minutes, network_volume_id=network_volume_id,
+                          allowed_cuda_versions=list(cuda_versions) or None)
     click.echo(h.id)
     if os.environ.get("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
             f.write(f"pod_id={h.id}\n")
+
+
+@main.command("runpod-gpus")
+def runpod_gpus():
+    """List RunPod GPU type ids (what platforms.yaml runpod_gpu_type must use) with price/stock."""
+    from . import runpod
+
+    for g in sorted(runpod.gpu_types(), key=lambda g: g["id"]):
+        lp = g.get("lowestPrice") or {}
+        click.echo(f"{g['id']:55s} {g.get('memoryInGb') or '':>4} GB  ${lp.get('uninterruptablePrice') or '?'}/h  {lp.get('stockStatus') or ''}")
+
+
+@main.command("validate-platforms")
+@click.pass_obj
+def validate_platforms(obj):
+    """Check every runpod_gpu_type in platforms.yaml against the live GPU type list. Exit 1 on unknown ids."""
+    from . import runpod
+
+    problems = runpod.validate_platforms(obj["matrix"].platforms)
+    for p in problems:
+        click.echo(p, err=True)
+    click.echo("ok" if not problems else f"{len(problems)} problem(s)")
+    sys.exit(1 if problems else 0)
 
 
 @main.command("terminate-pod")
@@ -170,7 +202,7 @@ def terminate_pod(pod_id):
 
 
 @main.command("reap-pods")
-@click.option("--max-age-hours", type=float, default=6)
+@click.option("--max-age-hours", type=float, default=2.0, help="anything past kill_minutes is an orphan; 2h covers the largest budget with slack")
 @click.option("--dry-run", is_flag=True)
 def reap_pods(max_age_hours, dry_run):
     from . import runpod

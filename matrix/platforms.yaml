@@ -1,3 +1,6 @@
+# Hardware the matrix knows about. `runpod_gpu_type` must be a RunPod GPU
+# type id exactly as `pie-evals runpod-gpus` prints it; the tier workflow runs
+# `pie-evals validate-platforms` before launching anything.
 # Hardware the matrix knows about. `runner_labels` is what a GitHub self-hosted
 # runner (resident Mac, or an ephemeral RunPod pod) registers with; `runs-on`
 # in the workflows is derived from it. `tiers` restricts how often a platform
@@ -71,6 +74,73 @@ platforms:
     interconnect: pcie
     runner_labels: [self-hosted, linux, pro4500-x1]
     tiers: [smoke, nightly, weekly]
+  - id: a100-pcie-x1
+    os: linux
+    backend: cuda
+    accelerator: NVIDIA A100 80GB PCIe
+    arch: ampere
+    count: 1
+    memory_gib: 80
+    interconnect: pcie
+    runner_labels: [self-hosted, linux, a100-pcie-x1]
+    runpod_gpu_type: "NVIDIA A100 80GB PCIe"
+    tiers: [nightly, weekly]
+  - id: a100-x2
+    os: linux
+    backend: cuda
+    accelerator: NVIDIA A100-SXM4-80GB
+    arch: ampere
+    count: 2
+    memory_gib: 160
+    interconnect: nvlink
+    runner_labels: [self-hosted, linux, a100-x2]
+    runpod_gpu_type: "NVIDIA A100-SXM4-80GB"
+    tp_capable: true
+    tiers: [nightly, weekly]
+  - id: h100-pcie-x1
+    os: linux
+    backend: cuda
+    accelerator: NVIDIA H100 PCIe
+    arch: hopper
+    count: 1
+    memory_gib: 80
+    interconnect: pcie
+    runner_labels: [self-hosted, linux, h100-pcie-x1]
+    runpod_gpu_type: "NVIDIA H100 PCIe"
+    tiers: [nightly, weekly]
+  - id: rtx5090-x1
+    os: linux
+    backend: cuda
+    accelerator: NVIDIA GeForce RTX 5090
+    arch: blackwell
+    count: 1
+    memory_gib: 32
+    interconnect: pcie
+    runner_labels: [self-hosted, linux, rtx5090-x1]
+    runpod_gpu_type: "NVIDIA GeForce RTX 5090"
+    tiers: [nightly, weekly]
+  - id: l4-x1
+    os: linux
+    backend: cuda
+    accelerator: NVIDIA L4
+    arch: ada
+    count: 1
+    memory_gib: 24
+    interconnect: pcie
+    runner_labels: [self-hosted, linux, l4-x1]
+    runpod_gpu_type: "NVIDIA L4"
+    tiers: [weekly]
+  - id: a40-x1
+    os: linux
+    backend: cuda
+    accelerator: NVIDIA A40
+    arch: ampere
+    count: 1
+    memory_gib: 48
+    interconnect: pcie
+    runner_labels: [self-hosted, linux, a40-x1]
+    runpod_gpu_type: "NVIDIA A40"
+    tiers: [weekly]
   # ---- resident Macs. Fill in the actual fleet; these are the chips the wiki has numbers for.
   - id: m1-max-32g
     os: macos

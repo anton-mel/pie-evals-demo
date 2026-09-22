@@ -229,11 +229,32 @@ stratified seeded subsets. Dataset hashes go into provenance.
 
 ## 8. Tiers and speed
 
-| tier | trigger | what | budget |
+| tier | trigger | what | fan-out cap |
 |---|---|---|---|
-| smoke | every pie commit | pie only, vs its own history; small real models + miniatures; ~10 shapes; every program once; tp2 on the 2-GPU platform | ≤ 120 min per platform, adaptive repetition |
-| nightly | cron | subset of full; baselines at competitive + default recipes; all schemes; tp1/2/4 | 8 h per platform |
-| weekly | cron | everything: big models, NVLink TP, replay traces, full T2 | 48 h per platform |
+| smoke | every pie commit | pie only, vs its own history; small real models + miniatures; ~10 shapes; every program once; tp2 on the 2-GPU platform | ≤ 2 jobs per platform |
+| nightly | cron | subset of full; baselines at competitive + default recipes; all schemes; tp1/2/4 | ≤ 48 jobs per platform |
+| weekly | cron | everything: big models, NVLink TP, replay traces, full T2 | ≤ 120 jobs per platform |
+
+**Time policy (every tier).** Every job is ~60 min of estimated work
+(`job_budget_minutes` in `matrix/suites.yaml`): the expander bin-packs a
+platform's cells into shards, keeping a process group (one loaded model)
+whole unless the group alone exceeds the budget, in which case it is split
+and later pieces run without the A/A control. One job = one pod (or one Mac
+slot); nightly on one GPU type is therefore ~40 pods in parallel rather
+than one 36-hour pod, at the same GPU-minutes. A job that runs past
+budget × `kill_factor` (1.5 → 90 min) is force-killed at three layers:
+
+1. the node runner's watchdog — stops starting cells at the soft budget,
+   records every unreached cell as `not_run` with the reason, and at the
+   hard deadline kills its process group and exits 124;
+2. the workflow's `timeout-minutes` (= kill minutes), whose teardown job
+   terminates the pod;
+3. the pod's own self-destruct timer, started by the startup script, which
+   terminates the pod through the RunPod API even if GitHub never reaches it.
+
+An hourly `reap` workflow terminates any pie-evals pod older than 2 h.
+Multi-GPU platforms only ever run `tp>1` (tp1 is the single-GPU platform's
+job; tp2 the 2-GPU platform's), which is what keeps the fan-out under the caps.
 
 Speed levers in smoke: one process per model with all shapes inside it,
 short outputs (64–128 tokens), adaptive repetition, internal counters as
@@ -265,8 +286,16 @@ with only outbound connectivity:
   with a startup script that registers an ephemeral runner carrying the
   platform's labels; the tier workflow's bench job lands on it; teardown is
   `if: always()` and `reap.yml` kills orphans hourly (the pod version of the
-  wiki's 41 GB `EngineCore` that never died). HF cache and build cache live
-  on a network volume in a fixed region.
+  wiki's 41 GB `EngineCore` that never died). Pods are pinned to the
+  **network volume's data center** and mount it at `/workspace`: HF cache,
+  pie checkout + build cache (by commit), miniatures and reference cache all
+  live there, so a fresh pod starts warm. Pods are requested with
+  `allowedCudaVersions` 13.x because pie pins `cudarc cuda-13000`.
+  `platforms.yaml` covers L40S ×1/×2, RTX 4090, RTX 5090, L4, A40, A100
+  PCIe/SXM ×2, H100 PCIe/SXM ×4, RTX PRO 6000 ×4; `pie-evals
+  validate-platforms` checks every `runpod_gpu_type` against the live GPU
+  list before anything launches. `runpod-check.yml` is the cheap first run:
+  one pod on a stock image, preflight only, ~10 GPU-minutes.
 - Bookkeeping is git: node outputs come back as job artifacts, `collect`
   lifts them into `store/records/<tier>/<month>/<run>.parquet` and renders
   `reports/`; both are committed. Provenance is mandatory — a record that
@@ -345,7 +374,12 @@ ancestor/process-group set, and `pkill` is banned by a test
 - `--prompt-tokens-file` and `--trace` on `benches/common.py` (pre-tokenized
   shapes; true trace replay instead of Poisson at the trace's mean rate).
 - Confirm HF repo ids for the newer families in `models.yaml`; fill in the
-  actual Mac fleet in `platforms.yaml`; calibrate `est_minutes`.
+  actual Mac fleet in `platforms.yaml`; calibrate `est_minutes` (shard
+  counts and the 60-min budget are only as good as these).
+- Org setup for RunPod: `RUNPOD_API_KEY` is set; still needed are the
+  `RUNNER_ADMIN_PAT` secret (runner registration tokens — `GITHUB_TOKEN`
+  cannot mint them) and the `RUNPOD_NETWORK_VOLUME_ID`, `RUNPOD_IMAGE`,
+  `RUNPOD_IMAGE_VERSION` variables; then run `runpod-check`.
 - Device-tuning gate for new Apple chips (`pie config tune` before the first
   benchmark on a chip not in the tuning table).
 - Auto-bisect on confirmed regression (builds are already cached by commit).

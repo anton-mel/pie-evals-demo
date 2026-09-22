@@ -59,7 +59,7 @@ class SupportRule:
 
 @dataclass
 class SuiteDecl:
-    budget_minutes_per_platform: float
+    max_jobs_per_platform: int = 1
     enforce_budget: bool = True
     exclude: list[dict[str, Any]] = field(default_factory=list)
     include: list[dict[str, Any]] = field(default_factory=list)
@@ -78,6 +78,13 @@ class Matrix:
     suites: dict[str, SuiteDecl]
     escalation: dict[str, Any]
     root: Path
+    global_exclude: list[dict[str, Any]] = field(default_factory=list)
+    job_budget_minutes: float = 60.0
+    kill_factor: float = 1.5
+
+    @property
+    def kill_minutes(self) -> int:
+        return int(round(self.job_budget_minutes * self.kill_factor))
 
     # ---- loading ---------------------------------------------------------------
     @classmethod
@@ -102,6 +109,9 @@ class Matrix:
             engines=eng, platforms=plats, artifacts=arts, workloads=wls, programs=progs, modes=modes,
             unsupported=rules, fit_factor=float(sup.get("fit_factor", 1.25)), suites=suites,
             escalation=suites_raw.get("escalation", {}), root=root,
+            global_exclude=list(suites_raw.get("global_exclude", []) or []),
+            job_budget_minutes=float(suites_raw.get("job_budget_minutes", 60)),
+            kill_factor=float(suites_raw.get("kill_factor", 1.5)),
         )
 
     # ---- expansion ---------------------------------------------------------------
@@ -157,6 +167,9 @@ class Matrix:
         return None
 
     def _apply_suites(self, cells: list[Cell]) -> None:
+        for c in cells:
+            if any(selector_matches(sel, c) for sel in self.global_exclude):
+                c.tiers = []
         for tier_name, suite in self.suites.items():
             tier = Tier(tier_name)
             for c in cells:
@@ -173,20 +186,31 @@ class Matrix:
     def runnable(self, tier: Tier, cells: list[Cell] | None = None) -> list[Cell]:
         return [c for c in self.cells_for(tier, cells) if c.declared_unsupported_reason is None]
 
-    def budget_report(self, tier: Tier, cells: list[Cell] | None = None) -> dict[str, float]:
-        per_plat: dict[str, float] = {}
+    def budget_report(self, tier: Tier, cells: list[Cell] | None = None) -> dict[str, dict[str, float]]:
+        """platform -> {minutes, shards}: estimated GPU-minutes and the number of
+        ~job_budget_minutes jobs they shard into (process groups kept whole)."""
+        from .jobs import shard_groups
+
+        out: dict[str, dict[str, float]] = {}
+        by_plat: dict[str, list[Cell]] = {}
         for c in self.runnable(tier, cells):
-            per_plat[c.platform.id] = per_plat.get(c.platform.id, 0.0) + c.workload.est_minutes
-        return per_plat
+            by_plat.setdefault(c.platform.id, []).append(c)
+        for plat, pc in by_plat.items():
+            minutes = sum(c.workload.est_minutes for c in pc)
+            shards = shard_groups(pc, self.job_budget_minutes)
+            out[plat] = {"minutes": minutes, "shards": len(shards), "max_shard_minutes": max((sum(c.workload.est_minutes for c in sh) for sh in shards), default=0.0)}
+        return out
 
     def check_budget(self, tier: Tier, cells: list[Cell] | None = None, *, enforced_only: bool = False) -> list[str]:
         suite = self.suites.get(tier.value)
         if not suite or (enforced_only and not suite.enforce_budget):
             return []
         problems = []
-        for plat, minutes in self.budget_report(tier, cells).items():
-            if minutes > suite.budget_minutes_per_platform:
-                problems.append(f"{tier}: platform {plat} needs {minutes:.0f} min > budget {suite.budget_minutes_per_platform:.0f}")
+        for plat, r in self.budget_report(tier, cells).items():
+            if r["shards"] > suite.max_jobs_per_platform:
+                problems.append(f"{tier}: platform {plat} needs {int(r['shards'])} jobs of ~{self.job_budget_minutes:.0f} min ({r['minutes']:.0f} min total) > max_jobs_per_platform {suite.max_jobs_per_platform}")
+            if r["max_shard_minutes"] > self.job_budget_minutes * self.kill_factor:
+                problems.append(f"{tier}: platform {plat} has a single process group of {r['max_shard_minutes']:.0f} min that cannot fit a {self.job_budget_minutes:.0f}-min job")
         return problems
 
 

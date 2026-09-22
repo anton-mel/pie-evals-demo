@@ -21,12 +21,16 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.jobs.outputs.matrix }}
+      kill_minutes: ${{ steps.jobs.outputs.kill_minutes }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
       - run: uv venv && uv pip install -e ".[orchestrate]"
-      - name: matrix check (budgets)
+      - name: matrix check (budgets, shard counts)
         run: .venv/bin/pie-evals check
+      - name: validate RunPod GPU type ids
+        run: .venv/bin/pie-evals validate-platforms
+        env: { RUNPOD_API_KEY: "${{ secrets.RUNPOD_API_KEY }}" }
       - name: job specs
         id: jobs
         run: |
@@ -64,7 +68,7 @@ jobs:
       - name: launch pod
         if: matrix.runpod
         id: pod
-        run: .venv/bin/pie-evals launch-pod --platform "${{ matrix.platform }}" --image "${{ vars.RUNPOD_IMAGE }}" --repo "${{ github.repository }}" --image-version "${{ vars.RUNPOD_IMAGE_VERSION }}"
+        run: .venv/bin/pie-evals launch-pod --platform "${{ matrix.platform }}" --image "${{ vars.RUNPOD_IMAGE }}" --repo "${{ github.repository }}" --image-version "${{ vars.RUNPOD_IMAGE_VERSION }}" --kill-minutes "${{ needs.expand.outputs.kill_minutes }}"
         env:
           RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
           GH_RUNNER_TOKEN: ${{ steps.token.outputs.token }}
@@ -83,7 +87,8 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.expand.outputs.matrix) }}
     runs-on: ${{ matrix.labels }}
-    timeout-minutes: 2880
+    # hard kill = job budget × kill_factor (policy in matrix/suites.yaml); the pod self-destructs at the same mark
+    timeout-minutes: ${{ fromJson(needs.expand.outputs.kill_minutes) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -94,7 +99,7 @@ jobs:
           .venv/bin/pip install -q -e "."
       - name: pie checkout (pinned commit)
         run: |
-          PIE_ROOT="${PIE_ROOT:-$HOME/pie}"
+          PIE_ROOT="${PIE_ROOT:-$HOME/pie}"   # on RunPod the startup script sets PIE_ROOT=/workspace/pie (network volume)
           [ -d "$PIE_ROOT/.git" ] || git clone --quiet git@github.com:pie-project/pie.git "$PIE_ROOT"
           git -C "$PIE_ROOT" fetch --quiet origin
           git -C "$PIE_ROOT" checkout --quiet "$PIE_COMMIT"
@@ -103,6 +108,7 @@ jobs:
         run: .venv/bin/pie-evals-node run --job "jobs/${{ matrix.job_id }}.json" --pie-root "$PIE_ROOT" --out "out/${{ matrix.job_id }}"
         env:
           PIE_EVALS_CACHE: ${{ runner.os == 'Linux' && '/workspace/pie-evals-cache' || '' }}
+          HF_HUB_CACHE: ${{ runner.os == 'Linux' && '/workspace/hf' || '' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: "out-${{ matrix.job_id }}", path: "out/${{ matrix.job_id }}", retention-days: 30 }

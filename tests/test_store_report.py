@@ -85,9 +85,9 @@ def test_baseline_ratio_requires_input_parity(tmp_path, matrix):
 
 def test_jobs_group_one_model_per_process(matrix, tmp_path):
     jobs = make_jobs(matrix, Tier.SMOKE, pie_commit="abc123", store=Store(tmp_path), platforms=["l40s-x1"])
-    assert len(jobs) == 1
-    j = jobs[0]
-    assert j.platform_id == "l40s-x1" and j.pie_build_features == ["cuda"]
-    groups = j.cells_by_process()
-    assert all(len({c.artifact.artifact_key for c in g}) == 1 for g in groups.values())
-    assert j.model_dump_json()  # serialisable
+    assert 1 <= len(jobs) <= matrix.suites["smoke"].max_jobs_per_platform
+    for j in jobs:
+        assert j.platform_id == "l40s-x1" and j.pie_build_features == ["cuda"]
+        groups = j.cells_by_process()
+        assert all(len({c.artifact.artifact_key for c in g}) == 1 for g in groups.values())
+        assert j.model_dump_json()  # serialisable

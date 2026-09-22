@@ -1,4 +1,7 @@
 name: reap-pods
+# Hourly: terminate pie-evals pods older than 2h. Every pod self-destructs at
+# kill_minutes and the tier workflow's teardown terminates on completion; this
+# is the last net for anything that slipped through both.
 on:
   schedule: [{ cron: "17 * * * *" }]
   workflow_dispatch:
@@ -9,5 +12,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
       - run: uv venv && uv pip install -e ".[orchestrate]"
-      - run: .venv/bin/pie-evals reap-pods --max-age-hours 8
+      - run: .venv/bin/pie-evals reap-pods --max-age-hours 2
         env: { RUNPOD_API_KEY: "${{ secrets.RUNPOD_API_KEY }}" }

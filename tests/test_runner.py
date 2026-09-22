@@ -136,3 +136,28 @@ def test_missing_checkpoint_fails_load(job, patched, tmp_path):
     assert recs == []  # nothing ran …
     lines = [Record.model_validate_json(ln) for ln in (tmp_path / "out" / "records.jsonl").read_text().splitlines()]
     assert lines and all(r.status == CellStatus.FAIL and r.error_class == ErrorClass.LOAD_FAIL for r in lines)  # … but every cell is accounted for
+
+
+def test_soft_budget_records_unreached_cells_as_not_run(job, patched, tmp_path):
+    job = job.model_copy(update={"budget_s": 0, "kill_s": 600})  # budget already exhausted
+    recs, lines = _run(job, patched, tmp_path)
+    assert recs == []
+    assert lines and all(r.status == CellStatus.NOT_RUN and "budget" in (r.invalid_reason or "") for r in lines)
+    assert {r.cell_id for r in lines} == {c.cell_id for c in job.cells}  # every cell accounted for
+
+
+def test_per_cell_timeout_is_bounded_by_kill_deadline(job, patched, tmp_path):
+    seen = []
+    orig = FakeEngine.run
+
+    def spy(self, workload, common_args, out_dir, timeout_s):
+        seen.append(timeout_s)
+        return orig(self, workload, common_args, out_dir, timeout_s)
+
+    FakeEngine.run = spy
+    try:
+        job = job.model_copy(update={"budget_s": 3600, "kill_s": 120, "per_cell_timeout_s": 1800})
+        _run(job, patched, tmp_path)
+    finally:
+        FakeEngine.run = orig
+    assert seen and all(t <= 120 for t in seen)

@@ -1,0 +1,55 @@
+# Cheap end-to-end check of the RunPod path, before spending on a benchmark:
+# validate GPU ids, launch ONE pod on a stock image, have it register as an
+# ephemeral runner, run the node preflight (no pie build), tear it down.
+# ~10 minutes of one GPU. Run this first after setting the org secret/vars.
+name: runpod-check
+on:
+  workflow_dispatch:
+    inputs:
+      platform: { description: "platform id (a RunPod one)", required: true, default: "l40s-x1" }
+      image: { description: "container image", required: false, default: "runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04" }
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    outputs: { pod_id: "${{ steps.pod.outputs.pod_id }}" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv venv && uv pip install -e ".[orchestrate]"
+      - name: GPU ids
+        run: .venv/bin/pie-evals runpod-gpus && .venv/bin/pie-evals validate-platforms
+        env: { RUNPOD_API_KEY: "${{ secrets.RUNPOD_API_KEY }}" }
+      - name: runner registration token
+        id: token
+        run: |
+          TOKEN=$(gh api -X POST repos/${{ github.repository }}/actions/runners/registration-token --jq .token)
+          echo "::add-mask::$TOKEN"; echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+        env: { GH_TOKEN: "${{ secrets.RUNNER_ADMIN_PAT }}" }
+      - name: launch pod (self-destructs in 20 min)
+        id: pod
+        run: .venv/bin/pie-evals launch-pod --platform "${{ inputs.platform }}" --image "${{ inputs.image }}" --repo "${{ github.repository }}" --image-version check --kill-minutes 20
+        env:
+          RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+          GH_RUNNER_TOKEN: ${{ steps.token.outputs.token }}
+          RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+  probe:
+    needs: launch
+    runs-on: [self-hosted, linux, "${{ inputs.platform }}"]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python3 -m venv .venv && .venv/bin/pip install -q -e "."
+          .venv/bin/pie-evals-node preflight
+          nvidia-smi
+          echo "volume:"; df -h /workspace || true; ls /workspace || true
+  teardown:
+    needs: [launch, probe]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv venv && uv pip install -e ".[orchestrate]"
+      - run: .venv/bin/pie-evals terminate-pod "${{ needs.launch.outputs.pod_id }}" || true
+        env: { RUNPOD_API_KEY: "${{ secrets.RUNPOD_API_KEY }}" }

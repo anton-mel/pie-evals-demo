@@ -22,7 +22,9 @@ from __future__ import annotations
 
 import os
 import random
+import signal
 import subprocess
+import threading
 import time
 import traceback
 import uuid
@@ -64,6 +66,58 @@ class NodeRunner:
         self.platform = job.cells[0].platform if job.cells else None
         self._log = open(self.out / "runner.log", "a")
         (self.out / "run_id.txt").write_text(self.run_id + "\n")
+        self.t_start = time.monotonic()
+        self._killed = threading.Event()
+        self._done: set[str] = set()
+        self._start_watchdog()
+
+    # ------------------------------------------------------------------ time policy
+    def elapsed_s(self) -> float:
+        return time.monotonic() - self.t_start
+
+    def over_budget(self) -> bool:
+        """Soft budget: no new cell starts after ``job.budget_s``."""
+        return self.elapsed_s() >= self.job.budget_s
+
+    def remaining_to_kill_s(self) -> float:
+        return max(1.0, self.job.kill_s - self.elapsed_s())
+
+    def _start_watchdog(self) -> None:
+        """Hard deadline: at ``job.kill_s`` (= budget × kill_factor) kill every
+        child in our process group and exit. The workflow's timeout-minutes
+        and the pod's self-destruct are the two outer layers of the same
+        limit; this is the one that leaves a record behind."""
+
+        def _fire() -> None:
+            self._killed.set()
+            try:
+                self.log(f"WATCHDOG: hard deadline {self.job.kill_s}s reached; killing children and exiting")
+                self._emit_unreached("hard deadline reached (job.kill_s); force-killed")
+                self._log.flush()
+            finally:
+                # kill children (not ourselves first): every subprocess we spawned shares our pgid
+                try:
+                    os.killpg(os.getpgrp(), signal.SIGTERM)
+                    time.sleep(3)
+                    os.killpg(os.getpgrp(), signal.SIGKILL)
+                except OSError:
+                    pass
+                os._exit(124)
+
+        t = threading.Timer(self.job.kill_s, _fire)
+        t.daemon = True
+        t.start()
+        self._watchdog = t
+
+    def _emit_unreached(self, reason: str) -> None:
+        """Record every cell that has not been reached as NOT_RUN with the
+        reason. Called once by the runner when the soft budget stops it, or by
+        the watchdog. Idempotent per cell via ``_done``."""
+        for c in self.job.cells:
+            if c.cell_id in self._done:
+                continue
+            self._done.add(c.cell_id)
+            self.emit(self._not_run(c, reason))
 
     # ------------------------------------------------------------------ logging
     def log(self, msg: str) -> None:
@@ -126,6 +180,10 @@ class NodeRunner:
     # ------------------------------------------------------------------ run
     def run(self) -> list[Record]:
         job = self.job
+        try:
+            os.setpgrp()  # our own process group, so the watchdog's killpg reaches only our children
+        except OSError:
+            pass
         self.log(f"job {job.job_id} tier={job.tier} platform={job.platform_id} cells={len(job.cells)} run_id={self.run_id}")
         try:
             self.ensure_pie()
@@ -143,7 +201,10 @@ class NodeRunner:
         self.log(f"{len(groups)} engine processes to run")
         for gkey, cells in groups.items():
             engine_name, artifact_key, mode_key = gkey
-            self.log(f"--- process {engine_name} {artifact_key} {mode_key} ({len(cells)} cells)")
+            if self.over_budget():
+                self.log(f"soft budget {job.budget_s}s exhausted after {self.elapsed_s():.0f}s; not starting {engine_name} {artifact_key}")
+                continue
+            self.log(f"--- process {engine_name} {artifact_key} {mode_key} ({len(cells)} cells) t+{self.elapsed_s():.0f}s")
             engine = None
             snapshot = None
             try:
@@ -178,6 +239,9 @@ class NodeRunner:
             control_ok = True
             model_state = pre.before_model(self.platform) if hasattr(pre, "before_model") else machine_before
             for cell in order:
+                if self.over_budget():
+                    self.log(f"soft budget exhausted at t+{self.elapsed_s():.0f}s; remaining cells of this process not started")
+                    break
                 if not control_ok and job.control_required:
                     rec = self._invalid(cell, "control A/A failed on this process; numbers not read", fingerprint)
                     records.append(rec)
@@ -188,6 +252,7 @@ class NodeRunner:
                     control_ok = False
                     self.log("control A/A failed; remaining cells in this process are HARNESS_INVALID")
                 records.append(rec)
+                self._done.add(cell.cell_id)
                 self.emit(rec)
             try:
                 if engine:
@@ -202,6 +267,9 @@ class NodeRunner:
                     r.status = CellStatus.NOISY
                     r.invalid_reason = "; ".join(invalid)
                     self.emit(r)
+        self._emit_unreached(f"job budget ({job.budget_s}s) exhausted before this cell was reached" if self.over_budget() else "not reached (earlier failure)")
+        self._watchdog.cancel()
+        self.log(f"done in {self.elapsed_s():.0f}s (budget {job.budget_s}s, kill {job.kill_s}s)")
         self._log.close()
         return records
 
@@ -216,7 +284,7 @@ class NodeRunner:
         results = []
         try:
             for i in range(policy.min_rounds):
-                res = engine.run(cell.workload, common, cell_out / f"r{i}", self.job.per_cell_timeout_s)
+                res = engine.run(cell.workload, common, cell_out / f"r{i}", int(min(self.job.per_cell_timeout_s, self.remaining_to_kill_s())))
                 results.append(res)
                 rounds.append(self._primary(res.perf))
             hist = self.job.history.get(cell.cell_id, [])
@@ -226,7 +294,7 @@ class NodeRunner:
                 for _ in range(d.more_rounds):
                     if len(rounds) >= policy.max_rounds:
                         break
-                    res = engine.run(cell.workload, common, cell_out / f"r{len(rounds)}", self.job.per_cell_timeout_s)
+                    res = engine.run(cell.workload, common, cell_out / f"r{len(rounds)}", int(min(self.job.per_cell_timeout_s, self.remaining_to_kill_s())))
                     results.append(res)
                     rounds.append(self._primary(res.perf))
         except EngineLaunchError as e:
@@ -292,7 +360,13 @@ class NodeRunner:
             self.log(f"accuracy gate skipped: {e}")
             return AccuracyMetrics(status=AccuracyStatus.SKIPPED_NO_REFERENCE, detail={"error": str(e)[:300]})
 
+    def _not_run(self, cell: Cell, reason: str) -> Record:
+        p = prov.Provenance(runner=self.runner_name, pie_commit=self.job.pie_commit)
+        return Record(run_id=self.run_id, job_id=self.job.job_id, tier=self.job.tier, cell_id=cell.cell_id, cell_key=cell.cell_key, cell=cell,
+                      status=CellStatus.NOT_RUN, invalid_reason=reason, provenance=p)
+
     def _failed(self, cell: Cell, cls: ErrorClass, msg: str, fingerprint: dict | None, duration: float | None = None) -> Record:
+        self._done.add(cell.cell_id)
         p = prov.Provenance(hardware_fingerprint=fingerprint or {}, runner=self.runner_name, pie_commit=self.job.pie_commit, harness_commit=prov.git_commit(Path(__file__).resolve().parents[3]))
         return Record(run_id=self.run_id, job_id=self.job.job_id, tier=self.job.tier, cell_id=cell.cell_id, cell_key=cell.cell_key, cell=cell,
                       status=CellStatus.FAIL, error_class=cls, error_message=msg[:1000], provenance=p, duration_s=duration)

@@ -26,6 +26,7 @@ class JobSpec(BaseModel):
     job_id: str
     tier: Tier
     platform_id: str
+    shard: int = 0
     pie_commit: str | None = Field(default=None, description="pie commit to build/use; None for baseline-only jobs")
     pie_build_features: list[str] = Field(default_factory=list)
     baseline_versions: dict[str, str] = Field(default_factory=dict, description="engine -> pinned version")
@@ -39,6 +40,9 @@ class JobSpec(BaseModel):
     )
     control_required: bool = True
     output_dir: str = "out"
+    budget_s: int = Field(default=3600, description="soft budget: no new cell starts after this")
+    kill_s: int = Field(default=5400, description="hard deadline: the runner's watchdog kills everything at this point")
+    est_minutes: float = 0.0
 
     def cells_by_process(self) -> dict[tuple, list[Cell]]:
         """Cells that can share one engine process: same engine, artifact, mode.
