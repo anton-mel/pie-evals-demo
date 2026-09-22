@@ -151,6 +151,7 @@ class NodeRunner:
         pb.ensure(self.pie_root, self.job.pie_commit, self.job.pie_build_features,
                   target_dir=Path(os.environ["CARGO_TARGET_DIR"]) if os.environ.get("CARGO_TARGET_DIR") else None,
                   python=os.environ.get("PIE_PY", "python3"), log=self.log)
+        self.log(f"pie interpreter for the bench: {os.environ.get('PIE_PY', 'python3')}")
 
     def snapshot_dir(self, cell: Cell) -> Path:
         from .miniature import ensure_miniature

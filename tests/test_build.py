@@ -15,9 +15,13 @@ def test_restore_places_artifacts(tmp_path, monkeypatch):
     (d / "pie_server-0.5.0-cp312-none-any.whl").write_bytes(b"whl")
     pie_root = tmp_path / "pie"
     (pie_root / "sdk/server/python/python/pie").mkdir(parents=True)
-    ran = []
-    monkeypatch.setattr(pb.subprocess, "run", lambda *a, **k: ran.append(a[0]) or type("R", (), {"stdout": "", "returncode": 0})())
+    installed = []
+    monkeypatch.setattr(pb, "bench_python", lambda cache_root=None, log=print: tmp_path / "venv/bin/python")
+    monkeypatch.setattr(pb, "_pip_install", lambda py, args: installed.append(args))
+    monkeypatch.setattr(pb.subprocess, "run", lambda *a, **k: type("R", (), {"stdout": "", "returncode": 0})())
+    monkeypatch.delenv("PIE_PY", raising=False)
     assert pb.restore(pie_root, "abc123def456", ["cuda"], cache_root=tmp_path, log=lambda *_: None)
     assert (pie_root / "target/release/pie").read_bytes() == b"bin"
     assert (pie_root / "tests/inferlets/target/wasm32-wasip2/release/text_completion_bench.wasm").exists()
-    assert any("pip" in a for a in ran)  # wheel installed
+    assert installed and installed[0][-1].endswith(".whl")  # wheel installed into the bench venv
+    assert pb.os.environ["PIE_PY"].endswith("venv/bin/python")

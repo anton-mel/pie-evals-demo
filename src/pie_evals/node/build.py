@@ -19,14 +19,43 @@ import shutil
 import subprocess
 from pathlib import Path
 
+PIE_UPSTREAM = "https://github.com/pie-project/pie.git"  # public; pods have no SSH key
+BENCH_DEPS = ["websockets", "msgpack", "blake3", "cryptography", "numpy"]  # pie_client + benches/common.py
+
+
+def _cache_root(root: Path | None) -> Path:
+    return root or Path(os.environ.get("PIE_EVALS_CACHE", Path.home() / ".cache/pie-evals"))
+
+
+def bench_python(cache_root: Path | None = None, log=print) -> Path:
+    """A venv on the shared cache that runs pie's bench scripts: the client
+    deps plus the embedded-engine wheel. Created with uv when present (the
+    runner image ships uv but no pip), else python3 -m venv."""
+    venv = _cache_root(cache_root) / "venv-pie"
+    py = venv / "bin" / "python"
+    if not py.exists():
+        log(f"venv: creating {venv}")
+        if shutil.which("uv"):
+            subprocess.run(["uv", "venv", "--quiet", str(venv)], check=True)
+        else:
+            subprocess.run(["python3", "-m", "venv", str(venv)], check=True)
+        _pip_install(py, BENCH_DEPS)
+    return py
+
+
+def _pip_install(py: Path, args: list[str]) -> None:
+    if shutil.which("uv"):
+        subprocess.run(["uv", "pip", "install", "--quiet", "--python", str(py), *args], check=True)
+    else:
+        subprocess.run([str(py), "-m", "pip", "install", "-q", *args], check=True)
+
 
 def cache_key(commit: str, features: list[str]) -> str:
     return f"{commit[:12]}-{'+'.join(features) or 'none'}"
 
 
 def cache_dir(commit: str, features: list[str], root: Path | None = None) -> Path:
-    root = root or Path(os.environ.get("PIE_EVALS_CACHE", Path.home() / ".cache/pie-evals"))
-    return root / "builds" / cache_key(commit, features)
+    return _cache_root(root) / "builds" / cache_key(commit, features)
 
 
 def is_cached(commit: str, features: list[str], root: Path | None = None) -> bool:
@@ -34,7 +63,7 @@ def is_cached(commit: str, features: list[str], root: Path | None = None) -> boo
     return (d / "pie").exists() and (d / "text_completion_bench.wasm").exists() and any(d.glob("pie_server-*.whl"))
 
 
-def ensure_checkout(pie_root: Path, commit: str, mirror: Path | None = None, upstream: str = "git@github.com:pie-project/pie.git") -> None:
+def ensure_checkout(pie_root: Path, commit: str, mirror: Path | None = None, upstream: str = PIE_UPSTREAM) -> None:
     """A pod-local checkout at ``pie_root`` pinned to ``commit``. If a bare
     mirror exists on the volume it is the clone source (fast, no network);
     the mirror itself is only ever fetched, never checked out, so N pods can
@@ -52,7 +81,7 @@ def ensure_checkout(pie_root: Path, commit: str, mirror: Path | None = None, ups
             subprocess.run(["git", "-C", str(pie_root), "checkout", "--quiet", commit], check=True)
 
 
-def update_mirror(mirror: Path, upstream: str = "git@github.com:pie-project/pie.git") -> None:
+def update_mirror(mirror: Path, upstream: str = PIE_UPSTREAM) -> None:
     if not mirror.exists():
         subprocess.run(["git", "clone", "--quiet", "--mirror", upstream, str(mirror)], check=True)
     else:
@@ -71,11 +100,16 @@ def build(pie_root: Path, commit: str, features: list[str], *, cache_root: Path 
     subprocess.run(["cargo", "build", "--release", "-p", "pie", "--bin", "pie", "--features", feats], cwd=pie_root, env=env, check=True, timeout=timeout_s)
     tdir = Path(env.get("CARGO_TARGET_DIR", pie_root / "target"))
     shutil.copy2(tdir / "release" / "pie", out / "pie")
-    # embedded engine wheel (the python bench path on CUDA)
+    # embedded engine wheel (the python bench path on CUDA), built against the bench venv's interpreter
     if "cuda" in features:
+        py = bench_python(cache_root, log=log)
         log("build: embedded engine wheel (maturin)")
-        subprocess.run([python, "-m", "pip", "install", "-q", "--break-system-packages", "maturin"], check=False)
-        subprocess.run([python, "-m", "maturin", "build", "--release", "-o", str(out), "--features", feats], cwd=pie_root / "sdk/server/python", env=env, check=True, timeout=timeout_s)
+        if shutil.which("uv"):
+            maturin = ["uv", "tool", "run", "maturin"]
+        else:
+            _pip_install(py, ["maturin"])
+            maturin = [str(py), "-m", "maturin"]
+        subprocess.run([*maturin, "build", "--release", "-o", str(out), "--features", feats, "-i", str(py)], cwd=pie_root / "sdk/server/python", env=env, check=True, timeout=timeout_s)
     # guest program: built in-tree (bench_inferlet_paths looks under tests/inferlets/target)
     log("build: text-completion-bench (wasm32-wasip2)")
     genv = {k: v for k, v in env.items() if k != "CARGO_TARGET_DIR"}
@@ -99,12 +133,14 @@ def restore(pie_root: Path, commit: str, features: list[str], *, cache_root: Pat
     shutil.copy2(d / "text_completion_bench.wasm", wasm)
     whl = sorted(d.glob("pie_server-*.whl"))
     if whl:
-        subprocess.run([python, "-m", "pip", "install", "-q", "--break-system-packages", "--force-reinstall", "--no-deps", str(whl[-1])], check=True)
+        py = bench_python(cache_root, log=log)
+        _pip_install(py, ["--force-reinstall", "--no-deps", str(whl[-1])])
         # pie_bench.py puts sdk/server/python/python first on sys.path, which shadows the
         # installed package; the compiled module must sit in the source dir (maturin develop layout)
-        so = subprocess.run([python, "-c", "import pie._engine as e; print(e.__file__)"], capture_output=True, text=True).stdout.strip()
+        so = subprocess.run([str(py), "-c", "import pie._engine as e; print(e.__file__)"], capture_output=True, text=True).stdout.strip()
         if so:
             shutil.copy2(so, pie_root / "sdk/server/python/python/pie" / Path(so).name)
+        os.environ.setdefault("PIE_PY", str(py))  # the pie adapter's interpreter
     log(f"restore: {d} -> {pie_root}")
     return True
 
