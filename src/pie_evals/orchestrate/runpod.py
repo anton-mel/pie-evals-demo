@@ -103,17 +103,30 @@ def create_network_volume(name: str, size_gb: int, data_center_id: str, api_key:
 
 # ---- startup ----------------------------------------------------------------------
 
-def startup_script(labels: list[str], *, repo: str, kill_minutes: int, image_version: str = "latest", volume: str = VOLUME) -> str:
-    """Runs as the pod's start command on the runpod-ci-runner image."""
+def startup_script(labels: list[str], *, repo: str, kill_minutes: int, image_version: str = "latest", volume: str = VOLUME, debug: bool = False) -> str:
+    """Runs as the pod's start command on the runpod-ci-runner image.
+
+    Every step is logged to ``/tmp/pie-evals-logs/start.log`` (never the
+    token). With ``debug`` the log directory is served on port 8080 — reachable
+    through RunPod's proxy at ``https://<pod>-8080.proxy.runpod.net/start.log``
+    — and a failed registration keeps the pod alive for 10 minutes instead of
+    terminating at once, so the log can be read."""
     lab = ",".join(labels + [f"img-{image_version}"])
+    hold = "600" if debug else "0"
     return f"""#!/usr/bin/env bash
-set -uo pipefail
+set -o pipefail
 V={volume}
+mkdir -p /tmp/pie-evals-logs
+exec > >(tee -a /tmp/pie-evals-logs/start.log) 2>&1
+echo "== start $(date -u +%FT%TZ) pod=${{RUNPOD_POD_ID:-?}} platform=${{PIE_EVALS_PLATFORM:-?}}"
 echo "== $(nvidia-smi --query-gpu=name,driver_version,compute_cap,memory.total --format=csv,noheader 2>/dev/null || echo 'no GPU visible')"
-terminate() {{ curl -fsS -X DELETE -H "Authorization: Bearer $RUNPOD_API_KEY" "https://rest.runpod.io/v1/pods/$RUNPOD_POD_ID" >/dev/null 2>&1 || true; }}
-( sleep $(( {kill_minutes} * 60 )); echo "self-destruct: {kill_minutes} min"; terminate ) &
-# Rust on the volume (shared, read-mostly); the repo's rust-toolchain.toml picks the version
-[ -x "$V/.cargo/bin/rustup" ] || curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none --no-modify-path
+{"(cd /tmp/pie-evals-logs && python3 -m http.server 8080 >/dev/null 2>&1 &)" if debug else ""}
+terminate() {{ echo "== terminate $(date -u +%FT%TZ)"; curl -fsS -X DELETE -H "Authorization: Bearer ${{RUNPOD_API_KEY:-}}" "https://rest.runpod.io/v1/pods/${{RUNPOD_POD_ID:-}}" >/dev/null 2>&1 || true; }}
+( sleep $(( {kill_minutes} * 60 )); echo "== self-destruct: {kill_minutes} min"; terminate ) &
+if [ ! -x "$V/.cargo/bin/rustup" ]; then
+  echo "== installing rustup on $V"; mkdir -p "$V"
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | RUSTUP_HOME=$V/.rustup CARGO_HOME=$V/.cargo sh -s -- -y --profile minimal --default-toolchain none --no-modify-path || echo "== rustup install failed (non-fatal)"
+fi
 mkdir -p "$V/_work" "$V/.pie" "$V/.hf" "$V/.uv" "$V/.npm" "$V/pie-evals-cache" /tmp/target /tmp/pie
 cat > /opt/actions-runner/.env <<ENV
 RUSTUP_HOME=$V/.rustup
@@ -127,15 +140,24 @@ HF_HUB_CACHE=$V/.hf/hub
 UV_CACHE_DIR=$V/.uv
 npm_config_cache=$V/.npm
 PIE_EVALS_CACHE=$V/pie-evals-cache
-PIE_EVALS_PLATFORM=$PIE_EVALS_PLATFORM
+PIE_EVALS_PLATFORM=${{PIE_EVALS_PLATFORM:-}}
 PATH=$V/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV
-TOKEN=$(curl -fsS -X POST -H "Authorization: Bearer $GH_RUNNER_PAT" -H "Accept: application/vnd.github+json" \\
-  "https://api.github.com/repos/{repo}/actions/runners/registration-token" | jq -r .token)
-cd /opt/actions-runner
-./config.sh --unattended --replace --ephemeral --disableupdate --url "https://github.com/{repo}" --token "$TOKEN" \\
+echo "== env written; volume: $(df -h $V 2>/dev/null | tail -1)"
+# a pre-minted registration token (1 h, can only register a runner) is preferred over a PAT in the pod
+TOKEN="${{GH_RUNNER_TOKEN:-}}"
+if [ -z "$TOKEN" ]; then
+  echo "== minting registration token from PAT"
+  TOKEN=$(curl -fsS -X POST -H "Authorization: Bearer ${{GH_RUNNER_PAT:-}}" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/{repo}/actions/runners/registration-token" | jq -r .token)
+fi
+echo "== token present: $([ -n "$TOKEN" ] && [ "$TOKEN" != null ] && echo yes || echo NO)"
+cd /opt/actions-runner || {{ echo "== no /opt/actions-runner"; sleep {hold}; terminate; exit 1; }}
+export RUNNER_ALLOW_RUNASROOT=1
+./config.sh --unattended --replace --ephemeral --disableupdate --url "https://github.com/{repo}" --token "$TOKEN" \
   --name "runpod-${{RUNPOD_POD_ID:-$(hostname)}}" --labels "{lab}" --work "$V/_work"
-./run.sh || true
+RC=$?; echo "== config.sh exit $RC"
+if [ $RC -ne 0 ]; then sleep {hold}; terminate; exit $RC; fi
+./run.sh; RC=$?; echo "== run.sh exit $RC $(date -u +%FT%TZ)"
 terminate
 sleep 60
 """
@@ -188,6 +210,7 @@ def create_pod(
     cloud_type: str = "SECURE",
     allowed_cuda_versions: list[str] | None = None,
     api_key: str | None = None,
+    debug: bool = False,
     log=print,
 ) -> PodHandle:
     if not platform.runpod_gpu_type:
@@ -196,7 +219,7 @@ def create_pod(
         raise ValueError("need runner_token (pre-minted registration token) or runner_pat")
     key = api_key or os.environ["RUNPOD_API_KEY"]
     name = f"pie-evals-{platform.id}-{int(time.time())}"
-    script = startup_script(platform.runner_labels, repo=repo, kill_minutes=kill_minutes, image_version=image_version)
+    script = startup_script(platform.runner_labels, repo=repo, kill_minutes=kill_minutes, image_version=image_version, debug=debug)
     body: dict = {
         "name": name,
         "imageName": image,
@@ -206,7 +229,7 @@ def create_pod(
         "computeType": "GPU",
         "containerDiskInGb": container_disk_gb,
         "volumeInGb": 0,
-        "ports": [],
+        "ports": ["8080/http"] if debug else [],
         "dockerStartCmd": ["bash", "-lc", script],
         "env": {
             "PIE_EVALS_PLATFORM": platform.id,
