@@ -19,6 +19,7 @@ class RepetitionPolicy(BaseModel):
     max_rounds: int = 5
     history_sigma: float = 3.0
     cov_noisy_threshold: float = 0.02  # a cell whose rounds spread more than 2% is NOISY
+    cov_noisy_threshold_concurrent: float = 0.05  # concurrency / mixed / prefix shapes: scheduling variance is real
     interleave: bool = True  # ABBA ordering across cells that share an engine process
 
 

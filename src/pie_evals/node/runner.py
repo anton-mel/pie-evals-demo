@@ -360,8 +360,9 @@ class NodeRunner:
         invalid = None
         if perf.failed:
             status, invalid = CellStatus.FAIL, f"{perf.failed} of {perf.requests} requests failed"
-        elif len(rounds) >= 2 and perf.cov > policy.cov_noisy_threshold:
-            status, invalid = CellStatus.NOISY, f"cov {perf.cov:.3%} > {policy.cov_noisy_threshold:.1%}"
+        elif len(rounds) >= 2 and perf.cov > (policy.cov_noisy_threshold if cell.workload.kind.value in ("single_stream", "control_aa", "long_context") else policy.cov_noisy_threshold_concurrent):
+            thr = policy.cov_noisy_threshold if cell.workload.kind.value in ("single_stream", "control_aa", "long_context") else policy.cov_noisy_threshold_concurrent
+            status, invalid = CellStatus.NOISY, f"cov {perf.cov:.3%} > {thr:.1%}"
         if cell.workload.kind.value == "control_aa" and len(rounds) >= 2:
             spread = abs(rounds[0] - rounds[-1]) / median(rounds)
             if spread > policy.cov_noisy_threshold:

@@ -49,7 +49,16 @@ def common_args_for(workload: WorkloadSpec, warmup: int = 2) -> list[str]:
     p = workload.params
     kind = str(workload.kind)
     args: list[str] = ["--temperature", "0", "--top-p", "1", "--ignore-eos", "--warmup", str(warmup), "--no-think"]
-    if kind in ("single_stream", "control_aa", "long_context", "concurrency"):
+    if kind == "long_context":
+        # a 32k-word prompt does not fit one argv element (E2BIG at 128 KB): the bench
+        # synthesizes the bulk itself from --shared-prefix-words, deterministically and
+        # identically for every engine; only a short tail travels on the command line
+        prefill = int(p.get("prefill", 2048))
+        tail = 64
+        args += ["--prompt", prompt_words_for_tokens(tail, salt=workload.id)]
+        args += ["--shared-prefix-words", str(int(round((prefill - tail) * WORDS_PER_TOKEN)))]
+        args += ["--max-tokens", str(int(p.get("decode", 64)))]
+    elif kind in ("single_stream", "control_aa", "concurrency"):
         args += ["--prompt", prompt_words_for_tokens(int(p.get("prefill", 128)), salt=workload.id)]
         args += ["--max-tokens", str(int(p.get("decode", 64)))]
         if kind == "concurrency":

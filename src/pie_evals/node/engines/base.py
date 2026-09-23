@@ -98,7 +98,7 @@ def _pct(values: list[float], q: float) -> float | None:
     return float(np.percentile(np.asarray(values, dtype=float), q))
 
 
-def perf_from_common_json(summary: dict[str, Any], requests: list[dict[str, Any]], num_layers: int | None) -> PerfMetrics:
+def perf_from_common_json(summary: dict[str, Any], requests: list[dict[str, Any]], num_layers: int | None, concurrency: int | None = None) -> PerfMetrics:
     """Lift ``scripts/bench/common.py``'s BenchSummary + RequestResult rows."""
     completed = [r for r in requests if r.get("ok")]
     out_tok = int(summary.get("output_tokens") or sum(r.get("output_tokens", 0) for r in completed))
@@ -126,7 +126,7 @@ def perf_from_common_json(summary: dict[str, Any], requests: list[dict[str, Any]
         if isinstance(v, (int, float)) and not isinstance(v, bool):
             counters[str(k)] = float(v)
     # derived counters (device_idle_pct, host_us_per_step, ...) are filled by the pie adapter
-    concurrency = int((summary.get("config") or {}).get("concurrency") or 0) or None
+    concurrency = concurrency or int((summary.get("config") or {}).get("concurrency") or 0) or None
     decode_tok_s = float(np.median(decode_lane)) if decode_lane else None
     # single-stream: the lane's decode rate is the aggregate; concurrency: aggregate output tok/s is the headline
     primary = "decode_tok_s" if (concurrency in (None, 1)) and decode_tok_s else "output_tok_s"
@@ -269,7 +269,7 @@ class Engine(ABC):
             err = next((str(r.get("error") or "") for r in failed if r.get("error")), "(no error text)")
             cls = ErrorClass.HARNESS_INVALID if re.search(r"temperature must be|Failed to parse JSON input", err) else ErrorClass.INCOMPATIBLE if re.search(r"forward-hybrid|not valid on|interface", err) else ErrorClass.CRASH
             raise EngineLaunchError(cls, f"all {len(requests)} requests failed: {err[:300]}")
-        perf = perf_from_common_json(summary, requests, self.num_layers)
+        perf = perf_from_common_json(summary, requests, self.num_layers, concurrency=int(workload.params.get("concurrency", 1)))
         perf.counters.update(self.counters_from_summary(summary))
         perf.resident_gib = self.resident_gib()
         ids = [r.get("output_token_ids") or [] for r in requests]
