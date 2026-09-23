@@ -2,10 +2,10 @@
 
 | status | cells |
 |---|---|
-| pass | 38 |
-| fail | 109 |
+| pass | 58 |
+| fail | 75 |
 | declared_unsupported | 6843 |
-| not_run | 5624 |
+| not_run | 5638 |
 | noisy | 6 |
 
 ## Gaps (expected supported, but not passing)
@@ -23,7 +23,7 @@
 | pie | a100-pcie-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for gpt-oss-20b-mxfp4: "checkpoint openai/gpt-oss-20b not in HF cache /workspace/.hf/hub (run `pi |
 | pie | a100-pcie-x1 | gpt-oss-20b-mxfp4 | mixed-256 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for gpt-oss-20b-mxfp4: "checkpoint openai/gpt-oss-20b not in HF cache /workspace/.hf/hub (run `pi |
 | pie | a100-pcie-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for gpt-oss-20b-mxfp4: "checkpoint openai/gpt-oss-20b not in HF cache /workspace/.hf/hub (run `pi |
-| vllm | l40s-x1 | gemma-4-e4b-bf16 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | l40s-x1 | gemma-4-e4b-bf16 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
 | vllm | l40s-x1 | gemma-4-e4b-bf16 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
 | vllm | l40s-x1 | gemma-4-e4b-bf16 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
 | vllm | l40s-x1 | gemma-4-e4b-bf16 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
@@ -34,17 +34,6 @@
 | vllm | l40s-x1 | gemma-4-e4b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
 | vllm | l40s-x1 | gemma-4-e4b-bf16 | mixed-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
 | vllm | l40s-x1 | gemma-4-e4b-bf16 | kv-oversub | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | c64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | mixed-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
 | sglang | l40s-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
 | sglang | l40s-x1 | gpt-oss-20b-mxfp4 | ss-512-256 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
 | sglang | l40s-x1 | gpt-oss-20b-mxfp4 | c8 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
@@ -56,28 +45,17 @@
 | sglang | l40s-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
 | sglang | l40s-x1 | gpt-oss-20b-mxfp4 | mixed-256 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
 | sglang | l40s-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
-| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
+| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
 | vllm | rtx4090-x1 | gemma-4-e4b-bf16 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
 | vllm | rtx4090-x1 | gemma-4-e4b-bf16 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
 | vllm | rtx4090-x1 | gemma-4-e4b-bf16 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
@@ -99,28 +77,16 @@
 | sglang | rtx4090-x1 | gemma-4-e4b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
 | sglang | rtx4090-x1 | gemma-4-e4b-bf16 | mixed-256 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
 | sglang | rtx4090-x1 | gemma-4-e4b-bf16 | kv-oversub | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | c64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | mixed-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp1 | fail | crash | RuntimeError: Ninja build failed. Ninja output: |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
 | pie | l40s-x1 | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | noisy |  |  |
 | pie | l40s-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | noisy |  |  |
 | pie | rtx4090-x1 | gemma-4-e4b-bf16 | c8 | text-completion-bench | tp1 | noisy |  |  |
@@ -1644,6 +1610,13 @@
 | pie | l40s-x1 | qwen3.5-0.8b-bf16 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
 | pie | l40s-x1 | qwen3.5-0.8b-bf16 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
 | pie | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
 | vllm | l40s-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | vllm | l40s-x1 | qwen3.5-0.8b-bf16 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | vllm | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
@@ -5092,6 +5065,17 @@
 | pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
 | pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
 | pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
 | vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
@@ -5224,21 +5208,17 @@
 | pie | rtx4090-x1 | qwen3.5-0.8b-bf16 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
 | pie | rtx4090-x1 | qwen3.5-0.8b-bf16 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
 | pie | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
 | vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | not_run |  |  |
 | vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | not_run |  |  |
 | vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp1 | not_run |  |  |
 | vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
 | vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
 | vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
 | vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | not_run |  |  |
 | sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
