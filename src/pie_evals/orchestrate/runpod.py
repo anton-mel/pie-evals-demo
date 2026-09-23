@@ -128,6 +128,10 @@ if [ ! -x "$V/.cargo/bin/rustup" ]; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | RUSTUP_HOME=$V/.rustup CARGO_HOME=$V/.cargo sh -s -- -y --profile minimal --default-toolchain none --no-modify-path || echo "== rustup install failed (non-fatal)"
 fi
 mkdir -p /tmp/_work "$V/.pie" "$V/.hf" "$V/.uv" "$V/.npm" "$V/pie-evals-cache" /tmp/target /tmp/pie
+# triton / torch.compile JIT a C extension against the system python's headers; the image ships none
+if ! ls /usr/include/python3*/Python.h >/dev/null 2>&1; then
+  echo "== installing python3-dev"; (apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-dev) >/dev/null 2>&1 || echo "== python3-dev install failed (non-fatal)"
+fi
 VOL=$(mount | grep -q " $V " && echo 1 || echo "")
 cat > /opt/actions-runner/.env <<ENV
 PIE_EVALS_VOLUME=$VOL
