@@ -66,12 +66,14 @@ def check(obj):
 @click.option("--pie-commit", default=None)
 @click.option("--platform", "platforms", multiple=True)
 @click.option("--engine", "engines", multiple=True)
+@click.option("--program", "programs", multiple=True, help="restrict to these program ids")
+@click.option("--max-jobs", type=int, default=None, help="cap the number of jobs (shards) written, largest first")
 @click.option("--out", type=click.Path(), default="jobs")
 @click.option("--label", default=None)
 @click.option("--skip-unavailable", is_flag=True, help="drop platforms with no RunPod type and no online runner (needs gh + a token with actions:read)")
 @click.option("--repo", default=None, help="owner/name for --skip-unavailable (default: $GITHUB_REPOSITORY)")
 @click.pass_obj
-def jobs(obj, tier, pie_commit, platforms, engines, out, label, skip_unavailable, repo):
+def jobs(obj, tier, pie_commit, platforms, engines, programs, max_jobs, out, label, skip_unavailable, repo):
     """Write one JobSpec JSON per platform shard, plus a GitHub Actions matrix file."""
     from .jobs import available_platforms
 
@@ -87,7 +89,12 @@ def jobs(obj, tier, pie_commit, platforms, engines, out, label, skip_unavailable
         (outp / "skipped-platforms.json").write_text(json.dumps(skipped, indent=1))
         for pid, why in skipped.items():
             click.echo(f"skip platform {pid}: {why}", err=True)
-    js = make_jobs(m, Tier(tier), pie_commit=pie_commit, store=st, platforms=plats, engines=list(engines) or None, label=label)
+    cells = m.expand()
+    if programs:
+        cells = [c for c in cells if c.program.id in programs]
+    js = make_jobs(m, Tier(tier), pie_commit=pie_commit, store=st, platforms=plats, engines=list(engines) or None, cells=cells, label=label)
+    if max_jobs is not None:
+        js = js[:max_jobs]
     gh = []
     for j in js:
         (outp / f"{j.job_id}.json").write_text(j.model_dump_json(indent=1))

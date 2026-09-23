@@ -7,6 +7,10 @@ on:
   workflow_dispatch:
     inputs:
       pie_commit: { description: "pie commit (default: origin/main)", required: false, default: "" }
+      platforms: { description: "comma-separated platform ids", required: false, default: "" }
+      engines: { description: "comma-separated engine ids", required: false, default: "" }
+      programs: { description: "comma-separated program ids", required: false, default: "" }
+      max_jobs: { description: "cap on jobs", required: false, default: "" }
 jobs:
   resolve:
     runs-on: ubuntu-latest
@@ -20,5 +24,11 @@ jobs:
   run:
     needs: resolve
     uses: ./.github/workflows/tier.yml
-    with: { tier: weekly, pie_commit: "${{ needs.resolve.outputs.pie_commit }}" }
+    with:
+      tier: weekly
+      pie_commit: ${{ needs.resolve.outputs.pie_commit }}
+      platforms: ${{ github.event.inputs.platforms || '' }}
+      engines: ${{ github.event.inputs.engines || '' }}
+      programs: ${{ github.event.inputs.programs || '' }}
+      max_jobs: ${{ github.event.inputs.max_jobs || '' }}
     secrets: inherit

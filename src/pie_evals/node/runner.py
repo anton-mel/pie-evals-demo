@@ -218,6 +218,12 @@ class NodeRunner:
                 recipe = load_recipe(str(first.engine), recipe_name, first.platform, first.workload)
                 recipe["program_path"] = first.program.path
                 recipe["snapshot_dir"] = str(snapshot)
+                if str(first.engine) in self.job.baseline_versions:
+                    from .baselines import SPECS, ensure_baseline
+
+                    recipe["pin"] = self.job.baseline_versions[str(first.engine)]
+                    if str(first.engine) in SPECS and not os.environ.get({"vllm": "VLLM_PY", "sglang": "SGLANG_PY"}.get(str(first.engine), "")):
+                        ensure_baseline(str(first.engine), recipe["pin"], log=self.log)
                 engine = cls(pie_root=self.pie_root, artifact=first.artifact, platform=first.platform, mode=first.mode, recipe=recipe, num_layers=num_layers)
                 engine_version = engine.version()
                 # one boot per model: the bench then attaches to this server for every

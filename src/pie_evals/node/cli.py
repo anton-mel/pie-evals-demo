@@ -67,9 +67,11 @@ def build_cmd(pie_commit, features, pie_root, mirror, target_dir, force):
 @click.option("--tier", type=click.Choice(["smoke", "nightly", "weekly"]), required=True)
 @click.option("--matrix", "matrix_dir", default="matrix")
 @click.option("--platform", "platforms", multiple=True, help="restrict to artifacts these platforms run (default: all of the tier)")
+@click.option("--engine", "engines_f", multiple=True)
+@click.option("--program", "programs_f", multiple=True)
 @click.option("--pie-root", type=click.Path(), default=os.environ.get("PIE_ROOT", "/root/pie"))
 @click.option("--hf-cache", type=click.Path(), default=None)
-def prepare_cmd(tier, matrix_dir, platforms, pie_root, hf_cache):
+def prepare_cmd(tier, matrix_dir, platforms, engines_f, programs_f, pie_root, hf_cache):
     """Fetch every checkpoint a tier needs (downloads + miniatures) so bench pods find them on the volume.
     Failures are reported per artifact and never abort the rest; exit 1 if any failed."""
     from pie_evals.orchestrate.matrix import Matrix
@@ -81,6 +83,10 @@ def prepare_cmd(tier, matrix_dir, platforms, pie_root, hf_cache):
     cells = m.runnable(Tier(tier))
     if platforms:
         cells = [c for c in cells if c.platform.id in platforms]
+    if engines_f:
+        cells = [c for c in cells if str(c.engine) in engines_f]
+    if programs_f:
+        cells = [c for c in cells if c.program.id in programs_f]
     arts = {c.artifact.id: c.artifact for c in cells}
     cache = Path(hf_cache) if hf_cache else hf_cache_dir()
     failed = {}
@@ -91,6 +97,17 @@ def prepare_cmd(tier, matrix_dir, platforms, pie_root, hf_cache):
         except Exception as e:
             failed[aid] = str(e).strip().splitlines()[-1][:200] if str(e).strip() else repr(e)
             click.echo(f"FAIL  {aid}: {failed[aid]}", err=True)
+    from .baselines import SPECS, ensure_baseline
+
+    engines = {str(c.engine) for c in cells}
+    for e in sorted(engines & set(SPECS)):
+        pin = m.engines[e].pin
+        try:
+            ensure_baseline(e, pin, log=lambda m_: click.echo(m_, err=True))
+            click.echo(f"ok    baseline {e}=={pin}")
+        except Exception as ex:
+            failed[f"baseline:{e}"] = str(ex)[:200]
+            click.echo(f"FAIL  baseline {e}=={pin}: {failed[f'baseline:{e}']}", err=True)
     click.echo(json.dumps({"prepared": len(arts) - len(failed), "failed": failed}))
     sys.exit(1 if failed else 0)
 

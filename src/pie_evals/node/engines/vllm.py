@@ -26,7 +26,13 @@ class VllmEngine(Engine):
     script = "scripts/bench/vllm_bench.py"
 
     def default_python(self) -> str:
-        return os.environ.get("VLLM_PY") or "/root/.venv/vllm/bin/python"
+        if os.environ.get("VLLM_PY"):
+            return os.environ["VLLM_PY"]
+        from pie_evals.node.baselines import baseline_python
+
+        pin = self.recipe.get("pin")
+        py = baseline_python("vllm", pin) if pin else None
+        return str(py) if py else "/root/.venv/vllm/bin/python"
 
     def model_arg(self) -> str:
         # vLLM resolves HF ids itself (offline cache under HF_HUB_CACHE); a

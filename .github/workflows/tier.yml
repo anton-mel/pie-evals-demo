@@ -8,6 +8,9 @@ on:
       tier: { type: string, required: true }
       pie_commit: { type: string, required: true }
       platforms: { type: string, required: false, default: "" }
+      engines: { type: string, required: false, default: "" }
+      programs: { type: string, required: false, default: "" }
+      max_jobs: { type: string, required: false, default: "" }
 
 jobs:
   expand:
@@ -30,6 +33,9 @@ jobs:
         run: |
           PLAT_ARGS=""
           for p in $(echo "${{ inputs.platforms }}" | tr ',' ' '); do PLAT_ARGS="$PLAT_ARGS --platform $p"; done
+          for e in $(echo "${{ inputs.engines }}" | tr ',' ' '); do PLAT_ARGS="$PLAT_ARGS --engine $e"; done
+          for g in $(echo "${{ inputs.programs }}" | tr ',' ' '); do PLAT_ARGS="$PLAT_ARGS --program $g"; done
+          [ -n "${{ inputs.max_jobs }}" ] && PLAT_ARGS="$PLAT_ARGS --max-jobs ${{ inputs.max_jobs }}"
           .venv/bin/pie-evals jobs --tier "${{ inputs.tier }}" --pie-commit "${{ inputs.pie_commit }}" --out jobs --skip-unavailable $PLAT_ARGS
           echo "matrix=$(cat jobs/gh-matrix.json)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
@@ -55,14 +61,19 @@ jobs:
   build:
     needs: build-launch
     runs-on: [self-hosted, linux, "${{ vars.RUNPOD_BUILD_PLATFORM || 'l40s-x1' }}"]
-    timeout-minutes: 60
+    timeout-minutes: 90   # a cold volume also installs vLLM/SGLang venvs here
     steps:
       - uses: actions/checkout@v4
       - run: uv venv --quiet .venv && uv pip install --quiet --python .venv/bin/python -e "."
       - name: build pie at the pinned commit and cache it on the volume
         run: .venv/bin/pie-evals-node build --pie-commit "${{ inputs.pie_commit }}" --features cuda --pie-root "$PIE_ROOT" --mirror "$PIE_MIRROR" --target-dir "$CARGO_TARGET_DIR"
       - name: checkpoints and miniatures onto the volume
-        run: .venv/bin/pie-evals-node prepare --tier "${{ inputs.tier }}" --pie-root "$PIE_ROOT" || echo "::warning::some checkpoints could not be prepared (their cells will be load_fail)"
+        run: |
+          ARGS=""
+          for p in $(echo "${{ inputs.platforms }}" | tr ',' ' '); do ARGS="$ARGS --platform $p"; done
+          for e in $(echo "${{ inputs.engines }}" | tr ',' ' '); do ARGS="$ARGS --engine $e"; done
+          for g in $(echo "${{ inputs.programs }}" | tr ',' ' '); do ARGS="$ARGS --program $g"; done
+          .venv/bin/pie-evals-node prepare --tier "${{ inputs.tier }}" --pie-root "$PIE_ROOT" $ARGS || echo "::warning::some checkpoints/baselines could not be prepared (their cells will be load_fail)"
         env: { HF_TOKEN: "${{ secrets.HF_TOKEN }}" }
   build-teardown:
     needs: [build-launch, build]

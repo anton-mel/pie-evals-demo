@@ -24,7 +24,13 @@ class SglangEngine(Engine):
     script = "scripts/bench/sglang_bench.py"
 
     def default_python(self) -> str:
-        return os.environ.get("SGLANG_PY") or "/root/.venv/sglang/bin/python"
+        if os.environ.get("SGLANG_PY"):
+            return os.environ["SGLANG_PY"]
+        from pie_evals.node.baselines import baseline_python
+
+        pin = self.recipe.get("pin")
+        py = baseline_python("sglang", pin) if pin else None
+        return str(py) if py else "/root/.venv/sglang/bin/python"
 
     def model_arg(self) -> str:
         # The runner resolves the checkpoint (a miniature lives under a snapshot

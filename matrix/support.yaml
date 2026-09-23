@@ -26,6 +26,8 @@ unsupported:
     reason: "vLLM does not load MLX quantized checkpoints"
   - when: {scheme: mlx_2bit, engine: sglang}
     reason: "SGLang does not load MLX quantized checkpoints"
+  - when: {engine: llamacpp, os: linux}
+    reason: "runner image has no nvcc; no CUDA llama.cpp build on pods yet"
   - when: {engine: llamacpp, tp: ">1"}
     reason: "llama.cpp layer-split is not tensor parallel; compared at tp1 only"
   - when: {engine: mlxlm, tp: ">1"}
