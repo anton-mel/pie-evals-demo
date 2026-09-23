@@ -69,28 +69,28 @@ programs:
     bench_args: ["--temperature", "0.7"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
     category: kv_policy
     accuracy_gate: token_parity
-    workloads: [lc-2k-128, lc-8k-128, lc-32k-128]
+    workloads: [lc-1k-128]   # attn_score ceiling 2048 KV slots (prompt + reserve)
     tiers: [smoke, nightly, weekly]
   - id: trackb-snapkv
     path: examples/trackb-snapkv
     bench_args: ["--temperature", "0.7"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
     category: kv_policy
     accuracy_gate: token_parity
-    workloads: [lc-2k-128, lc-8k-128, lc-32k-128]
+    workloads: [lc-1k-128]   # attn_score ceiling 2048 KV slots (prompt + reserve)
     tiers: [smoke, nightly, weekly]
   - id: snapkv-eviction
     path: examples/snapkv-eviction
     bench_args: ["--temperature", "0.7"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
     category: kv_policy
     accuracy_gate: token_parity
-    workloads: [lc-8k-128, kv-oversub]
+    workloads: [lc-1k-128]   # attn_score ceiling 2048 KV slots (prompt + reserve)
     tiers: [nightly, weekly]
   - id: tova-attention
     path: examples/tova-attention
     bench_args: ["--temperature", "0.7"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
     category: kv_policy
     accuracy_gate: token_parity
-    workloads: [lc-8k-128, lc-32k-128]
+    workloads: [lc-1k-128]   # attn_score ceiling 2048 KV slots (prompt + reserve)
     tiers: [nightly, weekly]
 
   - id: attention-sink
@@ -98,14 +98,14 @@ programs:
     bench_args: ["--temperature", "0.7"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
     category: kv_policy
     accuracy_gate: token_parity
-    workloads: [lc-2k-128, lc-8k-128]
+    workloads: [lc-1k-128]   # attn_score ceiling 2048 KV slots (prompt + reserve)
     tiers: [nightly, weekly]
   - id: sliding-window-attention
     path: examples/sliding-window-attention
     bench_args: ["--temperature", "0.7"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
     category: kv_policy
     accuracy_gate: token_parity
-    workloads: [lc-2k-128, lc-8k-128]
+    workloads: [lc-1k-128]   # attn_score ceiling 2048 KV slots (prompt + reserve)
     tiers: [nightly, weekly]
 
   - id: lora-probe

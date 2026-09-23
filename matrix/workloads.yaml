@@ -45,6 +45,11 @@ workloads:
     est_minutes: 6
 
   # -- long context
+  - id: lc-1k-128
+    kind: long_context
+    params: {prefill: 1024, decode: 128, concurrency: 1}
+    tiers: [smoke, nightly, weekly]
+    est_minutes: 0.7
   - id: lc-2k-128
     kind: long_context
     params: {prefill: 2048, decode: 128, concurrency: 1}

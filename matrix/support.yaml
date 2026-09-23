@@ -54,6 +54,8 @@ unsupported:
     reason: "returns non-JSON to pie_bench.py (JSONDecodeError); on hybrid models also needs forward-hybrid"
   - when: {program: mtp-speculative-decoding, engine: pie}
     reason: "return envelope lacks num_output_tokens (pie_bench.py KeyError); on hybrid models also needs forward-hybrid"
+  - when: {program: lora-probe, engine: pie}
+    reason: "seeds a fixed-size adapter bank (1572864 bytes) that must match the model's layer count; needs a per-model input contract"
   - when: {program: cacheback-speculative-decoding, engine: pie}
     reason: "return envelope lacks num_output_tokens (pie_bench.py KeyError)"
   - when: {artifact: nemotron-h-mini8}

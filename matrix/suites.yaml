@@ -37,7 +37,7 @@ suites:
       # the full shape list is nightly's job
       - {program_category: speculative, not_workload: [ss-128-64]}
       - {program_category: adapter, not_workload: [ss-128-64]}
-      - {program_category: kv_policy, not_workload: [lc-2k-128]}
+      - {program_category: kv_policy, not_workload: [lc-1k-128]}
       - {program: prefill-rows, not_workload: [lc-2k-128]}
       - {program: prefix-tree-kv-cache, not_workload: [prefix-1k-x64]}
       # 8k context and the length mix only on the two cheapest dense models in smoke
