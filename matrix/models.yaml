@@ -75,6 +75,29 @@ artifacts:
     max_context: 4096
     expected_gib: 7.0
     tiers: [smoke, nightly, weekly]
+  - id: glm-5.3-flash-mini8
+    base_model: Vontra/GLM-5.3-Flash-MLX-4bit-MTP
+    family: glm5_next     # KDA linear attention + DSA sparse attention every 4th layer, mHC, MoE
+    scheme: affine_u4_g64
+    source_format: mlx
+    kind: miniature
+    # matches catalog row glm53-flash-mini-u4g64-u4g64-kv-bf16 (pie branch pie-evals/dsv41-flash):
+    # three dense KDA layers, DSA+MoE, three KDA+MoE, DSA; 32 of 288 experts (top-8 kept); MTP head dropped
+    miniature: {layers: "0-7", experts: 32, period: 4, note: "shrink family glm5_next_mlx; 4.71 GiB download"}
+    max_context: 4096
+    expected_gib: 5.0
+    tiers: [smoke, nightly, weekly]
+  - id: kimi-k3-mini8
+    base_model: moonshotai/Kimi-K3
+    family: kimi_k3       # KDA + MLA (every 4th), latent MoE, AttnRes
+    scheme: mxfp4         # experts as released (compressed-tensors MXFP4); dense planes bf16
+    kind: miniature
+    # matches catalog row kimik3-mini-bf16-mxfp4-kv-bf16 (pie branch pie-evals/dsv41-flash):
+    # dense layer 0 + KDA/KDA/KDA/MLA twice, 32 of 896 experts (top-16 kept), AttnRes blocks of 4
+    miniature: {layers: "0-7", experts: 32, period: 4, attn_res_block_size: 4, note: "shrink family kimi_k3; 18.4 GiB download"}
+    max_context: 4096
+    expected_gib: 19.0
+    tiers: [smoke, nightly, weekly]
   - id: nemotron-h-mini8
     base_model: nvidia/Nemotron-H-8B-Base-8K
     family: nemotron_h    # Mamba/SSM hybrid

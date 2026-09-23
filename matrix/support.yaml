@@ -32,6 +32,10 @@ unsupported:
     reason: "no fp8 path on Apple8"
   - when: {scheme: fp8, arch: apple9}
     reason: "no fp8 path on Apple9"
+  - when: {artifact: glm-5.3-flash-mini8, engine: vllm}
+    reason: "vLLM does not load MLX affine checkpoints; the mini exists only in the mlx layout pie reads"
+  - when: {artifact: glm-5.3-flash-mini8, engine: sglang}
+    reason: "SGLang does not load MLX affine checkpoints"
   - when: {scheme: mlx_2bit, engine: vllm}
     reason: "vLLM does not load MLX quantized checkpoints"
   - when: {scheme: mlx_2bit, engine: sglang}
