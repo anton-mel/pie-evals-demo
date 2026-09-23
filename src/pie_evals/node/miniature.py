@@ -54,6 +54,8 @@ def miniature_argv(
     ]
     if r.text_only:
         argv.append("--text-only")
+    if r.engram_vocab is not None:
+        argv += ["--engram-vocab", str(r.engram_vocab)]
     if cache_dir is not None:
         argv += ["--cache", str(cache_dir)]
     return argv

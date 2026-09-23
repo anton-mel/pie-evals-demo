@@ -52,15 +52,28 @@ artifacts:
     expected_gib: 2.5
     tiers: [smoke, nightly, weekly]
   - id: deepseek-v4-flash-mini5
-    base_model: deepseek-ai/DeepSeek-V4-Flash
-    family: deepseek_v4   # MLA + NSA + MoE
-    scheme: mlx_2bit
-    source_format: mlx
+    base_model: mlx-community/DeepSeek-V4-Flash-bf16
+    family: deepseek_v4   # CSA/HCA sparse attention + mHC + MoE
+    scheme: bf16
+    source_format: mlx    # mlx_lm layout (model.layers., stacked switch_mlp); pie reads it directly
     kind: miniature
-    # matches catalog row dsv4-flash-u4g64-u2g64-kv-bf16 (layers: 5)
-    miniature: {layers: "0-4", experts: 16, period: 1, note: "dense lead-in + first MoE layers; 16 experts"}
+    # matches catalog row dsv4-flash-mini-bf16-kv-bf16 (pie PR #625): source layers 0-3 (two SWA,
+    # ratio-4 CSA with indexer, ratio-128 HCA) + 42 (the bias-gated closer), 16 of 256 experts
+    miniature: {layers: "0-3,42", experts: 16, period: 1, note: "pie's flash_mini fixture; shrink family deepseek_v4_mlx"}
     max_context: 4096    # pie's SKU max_context ("past the model's max_context of 4096 tokens")
-    expected_gib: 10.0
+    expected_gib: 6.0
+    tiers: [smoke, nightly, weekly]
+  - id: deepseek-v4.1-flash-mini8
+    base_model: deepseek-ai/DeepSeek-V4.1-Flash
+    family: deepseek_v41  # CSA2 (cross-layer KV/index reuse) + single-pass mHC + Engram
+    scheme: mxfp4         # fp8 dense planes read out to bf16 by the shrink; MXFP4 experts as released
+    kind: miniature
+    # matches catalog row dsv41-flash-mini-bf16-mxfp4-kv-bf16 (pie PR #627): every CSA2 mode once
+    # (SWA, SWA+Engram, Full@2, Reuse@2, decoder Full@1, Reuse, Reindex, Reuse), 16 of 384 experts,
+    # Engram tables re-carved to a 20 000 bucket base (482k rows of 384M)
+    miniature: {layers: "0-3,20,21,24,25", experts: 16, period: 1, engram_vocab: 20000, note: "pie's flash41_mini fixture; 6.24 GiB download"}
+    max_context: 4096
+    expected_gib: 7.0
     tiers: [smoke, nightly, weekly]
   - id: nemotron-h-mini8
     base_model: nvidia/Nemotron-H-8B-Base-8K

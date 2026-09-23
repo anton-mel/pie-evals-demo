@@ -14,6 +14,16 @@ unsupported:
     reason: "no tensor parallel on Vulkan"
   - when: {backend: wgpu, tp: ">1"}
     reason: "no tensor parallel on wgpu"
+  # engine-cuda has no selected reader in pool.cuh, so every dsv4 flash row (and the V4.1 rows)
+  # is on its CANNOT_SERVE list for attention.pool_lse_selected; Metal, Vulkan and wgpu cover it
+  - when: {family: deepseek_v4, engine: pie, backend: cuda}
+    reason: "engine-cuda refuses attention.pool_lse_selected (dsv4 flash rows are CANNOT_SERVE on CUDA; Metal/Vulkan/wgpu only)"
+  - when: {family: deepseek_v41, engine: pie, backend: cuda}
+    reason: "engine-cuda refuses attention.pool_lse_selected (dsv41 rows are CANNOT_SERVE on CUDA; Metal/Vulkan/wgpu only)"
+  - when: {family: deepseek_v41, engine: vllm}
+    reason: "vLLM 0.30.0 has no deepseek_v41 (CSA2/Engram) model; revisit at the next pin"
+  - when: {family: deepseek_v41, engine: sglang}
+    reason: "SGLang 0.5.20 has no deepseek_v41 (CSA2/Engram) model; revisit at the next pin"
   - when: {engine: pie, backend: cuda, spec_dec: dflash2}
     reason: "CUDA engine exposes no draft head (Metal only) — wiki speculative-decoding/"
   - when: {scheme: fp8, arch: apple7}
@@ -59,7 +69,7 @@ unsupported:
   - when: {program: cacheback-speculative-decoding, engine: pie}
     reason: "return envelope lacks num_output_tokens (pie_bench.py KeyError)"
   - when: {artifact: nemotron-h-mini8}
-    reason: "shrink_checkpoint.py has no nemotron_h reader (supported: deepseek_v4, glm_moe_dsa, gpt_oss, kimi, muse_glimmer, qwen3_5_moe, qwen4_exp)"
+    reason: "shrink_checkpoint.py has no nemotron_h reader (supported: deepseek_v4, deepseek_v41, glm_moe_dsa, gpt_oss, kimi, muse_glimmer, qwen3_5_moe, qwen4_exp)"
   - when: {artifact: mini-dit}
     reason: "pie/mini-dit is not an HF repo; needs a checkpoint source"
   - when: {family: mini_dit, program_category: serving}

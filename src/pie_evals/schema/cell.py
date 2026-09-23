@@ -122,11 +122,12 @@ class MiniatureRecipe(BaseModel):
     repeat: int = 1
     text_only: bool = False  # --text-only renames tensors (drops the language_model. prefix) and pie's readers then miss embed_tokens
     period: int = Field(default=1, description="layer-type pattern period the selection must be a multiple of")
+    engram_vocab: int | None = Field(default=None, description="DeepSeek-V4.1: re-carve each Engram hash table to this bucket base (--engram-vocab)")
     note: str = ""
 
     @property
     def recipe_hash(self) -> str:
-        key = json.dumps([self.layers, self.experts, self.repeat, self.text_only], sort_keys=True)
+        key = json.dumps([self.layers, self.experts, self.repeat, self.text_only, self.engram_vocab], sort_keys=True)
         return hashlib.sha256(key.encode()).hexdigest()[:10]
 
     @property
@@ -138,6 +139,8 @@ class MiniatureRecipe(BaseModel):
             t += f"-r{self.repeat}"
         if self.text_only:
             t += "-txt"
+        if self.engram_vocab is not None:
+            t += f"-g{self.engram_vocab}"
         return t
 
 

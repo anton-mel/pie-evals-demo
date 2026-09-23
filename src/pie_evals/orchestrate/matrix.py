@@ -158,9 +158,17 @@ class Matrix:
         return [t for t in (Tier.SMOKE, Tier.NIGHTLY, Tier.WEEKLY) if t in s]
 
     def _unsupported_reason(self, cell: Cell) -> str | None:
+        # the physical rules (context, fit) are stated before the declared ones: a cell
+        # that cannot fit says so even when a family/engine rule would also exclude it
+        physical = self._physical_reason(cell)
+        if physical:
+            return physical
         for rule in self.unsupported:
             if selector_matches(rule.when, cell):
                 return rule.reason
+        return None
+
+    def _physical_reason(self, cell: Cell) -> str | None:
         # context rule: a shape longer than the artifact's max_context cannot run on it
         if cell.artifact.max_context:
             need = int(cell.workload.params.get("prefill", 0)) + int(cell.workload.params.get("decode", 0))
