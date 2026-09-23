@@ -48,7 +48,7 @@ class FakeEngine(Engine):
 @pytest.fixture
 def job(tmp_path):
     m = Matrix.load(ROOT / "matrix")
-    cells = [c for c in m.runnable(Tier.SMOKE) if c.platform.id == "l40s-x1" and c.artifact.id == "qwen3-0.6b-bf16" and c.program.id == "text-completion-bench" and c.mode.tp == 1]
+    cells = [c for c in m.runnable(Tier.SMOKE) if c.platform.id == "l40s-x1" and c.artifact.id == "qwen3.5-0.8b-bf16" and c.program.id == "text-completion-bench" and c.mode.tp == 1]
     j = make_jobs(m, Tier.SMOKE, pie_commit="deadbeef", store=Store(tmp_path / "store"), platforms=["l40s-x1"], cells=cells)[0]
     assert {c.workload.id for c in j.cells} >= {"control-aa", "ss-128-64", "c8"}
     return j
@@ -60,7 +60,7 @@ def patched(monkeypatch, tmp_path):
     FakeEngine.behaviour = {}
     monkeypatch.setattr(runner_mod, "get_engine", lambda name: FakeEngine)
     monkeypatch.setattr(runner_mod, "load_recipe", lambda *a, **k: {})
-    snap = tmp_path / "hf" / "models--Qwen--Qwen3-0.6B" / "snapshots" / "abc"
+    snap = tmp_path / "hf" / "models--Qwen--Qwen3.5-0.8B" / "snapshots" / "abc"
     snap.mkdir(parents=True)
     (snap / "config.json").write_text('{"num_hidden_layers": 28}')
 

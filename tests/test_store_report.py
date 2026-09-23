@@ -26,7 +26,7 @@ def _rec(cell, value, when, status=CellStatus.PASS, engine_version="abc123", run
 
 def test_store_roundtrip_and_history(tmp_path, matrix):
     cells = matrix.runnable(Tier.SMOKE)
-    cell = next(c for c in cells if c.workload.id == "ss-128-64" and c.artifact.id == "qwen3-0.6b-bf16" and c.platform.id == "l40s-x1" and c.program.id == "text-completion-bench")
+    cell = next(c for c in cells if c.workload.id == "ss-128-64" and c.artifact.id == "qwen3.5-0.8b-bf16" and c.platform.id == "l40s-x1" and c.program.id == "text-completion-bench")
     st = Store(tmp_path / "store")
     t0 = datetime(2026, 9, 1, tzinfo=timezone.utc)
     for i, v in enumerate([430, 432, 431, 433]):
@@ -46,7 +46,7 @@ def test_store_refuses_missing_provenance(tmp_path, matrix):
 
 def test_regression_is_noise_aware(tmp_path, matrix):
     cells = matrix.runnable(Tier.SMOKE)
-    cell = next(c for c in cells if c.workload.id == "ss-128-64" and c.artifact.id == "qwen3-0.6b-bf16" and c.platform.id == "l40s-x1" and c.program.id == "text-completion-bench")
+    cell = next(c for c in cells if c.workload.id == "ss-128-64" and c.artifact.id == "qwen3.5-0.8b-bf16" and c.platform.id == "l40s-x1" and c.program.id == "text-completion-bench")
     st = Store(tmp_path / "store")
     t0 = datetime(2026, 9, 1, tzinfo=timezone.utc)
     vals = [430, 432, 431, 433, 430, 400]  # last one is a ~7% drop against <0.5% spread
@@ -69,8 +69,8 @@ def test_coverage_report_lists_not_run(tmp_path, matrix):
 
 def test_baseline_ratio_requires_input_parity(tmp_path, matrix):
     cells = matrix.runnable(Tier.NIGHTLY)
-    pie = next(c for c in cells if str(c.engine) == "pie" and c.workload.id == "c32" and c.artifact.id == "qwen3-0.6b-bf16" and c.platform.id == "l40s-x1" and c.program.id == "text-completion-bench")
-    vllm = next(c for c in cells if str(c.engine) == "vllm" and c.workload.id == "c32" and c.artifact.id == "qwen3-0.6b-bf16" and c.platform.id == "l40s-x1" and c.program.id == "text-completion-bench")
+    pie = next(c for c in cells if str(c.engine) == "pie" and c.workload.id == "c32" and c.artifact.id == "qwen3.5-0.8b-bf16" and c.platform.id == "l40s-x1" and c.program.id == "text-completion-bench")
+    vllm = next(c for c in cells if str(c.engine) == "vllm" and c.workload.id == "c32" and c.artifact.id == "qwen3.5-0.8b-bf16" and c.platform.id == "l40s-x1" and c.program.id == "text-completion-bench")
     st = Store(tmp_path / "store")
     now = datetime.now(timezone.utc)
     rp_ = _rec(pie, 9399, now)

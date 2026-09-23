@@ -34,30 +34,34 @@ artifacts:
     tiers: [smoke, nightly, weekly]
 
   # ---------------- miniatures: real shapes of big architectures, cheap ----
-  - id: qwen3.6-35b-a3b-mini8
-    base_model: Qwen/Qwen3.6-35B-A3B
+  - id: qwen3.6-35b-a3b-mini5
+    base_model: mlx-community/Qwen3.6-35B-A3B-4bit
     family: qwen3_6_moe   # hybrid MoE, 256 experts top-4
-    scheme: bf16
+    scheme: affine_u4_g64
+    source_format: mlx
     kind: miniature
-    miniature: {layers: "0-7", experts: 32, period: 4, note: "two hybrid periods; 32 of 256 experts"}
-    expected_gib: 14.0
+    # pie's own fixture: matches catalog row qwen36-35b-a3b-mini-u4g64-kv-bf16 (layers: 5)
+    miniature: {layers: "0-4", experts: 16, period: 4, note: "pie's mini-l5-e16 fixture"}
+    expected_gib: 1.0
     tiers: [smoke, nightly, weekly]
-  - id: gpt-oss-20b-mxfp4-mini6
+  - id: gpt-oss-20b-mxfp4-mini5
     base_model: openai/gpt-oss-20b
     family: gpt_oss
     scheme: mxfp4
     kind: miniature
-    miniature: {layers: "0-5", experts: 16, period: 2, note: "three sliding/full pairs; 16 of 32 experts"}
-    expected_gib: 3.0
+    # needs a catalog row in pie: gptoss-20b-mini-l5-bf16-mxfp4-kv-bf16 { layers: 5, vocab: 201_088, arch: "gptoss" }
+    miniature: {layers: "0-4", experts: 16, period: 2, note: "sliding/full pairs; 16 of 32 experts"}
+    expected_gib: 2.5
     tiers: [smoke, nightly, weekly]
-  - id: deepseek-v4-flash-mini6
+  - id: deepseek-v4-flash-mini5
     base_model: deepseek-ai/DeepSeek-V4-Flash
     family: deepseek_v4   # MLA + NSA + MoE
     scheme: mlx_2bit
     source_format: mlx
     kind: miniature
-    miniature: {layers: "0-5", experts: 16, period: 1, note: "dense lead-in + first MoE layers; 16 experts"}
-    expected_gib: 12.0
+    # matches catalog row dsv4-flash-u4g64-u2g64-kv-bf16 (layers: 5)
+    miniature: {layers: "0-4", experts: 16, period: 1, note: "dense lead-in + first MoE layers; 16 experts"}
+    expected_gib: 10.0
     tiers: [smoke, nightly, weekly]
   - id: nemotron-h-mini8
     base_model: nvidia/Nemotron-H-8B-Base-8K
