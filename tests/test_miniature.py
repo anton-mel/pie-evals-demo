@@ -138,3 +138,30 @@ def test_num_layers_of(tmp_path):
     assert num_layers_of(tmp_path) == 5
     (tmp_path / "config.json").write_text("{not json")
     assert num_layers_of(tmp_path) is None
+
+
+def test_stale_recipe_snapshot_is_rebuilt(tmp_path, monkeypatch):
+    import json
+
+    from pie_evals.node import miniature as mm
+
+    art = _mini(text_only=False)
+    out = mm.miniature_snapshot_dir(art, tmp_path)
+    out.mkdir(parents=True)
+    (out / "config.json").write_text("{}")
+    stale = dict(art.miniature.model_dump())
+    stale["text_only"] = True
+    (out / ".miniature.json").write_text(json.dumps({"recipe": stale}))
+    calls = []
+
+    def fake_run(argv, **kw):
+        calls.append(argv)
+        o = Path(argv[argv.index("--out") + 1])
+        o.mkdir(parents=True, exist_ok=True)
+        (o / "config.json").write_text("{}")
+        return type("R", (), {"returncode": 0, "stderr": "", "stdout": ""})()
+
+    monkeypatch.setattr(mm.subprocess, "run", fake_run)
+    got = mm.ensure_miniature(art, tmp_path / "pie", tmp_path, python="py")
+    assert calls, "stale snapshot must be rebuilt"
+    assert json.loads((got / ".miniature.json").read_text())["recipe"] == art.miniature.model_dump()

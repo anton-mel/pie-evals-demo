@@ -68,7 +68,19 @@ def ensure_miniature(
         raise ValueError(f"artifact {artifact.id} is not a miniature")
     out = miniature_snapshot_dir(artifact, hf_cache)
     if (out / "config.json").exists():
-        return out
+        # a snapshot built by an older recipe (same tag, different flags — the
+        # --text-only carve renamed every tensor) is rebuilt, not reused
+        stamp = out / ".miniature.json"
+        try:
+            prev = json.loads(stamp.read_text())["recipe"] if stamp.exists() else None
+        except (OSError, ValueError, KeyError):
+            prev = None
+        cur = artifact.miniature.model_dump()
+        if prev == cur:
+            return out
+        import shutil
+
+        shutil.rmtree(out, ignore_errors=True)
     # Build into a private temp dir and rename into place: the HF cache can be
     # a network volume shared by concurrent pods, and two of them building the
     # same miniature into the same directory destroyed each other's files.
