@@ -33,7 +33,14 @@ from pie_evals.schema import ArtifactSpec, Backend, Mode, PlatformSpec, Workload
 PIE_ROOT = Path(os.environ.get("PIE_ROOT", "/root/pie"))
 BENCHES = PIE_ROOT / "scripts/bench"
 
-pytestmark = pytest.mark.skipif(not BENCHES.is_dir(), reason=f"pie checkout not at {PIE_ROOT}")
+def _has_benches() -> bool:
+    try:
+        return BENCHES.is_dir()
+    except OSError:  # e.g. PermissionError on a CI runner where /root is closed
+        return False
+
+
+pytestmark = pytest.mark.skipif(not _has_benches(), reason=f"pie checkout not at {PIE_ROOT}")
 
 
 # ---- argparse flag extraction (the drift guard) -------------------------------
