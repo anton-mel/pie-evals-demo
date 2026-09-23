@@ -27,6 +27,13 @@ class VllmEngine(Engine):
     #: no nvcc on the runner image, so no DeepGEMM JIT (see SglangEngine)
     env_defaults = {"VLLM_USE_DEEP_GEMM": "0"}
 
+    def default_env(self) -> dict[str, str]:
+        # FlashInfer's JIT workspace (<base>/.cache/flashinfer) on the volume:
+        # the head_dim-512 gemma prefill kernel then compiles once, not per pod
+        from pie_evals.node.baselines import cache_root
+
+        return {"FLASHINFER_WORKSPACE_BASE": str(cache_root() / "jit" / "flashinfer")}
+
     def default_python(self) -> str:
         if os.environ.get("VLLM_PY"):
             return os.environ["VLLM_PY"]

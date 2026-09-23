@@ -181,11 +181,16 @@ class Engine(ABC):
         self.recipe = recipe  # engine knobs for this (engine, platform, artifact) — see recipes/
         self.python = python or self.default_python()
         self.env = dict(env or {})
-        for k, v in self.env_defaults.items():
+        for k, v in {**self.env_defaults, **self.default_env()}.items():
             self.env.setdefault(k, v)
         self.num_layers = num_layers
         self.server_url: str | None = None
         self._server_proc: subprocess.Popen | None = None
+
+    def default_env(self) -> dict[str, str]:
+        """Runtime-computed environment defaults (paths under the cache root);
+        static ones go in ``env_defaults``. The caller's env wins over both."""
+        return {}
 
     # ---- to implement per engine ---------------------------------------------
     @abstractmethod

@@ -136,12 +136,19 @@ def baseline_ratios(matrix: Matrix, store: Store, tier: Tier) -> list[dict]:
         for eng, row in engines.items():
             if eng == "pie":
                 continue
-            ratio = float(row["primary_value"]) / float(pie["primary_value"]) if pie["primary_value"] else None
+            # the same measurement on both sides: aggregate output tok/s whenever
+            # both rows carry it (a pie row recorded before the primary metric
+            # followed the shape keys on the per-request decode rate and would
+            # otherwise be set against vLLM's aggregate), else the primary
+            metric = "output_tok_s" if row.get("output_tok_s") and pie.get("output_tok_s") else row["primary_metric"]
+            pv = float(pie[metric]) if metric in pie and pie[metric] is not None else float(pie["primary_value"])
+            bv = float(row[metric]) if metric in row and row[metric] is not None else float(row["primary_value"])
+            ratio = bv / pv if pv else None
             out.append(
                 {
                     "platform": key[0], "artifact": pie["artifact"], "workload": key[2], "program": key[3], "mode": key[4],
-                    "baseline": eng, "baseline_version": row["engine_version"], "pie_value": float(pie["primary_value"]),
-                    "baseline_value": float(row["primary_value"]), "baseline_over_pie": ratio,
+                    "baseline": eng, "baseline_version": row["engine_version"], "metric": metric, "pie_value": pv,
+                    "baseline_value": bv, "baseline_over_pie": ratio,
                     "pie_leads": (ratio is not None and ratio < 1.0), "pie_cov": pie["cov"], "baseline_cov": row["cov"],
                     "input_ok": pie["prompt_tokens"] == row["prompt_tokens"] and pie["output_tokens"] == row["output_tokens"],
                     "baseline_recipe": row["engine_config_recipe"],
@@ -151,11 +158,11 @@ def baseline_ratios(matrix: Matrix, store: Store, tier: Tier) -> list[dict]:
 
 
 def baseline_markdown(rows: list[dict]) -> str:
-    lines = ["# pie vs baselines (latest, best-of-recipe)", "", "| platform | artifact | workload | program | mode | baseline | pie | baseline | baseline/pie | inputs match | recipe |", "|---|---|---|---|---|---|---|---|---|---|---|"]
+    lines = ["# pie vs baselines (latest, best-of-recipe)", "", "| platform | artifact | workload | program | mode | baseline | metric | pie | baseline | baseline/pie | inputs match | recipe |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in rows:
         flag = "" if r["pie_leads"] else " **pie trails**"
         lines.append(
-            f"| {r['platform']} | {r['artifact']} | {r['workload']} | {r['program']} | {r['mode']} | {r['baseline']} {r['baseline_version'] or ''} | {r['pie_value']:.4g} | {r['baseline_value']:.4g} | {r['baseline_over_pie']:.3f}×{flag} | {'yes' if r['input_ok'] else '**NO**'} | {r['baseline_recipe'] or ''} |"
+            f"| {r['platform']} | {r['artifact']} | {r['workload']} | {r['program']} | {r['mode']} | {r['baseline']} {r['baseline_version'] or ''} | {r.get('metric') or ''} | {r['pie_value']:.4g} | {r['baseline_value']:.4g} | {r['baseline_over_pie']:.3f}×{flag} | {'yes' if r['input_ok'] else '**NO**'} | {r['baseline_recipe'] or ''} |"
         )
     return "\n".join(lines) + "\n"
 

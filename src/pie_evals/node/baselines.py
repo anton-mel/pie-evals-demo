@@ -66,6 +66,39 @@ def ensure_python_headers(py: Path, log=print) -> bool:
     return ok
 
 
+def ensure_nvcc(py: Path, log=print) -> bool:
+    """The runner image is ``nvidia/cuda:*-runtime``: no nvcc, no CUDA headers.
+    The AOT FlashInfer wheels cover the common attention kernels, but vLLM
+    still JIT-compiles gemma's head_dim-512 prefill and SGLang its
+    ``sgl_kernel_jit`` activation kernels (nightly 35918372228 lost all of
+    gemma and every SGLang cell to ``nvcc: not found``). Install the toolkit
+    packages for the venv's torch CUDA version from the NVIDIA apt repo the
+    image already carries; once per pod (container disk)."""
+    nvcc = Path("/usr/local/cuda/bin/nvcc")
+    header = Path("/usr/local/cuda/include/cuda_runtime.h")
+    if nvcc.exists() and header.exists():
+        return True
+    try:
+        cuda = subprocess.run([str(py), "-c", "import torch; print(torch.version.cuda)"], capture_output=True, text=True, check=True, timeout=300).stdout.strip()
+        major, minor = cuda.split(".")[:2]
+    except (OSError, subprocess.SubprocessError, ValueError) as e:
+        log(f"baseline: cannot read torch's CUDA version from {py}: {e}")
+        return False
+    pkgs = [p for p, missing in ((f"cuda-nvcc-{major}-{minor}", not nvcc.exists()), (f"cuda-cudart-dev-{major}-{minor}", not header.exists())) if missing]
+    log(f"baseline: {nvcc} / {header} missing; installing {' '.join(pkgs)}")
+    apt = ["apt-get"] if os.geteuid() == 0 else ["sudo", "-n", "apt-get"]
+    env = dict(os.environ, DEBIAN_FRONTEND="noninteractive")
+    try:
+        subprocess.run(apt + ["update", "-qq"], env=env, check=False, timeout=600, capture_output=True)
+        subprocess.run(apt + ["install", "-y", "-qq", "--no-install-recommends", *pkgs], env=env, check=True, timeout=1200, capture_output=True)
+    except (OSError, subprocess.SubprocessError) as e:
+        log(f"baseline: nvcc install failed ({e}); engines that JIT CUDA kernels will crash")
+        return False
+    ok = nvcc.exists() and header.exists()
+    log(f"baseline: nvcc present: {nvcc.exists()}, cuda_runtime.h present: {header.exists()}")
+    return ok
+
+
 def ensure_flashinfer_aot(py: Path, marker: Path, log=print) -> bool:
     """vLLM's FlashInfer backend JIT-compiles its attention kernels with nvcc,
     and the runner image ships only the CUDA runtime (nightly 35908055874 lost
@@ -116,6 +149,7 @@ def ensure_baseline(engine: str, version: str, root: Path | None = None, *, time
     if (d / ".ok").exists():
         ensure_python_headers(py, log=log)
         if engine in ("vllm", "sglang"):
+            ensure_nvcc(py, log=log)
             ensure_flashinfer_aot(py, d / ".flashinfer-aot", log=log)
         return py
     if d.exists():
@@ -129,6 +163,7 @@ def ensure_baseline(engine: str, version: str, root: Path | None = None, *, time
         subprocess.run([str(py), "-m", "pip", "install", "-q", *SPECS[engine](version)], check=True, timeout=timeout_s)
     ensure_python_headers(py, log=log)
     if engine in ("vllm", "sglang"):
+        ensure_nvcc(py, log=log)
         ensure_flashinfer_aot(py, d / ".flashinfer-aot", log=log)
     (d / ".ok").write_text(version + "\n")
     return py

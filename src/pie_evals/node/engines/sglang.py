@@ -27,6 +27,13 @@ class SglangEngine(Engine):
     #: kernels come precompiled (baselines.ensure_flashinfer_aot).
     env_defaults = {"SGL_ENABLE_JIT_DEEPGEMM": "0"}
 
+    def default_env(self) -> dict[str, str]:
+        # sgl_kernel_jit builds land on the volume instead of the pod's
+        # container disk, so a kernel compiles once per (version, arch)
+        from pie_evals.node.baselines import cache_root
+
+        return {"SGLANG_JIT_CACHE_DIR": str(cache_root() / "jit" / "sglang")}
+
     def default_python(self) -> str:
         if os.environ.get("SGLANG_PY"):
             return os.environ["SGLANG_PY"]
