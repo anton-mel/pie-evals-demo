@@ -78,7 +78,11 @@ def ensure_miniature(
     import shutil
     import tempfile
 
-    cache_dir = Path(os.environ.get("PIE_EVALS_SHRINK_CACHE", tempfile.gettempdir())) / "shrink-cache" / repo_cache_dirname(artifact.base_model)
+    # raw-tensor spans can be tens of GB (a pod's container disk is 40-80 GB and filled
+    # up): keep them on the shared cache under a directory unique to this process, and
+    # drop them once the snapshot is in place
+    base = Path(os.environ.get("PIE_EVALS_SHRINK_CACHE") or (Path(os.environ["PIE_EVALS_CACHE"]) / "shrink" if os.environ.get("PIE_EVALS_CACHE") else tempfile.gettempdir()))
+    cache_dir = base / f"{os.uname().nodename}-{os.getpid()}" / repo_cache_dirname(artifact.base_model)
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.parent / f".tmp-{out.name}-{os.getpid()}"
     shutil.rmtree(tmp, ignore_errors=True)
@@ -95,8 +99,10 @@ def ensure_miniature(
     )
     if (out / "config.json").exists():  # someone else finished first
         shutil.rmtree(tmp, ignore_errors=True)
+        shutil.rmtree(cache_dir, ignore_errors=True)
         return out
     os.replace(tmp, out)
+    shutil.rmtree(cache_dir, ignore_errors=True)
     return out
 
 

@@ -11,6 +11,7 @@ on:
       engines: { type: string, required: false, default: "" }
       programs: { type: string, required: false, default: "" }
       max_jobs: { type: string, required: false, default: "" }
+      build_platform: { type: string, required: false, default: "" }
 
 jobs:
   expand:
@@ -53,14 +54,14 @@ jobs:
       - uses: astral-sh/setup-uv@v3
       - run: uv venv && uv pip install -e ".[orchestrate]"
       - id: pod
-        run: .venv/bin/pie-evals launch-pod --platform "${{ vars.RUNPOD_BUILD_PLATFORM || 'l40s-x1' }}" --repo "${{ github.repository }}" --image "${{ vars.RUNPOD_IMAGE || 'pieproject/runpod-ci-runner:latest' }}" --kill-minutes 60
+        run: .venv/bin/pie-evals launch-pod --platform "${{ inputs.build_platform || vars.RUNPOD_BUILD_PLATFORM || 'l40s-x1' }}" --repo "${{ github.repository }}" --image "${{ vars.RUNPOD_IMAGE || 'pieproject/runpod-ci-runner:latest' }}" --kill-minutes 60
         env:
           RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
           GH_RUNNER_PAT: ${{ secrets.GH_RUNNER_PAT }}
           RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
   build:
     needs: build-launch
-    runs-on: [self-hosted, linux, "${{ vars.RUNPOD_BUILD_PLATFORM || 'l40s-x1' }}"]
+    runs-on: [self-hosted, linux, "${{ inputs.build_platform || vars.RUNPOD_BUILD_PLATFORM || 'l40s-x1' }}"]
     timeout-minutes: 90   # a cold volume also installs vLLM/SGLang venvs here
     steps:
       - uses: actions/checkout@v4

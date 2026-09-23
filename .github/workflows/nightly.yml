@@ -11,6 +11,7 @@ on:
       engines: { description: "comma-separated engine ids", required: false, default: "" }
       programs: { description: "comma-separated program ids", required: false, default: "" }
       max_jobs: { description: "cap on jobs", required: false, default: "" }
+      build_platform: { description: "platform for the build/prepare pod", required: false, default: "" }
 
 jobs:
   resolve:
@@ -40,4 +41,5 @@ jobs:
       engines: ${{ github.event.inputs.engines || '' }}
       programs: ${{ github.event.inputs.programs || '' }}
       max_jobs: ${{ github.event.inputs.max_jobs || '' }}
+      build_platform: ${{ github.event.inputs.build_platform || '' }}
     secrets: inherit
