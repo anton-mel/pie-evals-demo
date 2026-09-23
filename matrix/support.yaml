@@ -42,6 +42,13 @@ unsupported:
   # Qwen3.5/3.6/3.8 hybrids; no llama family) — a catalog Row alone would not load them
   - when: {artifact: llama-3.2-1b-bf16}
     reason: "pie has no llama family reader"
+  # measured on pie 1a3b2e2a (smoke run 35820128533)
+  - when: {program: prefill-rows}
+    reason: "prefill-rows takes its own input (`ids`); pie_bench.py cannot drive it"
+  - when: {program: prefix-tree-kv-cache, family: [qwen3_5, qwen3_6, qwen3_6_moe]}
+    reason: "attention-only inferlet (pie:inferlet/forward) on a hybrid model; needs forward-hybrid"
+  - when: {program: mtp-speculative-decoding, family: [qwen3_5, qwen3_6, qwen3_6_moe]}
+    reason: "attention-only inferlet (pie:inferlet/forward) on a hybrid model; needs forward-hybrid"
   - when: {artifact: nemotron-h-mini8}
     reason: "shrink_checkpoint.py has no nemotron_h reader (supported: deepseek_v4, glm_moe_dsa, gpt_oss, kimi, muse_glimmer, qwen3_5_moe, qwen4_exp)"
   - when: {artifact: mini-dit}

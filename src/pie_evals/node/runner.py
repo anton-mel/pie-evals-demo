@@ -220,6 +220,20 @@ class NodeRunner:
                 recipe["snapshot_dir"] = str(snapshot)
                 engine = cls(pie_root=self.pie_root, artifact=first.artifact, platform=first.platform, mode=first.mode, recipe=recipe, num_layers=num_layers)
                 engine_version = engine.version()
+                # one boot per model: the bench then attaches to this server for every
+                # cell and round instead of reloading the weights each time (gemma-4 E4B
+                # spent ~7 min per round loading; the measurement itself takes seconds)
+                widest = max(cells, key=lambda c: int(c.workload.params.get("concurrency", 1)) * (int(c.workload.params.get("prefill", 0)) + int(c.workload.params.get("decode", 0)))).workload
+                engine.serve(widest, self.out / "serve" / f"{artifact_key.replace('/', '_')}-{mode_key}.log", int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
+                if getattr(engine, "server_url", None):
+                    self.log(f"serving {artifact_key} at {engine.server_url}")
+            except EngineLaunchError as e:
+                self.log(f"engine boot failed: {e.error_class} {e}")
+                for c in cells:
+                    self.emit(self._failed(c, e.error_class, str(e), fingerprint))
+                if engine:
+                    engine.stop()
+                continue
             except Exception as e:
                 self.log(f"engine setup failed: {e}\n{traceback.format_exc()}")
                 for c in cells:
@@ -276,7 +290,7 @@ class NodeRunner:
         t0 = time.monotonic()
         cell = cell.model_copy(update={"engine_version": engine_version})
         cell_out = self.out / "cells" / cell.cell_id
-        common = common_args_for(cell.workload, warmup=2 if self.job.tier == Tier.SMOKE else 3)
+        common = common_args_for(cell.workload, warmup=2 if self.job.tier == Tier.SMOKE else 3) + list(cell.program.bench_args)
         policy = self.job.repetition
         rounds: list[float] = []
         results = []

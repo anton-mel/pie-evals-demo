@@ -19,7 +19,7 @@ import random
 
 from pie_evals.schema import WorkloadSpec
 
-WORDS_PER_TOKEN = 0.72  # English prose on Qwen/Llama tokenizers; verified, not assumed (see check_input_parity)
+WORDS_PER_TOKEN = 1.0  # measured: a 5898-word block of these common words became 5968 tokens on Qwen3.5 (one token per word); verified per run by check_input_parity
 SEED = 20260730  # same as common.py's --arrival-seed default
 
 _WORDS = (

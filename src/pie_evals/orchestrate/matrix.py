@@ -161,6 +161,13 @@ class Matrix:
         for rule in self.unsupported:
             if selector_matches(rule.when, cell):
                 return rule.reason
+        # context rule: a shape longer than the artifact's max_context cannot run on it
+        if cell.artifact.max_context:
+            need = int(cell.workload.params.get("prefill", 0)) + int(cell.workload.params.get("decode", 0))
+            if cell.workload.kind.value == "prefix_shared":
+                need = int(cell.workload.params.get("shared_prefix", 0)) + int(cell.workload.params.get("unique_suffix", 0)) + int(cell.workload.params.get("decode", 0))
+            if need > cell.artifact.max_context:
+                return f"shape needs {need} tokens > the artifact's max_context {cell.artifact.max_context}"
         # fit rule: weights per TP group must fit with headroom
         if cell.artifact.expected_gib is not None:
             per_device = cell.artifact.expected_gib * self.fit_factor / max(1, cell.mode.tp)

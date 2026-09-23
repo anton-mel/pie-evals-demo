@@ -264,6 +264,11 @@ class Engine(ABC):
         data = json.loads(json_out.read_text())
         summary = data.get("summary", {})
         requests = data.get("requests", [])
+        failed = [r for r in requests if not r.get("ok")]
+        if requests and len(failed) == len(requests):
+            err = next((str(r.get("error") or "") for r in failed if r.get("error")), "(no error text)")
+            cls = ErrorClass.HARNESS_INVALID if re.search(r"temperature must be|Failed to parse JSON input", err) else ErrorClass.INCOMPATIBLE if re.search(r"forward-hybrid|not valid on|interface", err) else ErrorClass.CRASH
+            raise EngineLaunchError(cls, f"all {len(requests)} requests failed: {err[:300]}")
         perf = perf_from_common_json(summary, requests, self.num_layers)
         perf.counters.update(self.counters_from_summary(summary))
         perf.resident_gib = self.resident_gib()

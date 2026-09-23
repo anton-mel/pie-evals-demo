@@ -83,7 +83,7 @@ def test_smoke_includes_every_program_at_least_once(matrix, cells):
     expected = {p.id for p in matrix.programs.values() if Tier.SMOKE in p.tiers}
     assert not (expected - progs), expected - progs
     runnable = {c.program.id for c in matrix.runnable(Tier.SMOKE, cells)}
-    assert expected - runnable <= {"diffusion-parity", "mini-dit-parity"}, expected - runnable
+    assert expected - runnable <= {"diffusion-parity", "mini-dit-parity", "prefill-rows"}, expected - runnable
 
 
 def test_cell_status_enum_complete():

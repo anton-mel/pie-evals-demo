@@ -97,6 +97,7 @@ class ErrorClass(StrEnumBase):
     GATE_FAIL = "gate_fail"  # ran, produced wrong output
     HARNESS_INVALID = "harness_invalid"  # preflight/control failed; not the engine's fault
     INPUT_MISMATCH = "input_mismatch"  # prompt/output token parity across engines broke
+    INCOMPATIBLE = "incompatible"  # the program's contract does not fit the model (e.g. attention-only inferlet on a hybrid model)
 
 
 class AccuracyStatus(StrEnumBase):
@@ -155,6 +156,7 @@ class ArtifactSpec(BaseModel):
     )
     chat_template: bool = False
     pie_sku: str | None = Field(default=None, description="pie SKU row name carrying the quantization (e.g. gptoss-20b-dflash-u4g64-mxfp4-kv-bf16)")
+    max_context: int | None = Field(default=None, description="tokens one sequence may hold on this artifact as pie ships it (the SKU's max_context), when smaller than the HF config's")
     gguf_file: str | None = Field(default=None, description="file name inside a GGUF repo (the arm must be named, never the quant tag)")
     tiers: list[Tier] = Field(default_factory=lambda: [Tier.NIGHTLY, Tier.WEEKLY])
 
@@ -209,6 +211,7 @@ class ProgramSpec(BaseModel):
     accuracy_gate: str = "token_parity"  # token_parity | cosine | acceptance_rate | none
     pie_only: bool = True
     spec_dec: str | None = Field(default=None, description="speculative mode this program requires")
+    bench_args: list[str] = Field(default_factory=list, description="extra bench flags this program needs (e.g. a sampling inferlet rejects temperature 0)")
     workloads: list[str] | None = Field(default=None, description="restrict to these workload ids (None = all)")
     families: list[str] | None = Field(default=None, description="restrict to these model families (None = all)")
     tiers: list[Tier] = Field(default_factory=lambda: [Tier.NIGHTLY, Tier.WEEKLY])

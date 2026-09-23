@@ -27,6 +27,7 @@ from pie_evals.node.engines.sglang import SglangEngine
 from pie_evals.node.engines.shape import max_model_len_for, workload_concurrency
 from pie_evals.node.engines.vllm import VllmEngine
 from pie_evals.node.workloads import common_args_for
+from pie_evals.node.workloads.synthetic import WORDS_PER_TOKEN
 from pie_evals.schema import ArtifactSpec, Backend, Mode, PlatformSpec, WorkloadSpec
 
 PIE_ROOT = Path(os.environ.get("PIE_ROOT", "/root/pie"))
@@ -375,7 +376,7 @@ def test_vllm_args(tmp_path):
     eng = make(VllmEngine, plat=platform(arch="hopper"), workload=WORKLOADS["prefix-1k-x64"])
     argv = argv_for(eng, WORKLOADS["prefix-1k-x64"], tmp_path)
     assert "--prefix-caching" in argv and flag_value(argv, "--attention-backend") == "FLASH_ATTN"
-    assert flag_value(argv, "--shared-prefix-words") == "737"
+    assert flag_value(argv, "--shared-prefix-words") == str(int(round(1024 * WORDS_PER_TOKEN)))
     # fp8 KV from the artifact; ngram mode maps onto vLLM's ngram speculation
     eng = make(VllmEngine, art=artifact(kv_dtype="fp8"), mode=Mode(id="ngram", spec_dec="ngram"))
     argv = argv_for(eng, WORKLOADS["ss-128-64"], tmp_path)
