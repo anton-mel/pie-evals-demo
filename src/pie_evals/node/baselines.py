@@ -66,6 +66,40 @@ def ensure_python_headers(py: Path, log=print) -> bool:
     return ok
 
 
+def ensure_flashinfer_aot(py: Path, marker: Path, log=print) -> bool:
+    """vLLM's FlashInfer backend JIT-compiles its attention kernels with nvcc,
+    and the runner image ships only the CUDA runtime (nightly 35908055874 lost
+    every gemma/qwen vLLM cell to ``/usr/local/cuda/bin/nvcc: not found``).
+    FlashInfer publishes the compiled kernels as ``flashinfer-cubin`` and
+    ``flashinfer-jit-cache`` wheels per CUDA version; install the pair that
+    matches the venv's flashinfer and torch, once per venv."""
+    if marker.exists():
+        return True
+    try:
+        out = subprocess.run(
+            [str(py), "-c", "import flashinfer, torch; print(flashinfer.__version__); print(torch.version.cuda)"],
+            capture_output=True, text=True, check=True, timeout=300,
+        ).stdout.split()
+        fi, cuda = out[0], out[1]
+    except (OSError, subprocess.SubprocessError, IndexError) as e:
+        log(f"baseline: no flashinfer/torch to match an AOT cache to ({e})")
+        return False
+    cu = "cu" + cuda.replace(".", "")[:3]
+    index = f"https://flashinfer.ai/whl/{cu}/"
+    specs = [f"flashinfer-cubin=={fi}", f"flashinfer-jit-cache=={fi}"]
+    log(f"baseline: installing {' '.join(specs)} from {index}")
+    try:
+        if shutil.which("uv"):
+            subprocess.run(["uv", "pip", "install", "--quiet", "--python", str(py), "--extra-index-url", index, *specs], check=True, timeout=1800)
+        else:
+            subprocess.run([str(py), "-m", "pip", "install", "-q", "--extra-index-url", index, *specs], check=True, timeout=1800)
+    except (OSError, subprocess.SubprocessError) as e:
+        log(f"baseline: flashinfer AOT cache install failed ({e}); FlashInfer cells will JIT and need nvcc")
+        return False
+    marker.write_text(fi + "\n")
+    return True
+
+
 def ensure_baseline(engine: str, version: str, root: Path | None = None, *, timeout_s: int = 3600, log=print) -> Path:
     """Install the baseline into its venv if needed; return its python."""
     if engine not in SPECS:
@@ -74,6 +108,8 @@ def ensure_baseline(engine: str, version: str, root: Path | None = None, *, time
     py = d / "bin" / "python"
     if (d / ".ok").exists():
         ensure_python_headers(py, log=log)
+        if engine == "vllm":
+            ensure_flashinfer_aot(py, d / ".flashinfer-aot", log=log)
         return py
     if d.exists():
         shutil.rmtree(d, ignore_errors=True)  # a half-finished install
@@ -85,5 +121,7 @@ def ensure_baseline(engine: str, version: str, root: Path | None = None, *, time
         subprocess.run(["python3", "-m", "venv", str(d)], check=True)
         subprocess.run([str(py), "-m", "pip", "install", "-q", *SPECS[engine](version)], check=True, timeout=timeout_s)
     ensure_python_headers(py, log=log)
+    if engine == "vllm":
+        ensure_flashinfer_aot(py, d / ".flashinfer-aot", log=log)
     (d / ".ok").write_text(version + "\n")
     return py
