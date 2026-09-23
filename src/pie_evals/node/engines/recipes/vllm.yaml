@@ -58,6 +58,15 @@ competitive:
             gpt-oss cell of nightly 35908055874 on the 4090). Unset leaves
             vLLM's own pick (TRITON_ATTN there); the Hopper override below
             still names FA3, which carries sinks.
+    kimi_k3:
+      knobs:
+        attention_backend:
+          value: null
+          rationale: >
+            Kimi-K3 attends with MLA (and KDA); vLLM 0.30's FlashInfer backend
+            answers "head_size not supported, MLA not supported" (every
+            Kimi-K3 cell of nightly 35921789513 on the A100). Unset leaves
+            vLLM's own MLA pick.
   arch:
     hopper:
       knobs:
