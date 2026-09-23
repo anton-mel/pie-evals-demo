@@ -53,7 +53,8 @@ from .workloads import common_args_for
 class NodeRunner:
     def __init__(self, job: JobSpec, *, pie_root: Path, out_dir: Path, hf_cache: Path | None = None, runner_name: str | None = None, build: bool = True, download: bool = False):
         self.job = job
-        self.download = download
+        # a pod without the shared volume never saw `prepare`: it must fetch for itself
+        self.download = download or not os.environ.get("PIE_EVALS_VOLUME", "") and bool(os.environ.get("RUNPOD_POD_ID"))
         self.pie_root = Path(pie_root).resolve()
         # absolute: cell output paths are handed to bench subprocesses that run
         # with their own cwd (scripts/bench), and a relative --out made them
@@ -211,13 +212,24 @@ class NodeRunner:
 
             num_layers = num_layers_of(snapshot)
             first = cells[0]
+            model_path = snapshot
+            if str(first.engine) == "pie" and self.job.pie_commit:
+                from .importer import ensure_artifact, needs_import
+
+                if needs_import(first.artifact):
+                    try:
+                        model_path = ensure_artifact(first.artifact, snapshot, self.pie_root / "target/release/pie", self.job.pie_commit, log=self.log)
+                    except Exception as e:
+                        for c in cells:
+                            self.emit(self._failed(c, ErrorClass.LOAD_FAIL, f"artifact import: {str(e).strip().splitlines()[-1][:300]}", fingerprint))
+                        continue
             recipe_name = "competitive" if str(first.engine) != "pie" else "default"
             try:
                 pre.between_engines(self.platform, [])
                 cls = get_engine(first.engine)
                 recipe = load_recipe(str(first.engine), recipe_name, first.platform, first.workload)
                 recipe["program_path"] = first.program.path
-                recipe["snapshot_dir"] = str(snapshot)
+                recipe["snapshot_dir"] = str(model_path)
                 if str(first.engine) in self.job.baseline_versions:
                     from .baselines import SPECS, ensure_baseline
 
@@ -230,7 +242,19 @@ class NodeRunner:
                 # cell and round instead of reloading the weights each time (gemma-4 E4B
                 # spent ~7 min per round loading; the measurement itself takes seconds)
                 widest = max(cells, key=lambda c: int(c.workload.params.get("concurrency", 1)) * (int(c.workload.params.get("prefill", 0)) + int(c.workload.params.get("decode", 0)))).workload
-                engine.serve(widest, self.out / "serve" / f"{artifact_key.replace('/', '_')}-{mode_key}.log", int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
+                serve_log = self.out / "serve" / f"{artifact_key.replace('/', '_')}-{mode_key}.log"
+                try:
+                    engine.serve(widest, serve_log, int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
+                except EngineLaunchError as e:
+                    from .importer import RELAYOUT_MARK, ensure_artifact
+
+                    if RELAYOUT_MARK not in str(e) or str(first.engine) != "pie" or not self.job.pie_commit or model_path != snapshot:
+                        raise
+                    self.log("pie refuses to serve this checkpoint directly; importing it as an artifact and retrying")
+                    model_path = ensure_artifact(first.artifact, snapshot, self.pie_root / "target/release/pie", self.job.pie_commit, log=self.log)
+                    recipe["snapshot_dir"] = str(model_path)
+                    engine = cls(pie_root=self.pie_root, artifact=first.artifact, platform=first.platform, mode=first.mode, recipe=recipe, num_layers=num_layers)
+                    engine.serve(widest, serve_log, int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
                 if getattr(engine, "server_url", None):
                     self.log(f"serving {artifact_key} at {engine.server_url}")
             except EngineLaunchError as e:
