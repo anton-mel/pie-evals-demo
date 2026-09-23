@@ -71,12 +71,13 @@ def ensure_miniature(
         # a snapshot built by an older recipe (same tag, different flags — the
         # --text-only carve renamed every tensor) is rebuilt, not reused
         stamp = out / ".miniature.json"
+        if not stamp.exists():
+            return out  # not built by us; trust it
         try:
-            prev = json.loads(stamp.read_text())["recipe"] if stamp.exists() else None
+            prev = json.loads(stamp.read_text())["recipe"]
         except (OSError, ValueError, KeyError):
-            prev = None
-        cur = artifact.miniature.model_dump()
-        if prev == cur:
+            return out
+        if prev == artifact.miniature.model_dump():
             return out
         import shutil
 
