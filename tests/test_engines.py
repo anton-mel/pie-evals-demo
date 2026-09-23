@@ -238,6 +238,10 @@ def test_recipe_resolves_concurrency_and_overrides():
     assert r["cuda_graph_max_bs"] == 1
     r = load_recipe("vllm", "competitive", platform(arch="hopper"), WORKLOADS["c32"])
     assert r["attention_backend"] == "FLASH_ATTN"
+    r = load_recipe("vllm", "competitive", platform(arch="ada"), WORKLOADS["c32"], family="gpt_oss")
+    assert not r.get("attention_backend"), "FlashInfer rejects gpt-oss's attention sinks off Hopper"
+    r = load_recipe("vllm", "competitive", platform(arch="hopper"), WORKLOADS["c32"], family="gpt_oss")
+    assert r["attention_backend"] == "FLASH_ATTN"
     r = load_recipe("vllm", "competitive", platform(arch="ada"), WORKLOADS["prefix-1k-x64"])
     assert r["prefix_caching"] is True
     r = load_recipe("pie", "competitive", platform(Backend.METAL, "apple9", count=1), WORKLOADS["c32"])

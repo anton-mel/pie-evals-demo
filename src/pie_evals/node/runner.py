@@ -232,7 +232,7 @@ class NodeRunner:
             try:
                 pre.between_engines(self.platform, [])
                 cls = get_engine(first.engine)
-                recipe = load_recipe(str(first.engine), recipe_name, first.platform, first.workload)
+                recipe = load_recipe(str(first.engine), recipe_name, first.platform, first.workload, family=first.artifact.family)
                 recipe["program_path"] = first.program.path
                 recipe["snapshot_dir"] = str(model_path)
                 if str(first.engine) in self.job.baseline_versions:

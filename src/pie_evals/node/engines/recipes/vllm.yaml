@@ -47,6 +47,17 @@ competitive:
       rationale: >
         Unset leaves vLLM's own scheduler budget (8192 on V1). Set per arch
         if a shape shows prefill starving decode.
+  family:
+    gpt_oss:
+      knobs:
+        attention_backend:
+          value: null
+          rationale: >
+            gpt-oss attends with sinks, and vLLM 0.30's FlashInfer backend
+            refuses them off Hopper ("attention sinks not supported": every
+            gpt-oss cell of nightly 35908055874 on the 4090). Unset leaves
+            vLLM's own pick (TRITON_ATTN there); the Hopper override below
+            still names FA3, which carries sinks.
   arch:
     hopper:
       knobs:

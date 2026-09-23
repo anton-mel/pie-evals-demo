@@ -41,7 +41,8 @@ from ..shape import max_model_len_for, workload_concurrency, workload_num_reques
 
 RECIPE_DIR = Path(__file__).resolve().parent
 
-_OVERRIDE_AXES = ("arch", "backend", "workload_kind")
+# family first, so an arch override (e.g. FA3 on Hopper) still wins over a family default
+_OVERRIDE_AXES = ("family", "arch", "backend", "workload_kind")
 
 
 def recipe_path(engine: str) -> Path:
@@ -103,14 +104,15 @@ def _resolve_value(v: Any, subs: dict[str, Any]) -> Any:
     return v
 
 
-def load_recipe(engine: str, name: str, platform: PlatformSpec, workload: WorkloadSpec) -> dict[str, Any]:
+def load_recipe(engine: str, name: str, platform: PlatformSpec, workload: WorkloadSpec, family: str | None = None) -> dict[str, Any]:
     """Flat ``{knob: value}`` for ``recipes/<engine>.yaml`` section ``name``,
-    with per-arch / per-backend / per-workload-kind overrides applied and
-    ``$concurrency``-style values resolved against ``workload``."""
+    with per-family / per-arch / per-backend / per-workload-kind overrides
+    applied and ``$concurrency``-style values resolved against ``workload``."""
     data = _load_yaml(engine)
     knobs: dict[str, Any] = {}
     rationale: dict[str, str] = {}
     selectors = {
+        "family": family or "",
         "arch": platform.arch,
         "backend": str(platform.backend),
         "workload_kind": str(workload.kind),
