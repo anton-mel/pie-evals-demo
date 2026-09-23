@@ -24,6 +24,8 @@ _VLLM_KV_DTYPES = {"bf16": "auto", "fp16": "auto", "auto": "auto", "fp8": "fp8",
 class VllmEngine(Engine):
     name = EngineName.VLLM
     script = "scripts/bench/vllm_bench.py"
+    #: no nvcc on the runner image, so no DeepGEMM JIT (see SglangEngine)
+    env_defaults = {"VLLM_USE_DEEP_GEMM": "0"}
 
     def default_python(self) -> str:
         if os.environ.get("VLLM_PY"):

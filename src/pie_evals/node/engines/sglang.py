@@ -22,6 +22,10 @@ from .shape import max_model_len_for, workload_concurrency
 class SglangEngine(Engine):
     name = EngineName.SGLANG
     script = "scripts/bench/sglang_bench.py"
+    #: the runner image has no nvcc: DeepGEMM's JIT (gemma / gpt-oss on
+    #: Blackwell, nightly 35921789513) would abort every cell; the FlashInfer
+    #: kernels come precompiled (baselines.ensure_flashinfer_aot).
+    env_defaults = {"SGL_ENABLE_JIT_DEEPGEMM": "0"}
 
     def default_python(self) -> str:
         if os.environ.get("SGLANG_PY"):

@@ -159,6 +159,8 @@ class Engine(ABC):
     name: EngineName
     #: bench script under the pie checkout, e.g. "scripts/bench/pie_bench.py"
     script: str
+    #: environment the engine's processes get unless the caller set the key
+    env_defaults: dict[str, str] = {}
 
     def __init__(
         self,
@@ -179,6 +181,8 @@ class Engine(ABC):
         self.recipe = recipe  # engine knobs for this (engine, platform, artifact) — see recipes/
         self.python = python or self.default_python()
         self.env = dict(env or {})
+        for k, v in self.env_defaults.items():
+            self.env.setdefault(k, v)
         self.num_layers = num_layers
         self.server_url: str | None = None
         self._server_proc: subprocess.Popen | None = None
