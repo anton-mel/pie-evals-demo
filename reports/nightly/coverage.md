@@ -2,11 +2,11 @@
 
 | status | cells |
 |---|---|
-| pass | 73 |
-| fail | 237 |
+| pass | 105 |
+| fail | 290 |
 | declared_unsupported | 6843 |
-| not_run | 5440 |
-| noisy | 27 |
+| not_run | 5338 |
+| noisy | 44 |
 
 ## Gaps (expected supported, but not passing)
 
@@ -77,39 +77,50 @@
 | pie | a100-x2 | kimi-k3-mini8 | lc-1k-128 | attention-sink | tp2 | fail | crash | pie serve exited before ready: pyo3_runtime.PanicException: Unable to dynamically load the "nccl" shared library - searc |
 | pie | a100-x2 | kimi-k3-mini8 | lc-1k-128 | sliding-window-attention | tp2 | fail | crash | pie serve exited before ready: pyo3_runtime.PanicException: Unable to dynamically load the "nccl" shared library - searc |
 | pie | a100-x2 | kimi-k3-mini8 | ss-128-64 | classifier-free-guidance | tp2 | fail | crash | pie serve exited before ready: pyo3_runtime.PanicException: Unable to dynamically load the "nccl" shared library - searc |
-| vllm | l40s-x1 | gemma-4-e4b-bf16 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gemma-4-e4b-bf16 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gemma-4-e4b-bf16 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gemma-4-e4b-bf16 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gemma-4-e4b-bf16 | c64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gemma-4-e4b-bf16 | c256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gemma-4-e4b-bf16 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
-| vllm | l40s-x1 | gemma-4-e4b-bf16 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gemma-4-e4b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gemma-4-e4b-bf16 | mixed-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| vllm | l40s-x1 | gemma-4-e4b-bf16 | kv-oversub | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | ss-512-256 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | c8 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | c32 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | c64 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | mixed-256 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| vllm | l40s-x1 | gemma-4-e4b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | engine setup: Command '['uv', 'pip', 'install', '--quiet', '--python', '/workspace/pie-evals-cache/venv-vllm-0.30.0/bin/ |
+| vllm | l40s-x1 | gemma-4-e4b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | engine setup: Command '['uv', 'pip', 'install', '--quiet', '--python', '/workspace/pie-evals-cache/venv-vllm-0.30.0/bin/ |
+| sglang | l40s-x1 | gemma-4-e4b-bf16 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: shape '[-1, 1024]' is invalid for input of size 512 |
+| sglang | l40s-x1 | gemma-4-e4b-bf16 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: shape '[-1, 1024]' is invalid for input of size 512 |
+| sglang | l40s-x1 | gemma-4-e4b-bf16 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two c |
+| sglang | l40s-x1 | gemma-4-e4b-bf16 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two c |
+| sglang | l40s-x1 | gemma-4-e4b-bf16 | c64 | text-completion-bench | tp1 | fail | crash | RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two c |
+| sglang | l40s-x1 | gemma-4-e4b-bf16 | c256 | text-completion-bench | tp1 | fail | crash | RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two c |
+| sglang | l40s-x1 | gemma-4-e4b-bf16 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: shape '[-1, 1024]' is invalid for input of size 512 |
+| sglang | l40s-x1 | gemma-4-e4b-bf16 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: shape '[-1, 1024]' is invalid for input of size 512 |
+| sglang | l40s-x1 | gemma-4-e4b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two c |
+| sglang | l40s-x1 | gemma-4-e4b-bf16 | mixed-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two c |
+| sglang | l40s-x1 | gemma-4-e4b-bf16 | kv-oversub | text-completion-bench | tp1 | fail | crash | RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two c |
+| sglang | l40s-x1 | gemma-4-e4b-bf16 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | fail | crash | RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two c |
+| sglang | l40s-x1 | gemma-4-e4b-bf16 | mixed-256 | prefix-tree-kv-cache | tp1 | fail | crash | RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two c |
+| sglang | l40s-x1 | gemma-4-e4b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | fail | crash | RuntimeError: shape '[-1, 1024]' is invalid for input of size 512 |
+| sglang | l40s-x1 | gemma-4-e4b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | crash | RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two c |
+| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | engine setup: Command '['uv', 'pip', 'install', '--quiet', '--python', '/workspace/pie-evals-cache/venv-vllm-0.30.0/bin/ |
+| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | engine setup: Command '['uv', 'pip', 'install', '--quiet', '--python', '/workspace/pie-evals-cache/venv-vllm-0.30.0/bin/ |
+| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | checkpoint unavailable for gpt-oss-20b-mxfp4-mini5: 'OSError: [Errno 28] No space left on device' |
+| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | checkpoint unavailable for gpt-oss-20b-mxfp4-mini5: 'OSError: [Errno 28] No space left on device' |
+| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | checkpoint unavailable for gpt-oss-20b-mxfp4-mini5: 'OSError: [Errno 28] No space left on device' |
+| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | checkpoint unavailable for gpt-oss-20b-mxfp4-mini5: 'OSError: [Errno 28] No space left on device' |
+| vllm | l40s-x1 | kimi-k3-mini8 | ss-128-64 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'RuntimeError: GET https://huggingface.co/moonshotai/Kimi-K3/resolve/main/conf |
+| vllm | l40s-x1 | kimi-k3-mini8 | ss-512-256 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'RuntimeError: GET https://huggingface.co/moonshotai/Kimi-K3/resolve/main/conf |
+| vllm | l40s-x1 | kimi-k3-mini8 | c8 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'RuntimeError: GET https://huggingface.co/moonshotai/Kimi-K3/resolve/main/conf |
+| vllm | l40s-x1 | kimi-k3-mini8 | c32 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'RuntimeError: GET https://huggingface.co/moonshotai/Kimi-K3/resolve/main/conf |
+| vllm | l40s-x1 | kimi-k3-mini8 | c64 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'RuntimeError: GET https://huggingface.co/moonshotai/Kimi-K3/resolve/main/conf |
+| vllm | l40s-x1 | kimi-k3-mini8 | c256 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'RuntimeError: GET https://huggingface.co/moonshotai/Kimi-K3/resolve/main/conf |
+| vllm | l40s-x1 | kimi-k3-mini8 | lc-1k-128 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'RuntimeError: GET https://huggingface.co/moonshotai/Kimi-K3/resolve/main/conf |
+| vllm | l40s-x1 | kimi-k3-mini8 | lc-2k-128 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'RuntimeError: GET https://huggingface.co/moonshotai/Kimi-K3/resolve/main/conf |
+| vllm | l40s-x1 | kimi-k3-mini8 | prefix-1k-x64 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'RuntimeError: GET https://huggingface.co/moonshotai/Kimi-K3/resolve/main/conf |
+| vllm | l40s-x1 | kimi-k3-mini8 | mixed-256 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'RuntimeError: GET https://huggingface.co/moonshotai/Kimi-K3/resolve/main/conf |
+| vllm | l40s-x1 | kimi-k3-mini8 | kv-oversub | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'RuntimeError: GET https://huggingface.co/moonshotai/Kimi-K3/resolve/main/conf |
+| vllm | l40s-x1 | kimi-k3-mini8 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'RuntimeError: GET https://huggingface.co/moonshotai/Kimi-K3/resolve/main/conf |
+| vllm | l40s-x1 | kimi-k3-mini8 | mixed-256 | prefix-tree-kv-cache | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'RuntimeError: GET https://huggingface.co/moonshotai/Kimi-K3/resolve/main/conf |
+| vllm | l40s-x1 | kimi-k3-mini8 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
+| vllm | l40s-x1 | kimi-k3-mini8 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
+| sglang | l40s-x1 | kimi-k3-mini8 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
+| sglang | l40s-x1 | kimi-k3-mini8 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
+| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | engine setup: Command '['uv', 'pip', 'install', '--quiet', '--python', '/workspace/pie-evals-cache/venv-vllm-0.30.0/bin/ |
+| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | engine setup: Command '['uv', 'pip', 'install', '--quiet', '--python', '/workspace/pie-evals-cache/venv-vllm-0.30.0/bin/ |
+| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | checkpoint unavailable for qwen3.5-0.8b-bf16: '[Errno 28] No space left on device' |
+| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | checkpoint unavailable for qwen3.5-0.8b-bf16: '[Errno 28] No space left on device' |
 | pie | l40s-x2 | glm-5.3-flash-mini8 | control-aa | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
 | pie | l40s-x2 | glm-5.3-flash-mini8 | ss-128-64 | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
 | pie | l40s-x2 | glm-5.3-flash-mini8 | c8 | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
@@ -151,16 +162,58 @@
 | sglang | rtx4090-x1 | gemma-4-e4b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
 | sglang | rtx4090-x1 | gemma-4-e4b-bf16 | mixed-256 | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
 | sglang | rtx4090-x1 | gemma-4-e4b-bf16 | kv-oversub | text-completion-bench | tp1 | fail | crash | AttributeError: type object 'ServerArgs' has no attribute '__dataclass_fields__' |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp1 | fail | crash | RuntimeError: Failed to build JIT module sgl_kernel_jit_activation_bf16_t_false in /root/.cache/sglang/jit/sm89/sgl_kern |
+| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: No accelerator (CUDA, XPU, HPU, NPU, MUSA, MPS) or platform plugin is available. |
+| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: No accelerator (CUDA, XPU, HPU, NPU, MUSA, MPS) or platform plugin is available. |
+| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: No accelerator (CUDA, XPU, HPU, NPU, MUSA, MPS) or platform plugin is available. |
+| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: No accelerator (CUDA, XPU, HPU, NPU, MUSA, MPS) or platform plugin is available. |
+| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | c64 | text-completion-bench | tp1 | fail | crash | RuntimeError: No accelerator (CUDA, XPU, HPU, NPU, MUSA, MPS) or platform plugin is available. |
+| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | fail | crash | RuntimeError: No accelerator (CUDA, XPU, HPU, NPU, MUSA, MPS) or platform plugin is available. |
+| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: No accelerator (CUDA, XPU, HPU, NPU, MUSA, MPS) or platform plugin is available. |
+| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: No accelerator (CUDA, XPU, HPU, NPU, MUSA, MPS) or platform plugin is available. |
+| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | RuntimeError: No accelerator (CUDA, XPU, HPU, NPU, MUSA, MPS) or platform plugin is available. |
+| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | mixed-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: No accelerator (CUDA, XPU, HPU, NPU, MUSA, MPS) or platform plugin is available. |
+| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | fail | crash | RuntimeError: No accelerator (CUDA, XPU, HPU, NPU, MUSA, MPS) or platform plugin is available. |
+| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | fail | crash | RuntimeError: No accelerator (CUDA, XPU, HPU, NPU, MUSA, MPS) or platform plugin is available. |
+| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | mixed-256 | prefix-tree-kv-cache | tp1 | fail | crash | RuntimeError: No accelerator (CUDA, XPU, HPU, NPU, MUSA, MPS) or platform plugin is available. |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | c64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | c256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | mixed-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | kv-oversub | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | mixed-256 | prefix-tree-kv-cache | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | kimi-k3-mini8 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | kimi-k3-mini8 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | kimi-k3-mini8 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | kimi-k3-mini8 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | kimi-k3-mini8 | c64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | kimi-k3-mini8 | c256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | kimi-k3-mini8 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | kimi-k3-mini8 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | kimi-k3-mini8 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | kimi-k3-mini8 | mixed-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | kimi-k3-mini8 | kv-oversub | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | kimi-k3-mini8 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| vllm | rtx4090-x1 | kimi-k3-mini8 | mixed-256 | prefix-tree-kv-cache | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
+| sglang | rtx4090-x1 | kimi-k3-mini8 | ss-128-64 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
+| sglang | rtx4090-x1 | kimi-k3-mini8 | ss-512-256 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
+| sglang | rtx4090-x1 | kimi-k3-mini8 | c8 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
+| sglang | rtx4090-x1 | kimi-k3-mini8 | c32 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
+| sglang | rtx4090-x1 | kimi-k3-mini8 | c64 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
+| sglang | rtx4090-x1 | kimi-k3-mini8 | c256 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
+| sglang | rtx4090-x1 | kimi-k3-mini8 | lc-1k-128 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
+| sglang | rtx4090-x1 | kimi-k3-mini8 | lc-2k-128 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
+| sglang | rtx4090-x1 | kimi-k3-mini8 | prefix-1k-x64 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
+| sglang | rtx4090-x1 | kimi-k3-mini8 | mixed-256 | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
+| sglang | rtx4090-x1 | kimi-k3-mini8 | kv-oversub | text-completion-bench | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
+| sglang | rtx4090-x1 | kimi-k3-mini8 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
+| sglang | rtx4090-x1 | kimi-k3-mini8 | mixed-256 | prefix-tree-kv-cache | tp1 | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
 | sglang | rtx5090-x1 | gemma-4-e4b-bf16 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Assertion error (/deepgemm/third-party/deep_jit/include/deep_jit/backend/cuda/backend.hpp:210): is_executa |
 | sglang | rtx5090-x1 | gemma-4-e4b-bf16 | ss-512-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: Assertion error (/deepgemm/third-party/deep_jit/include/deep_jit/backend/cuda/backend.hpp:210): is_executa |
 | sglang | rtx5090-x1 | gemma-4-e4b-bf16 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: Assertion error (/deepgemm/third-party/deep_jit/include/deep_jit/backend/cuda/backend.hpp:210): is_executa |
@@ -272,10 +325,27 @@
 | vllm | a100-pcie-x1 | gpt-oss-20b-mxfp4-mini5 | prefix-1k-x64 | text-completion-bench | tp1 | noisy |  |  |
 | pie | l40s-x1 | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | noisy |  |  |
 | pie | l40s-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | noisy |  |  |
+| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | noisy |  |  |
+| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c32 | text-completion-bench | tp1 | noisy |  |  |
+| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | kv-oversub | text-completion-bench | tp1 | noisy |  |  |
+| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | noisy |  |  |
 | pie | rtx4090-x1 | gemma-4-e4b-bf16 | c8 | text-completion-bench | tp1 | noisy |  |  |
 | pie | rtx4090-x1 | gemma-4-e4b-bf16 | c32 | text-completion-bench | tp1 | noisy |  |  |
 | pie | rtx4090-x1 | gemma-4-e4b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | noisy |  |  |
 | pie | rtx4090-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | noisy |  |  |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | noisy |  |  |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp1 | noisy |  |  |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | noisy |  |  |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | noisy |  |  |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp1 | noisy |  |  |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp1 | noisy |  |  |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | lc-1k-128 | text-completion-bench | tp1 | noisy |  |  |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp1 | noisy |  |  |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | noisy |  |  |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | noisy |  |  |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp1 | noisy |  |  |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | noisy |  |  |
+| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | mixed-256 | prefix-tree-kv-cache | tp1 | noisy |  |  |
 | pie | a100-pcie-x1 | gemma-4-26b-a4b-mlx4 | control-aa | text-completion-bench | tp1 | not_run |  |  |
 | pie | a100-pcie-x1 | gemma-4-26b-a4b-mlx4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
 | pie | a100-pcie-x1 | gemma-4-26b-a4b-mlx4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
@@ -1506,25 +1576,13 @@
 | pie | l40s-x1 | gemma-4-e4b-bf16 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
 | pie | l40s-x1 | gemma-4-e4b-bf16 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
 | pie | l40s-x1 | gemma-4-e4b-bf16 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gemma-4-e4b-bf16 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gemma-4-e4b-bf16 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gemma-4-e4b-bf16 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gemma-4-e4b-bf16 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gemma-4-e4b-bf16 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gemma-4-e4b-bf16 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gemma-4-e4b-bf16 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
 | vllm | l40s-x1 | gemma-4-e4b-bf16 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gemma-4-e4b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| vllm | l40s-x1 | gemma-4-e4b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| sglang | l40s-x1 | gemma-4-e4b-bf16 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gemma-4-e4b-bf16 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gemma-4-e4b-bf16 | c8 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gemma-4-e4b-bf16 | c32 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gemma-4-e4b-bf16 | c64 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gemma-4-e4b-bf16 | c256 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gemma-4-e4b-bf16 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gemma-4-e4b-bf16 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gemma-4-e4b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gemma-4-e4b-bf16 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gemma-4-e4b-bf16 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gemma-4-e4b-bf16 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gemma-4-e4b-bf16 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gemma-4-e4b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| sglang | l40s-x1 | gemma-4-e4b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | pie | l40s-x1 | glm-5.3-flash-mini8 | control-aa | text-completion-bench | tp1 | not_run |  |  |
 | pie | l40s-x1 | glm-5.3-flash-mini8 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
 | pie | l40s-x1 | glm-5.3-flash-mini8 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
@@ -1576,14 +1634,27 @@
 | pie | l40s-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
 | pie | l40s-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
 | pie | l40s-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
 | vllm | l40s-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | vllm | l40s-x1 | gpt-oss-20b-mxfp4 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
 | sglang | l40s-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | pie | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | control-aa | text-completion-bench | tp1 | not_run |  |  |
 | pie | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
 | pie | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
@@ -1604,36 +1675,7 @@
 | pie | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
 | pie | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
 | pie | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c8 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c32 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c64 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c256 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c8 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c32 | text-completion-bench | tp1 | not_run |  |  |
 | sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c64 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c256 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | pie | l40s-x1 | kimi-k3-mini8 | control-aa | text-completion-bench | tp1 | not_run |  |  |
 | pie | l40s-x1 | kimi-k3-mini8 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
 | pie | l40s-x1 | kimi-k3-mini8 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
@@ -1654,21 +1696,6 @@
 | pie | l40s-x1 | kimi-k3-mini8 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
 | pie | l40s-x1 | kimi-k3-mini8 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
 | pie | l40s-x1 | kimi-k3-mini8 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
-| vllm | l40s-x1 | kimi-k3-mini8 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | kimi-k3-mini8 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | kimi-k3-mini8 | c8 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | kimi-k3-mini8 | c32 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | kimi-k3-mini8 | c64 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | kimi-k3-mini8 | c256 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | kimi-k3-mini8 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | kimi-k3-mini8 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | kimi-k3-mini8 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | kimi-k3-mini8 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | kimi-k3-mini8 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
-| vllm | l40s-x1 | kimi-k3-mini8 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| vllm | l40s-x1 | kimi-k3-mini8 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| vllm | l40s-x1 | kimi-k3-mini8 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| vllm | l40s-x1 | kimi-k3-mini8 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | sglang | l40s-x1 | kimi-k3-mini8 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
 | sglang | l40s-x1 | kimi-k3-mini8 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
 | sglang | l40s-x1 | kimi-k3-mini8 | c8 | text-completion-bench | tp1 | not_run |  |  |
@@ -1682,8 +1709,6 @@
 | sglang | l40s-x1 | kimi-k3-mini8 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
 | sglang | l40s-x1 | kimi-k3-mini8 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | sglang | l40s-x1 | kimi-k3-mini8 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| sglang | l40s-x1 | kimi-k3-mini8 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| sglang | l40s-x1 | kimi-k3-mini8 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | pie | l40s-x1 | qwen3.5-0.8b-bf16 | control-aa | text-completion-bench | tp1 | not_run |  |  |
 | pie | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
 | pie | l40s-x1 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
@@ -1709,16 +1734,14 @@
 | vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | not_run |  |  |
 | vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | not_run |  |  |
 | vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp1 | not_run |  |  |
 | vllm | l40s-x1 | qwen3.5-0.8b-bf16 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
 | vllm | l40s-x1 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
 | vllm | l40s-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | vllm | l40s-x1 | qwen3.5-0.8b-bf16 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | pie | l40s-x1 | qwen3.6-27b-gguf-q4km | control-aa | text-completion-bench | tp1 | not_run |  |  |
 | pie | l40s-x1 | qwen3.6-27b-gguf-q4km | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
 | pie | l40s-x1 | qwen3.6-27b-gguf-q4km | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
@@ -5154,19 +5177,6 @@
 | vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | vllm | rtx4090-x1 | gpt-oss-20b-mxfp4 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | c8 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | c32 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | c64 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | pie | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | control-aa | text-completion-bench | tp1 | not_run |  |  |
@@ -5189,19 +5199,6 @@
 | pie | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
 | pie | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
 | pie | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | c8 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | c32 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | c64 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | c256 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | sglang | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
@@ -5239,34 +5236,8 @@
 | pie | rtx4090-x1 | kimi-k3-mini8 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
 | pie | rtx4090-x1 | kimi-k3-mini8 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
 | pie | rtx4090-x1 | kimi-k3-mini8 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | kimi-k3-mini8 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | kimi-k3-mini8 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | kimi-k3-mini8 | c8 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | kimi-k3-mini8 | c32 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | kimi-k3-mini8 | c64 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | kimi-k3-mini8 | c256 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | kimi-k3-mini8 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | kimi-k3-mini8 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | kimi-k3-mini8 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | kimi-k3-mini8 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | kimi-k3-mini8 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | kimi-k3-mini8 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| vllm | rtx4090-x1 | kimi-k3-mini8 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | vllm | rtx4090-x1 | kimi-k3-mini8 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | vllm | rtx4090-x1 | kimi-k3-mini8 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| sglang | rtx4090-x1 | kimi-k3-mini8 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | kimi-k3-mini8 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | kimi-k3-mini8 | c8 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | kimi-k3-mini8 | c32 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | kimi-k3-mini8 | c64 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | kimi-k3-mini8 | c256 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | kimi-k3-mini8 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | kimi-k3-mini8 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | kimi-k3-mini8 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | kimi-k3-mini8 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | kimi-k3-mini8 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | kimi-k3-mini8 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | kimi-k3-mini8 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | sglang | rtx4090-x1 | kimi-k3-mini8 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | sglang | rtx4090-x1 | kimi-k3-mini8 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | pie | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
@@ -5292,9 +5263,6 @@
 | vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | vllm | rtx4090-x1 | qwen3.5-0.8b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | pie | rtx4090-x1 | qwen3.6-27b-gguf-q4km | control-aa | text-completion-bench | tp1 | not_run |  |  |
