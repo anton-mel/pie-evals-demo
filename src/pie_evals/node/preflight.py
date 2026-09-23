@@ -353,8 +353,8 @@ def cuda_init() -> str | None:
         return None
     try:
         lib = ctypes.CDLL("libcuda.so.1")
-    except OSError as e:
-        return f"libcuda.so.1 not loadable: {e}"
+    except OSError:
+        return None  # no driver at all (a CPU box, CI): not the broken-pod case; the engine says its own piece
     rc = lib.cuInit(0)
     if rc != 0:
         return f"cuInit answered {rc}"
