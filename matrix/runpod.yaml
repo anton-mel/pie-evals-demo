@@ -11,4 +11,6 @@ volumes:
 # prefer these first (widest GPU coverage), then any other volume DC, then anywhere
 preferred_data_centers: [EUR-IS-1, US-TX-3, EU-RO-1]
 cloud_type: SECURE
+# when no secure instance exists anywhere, take a community pod (no network volume: cold caches)
+community_fallback: true
 container_disk_gb: 80   # pie checkout + cargo target + runner; miniature spans live on the volume

@@ -197,7 +197,8 @@ def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_versi
                           image=image or runpod.DEFAULT_IMAGE, image_version=image_version, network_volume_id=network_volume_id,
                           volumes=rp.get("volumes") or None, preferred_data_centers=rp.get("preferred_data_centers"),
                           container_disk_gb=int(rp.get("container_disk_gb", 40)), cloud_type=str(rp.get("cloud_type", "SECURE")),
-                          allowed_cuda_versions=list(cuda_versions) or None, debug=debug, exec_script=exec_script, log=lambda m_: click.echo(m_, err=True))
+                          allowed_cuda_versions=list(cuda_versions) or None, debug=debug, exec_script=exec_script,
+                          community_fallback=bool(rp.get("community_fallback", True)), log=lambda m_: click.echo(m_, err=True))
     click.echo(h.id)
     if debug:
         click.echo(f"start log: https://{h.id}-8080.proxy.runpod.net/start.log", err=True)

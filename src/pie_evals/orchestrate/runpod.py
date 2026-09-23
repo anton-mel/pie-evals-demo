@@ -218,6 +218,7 @@ def create_pod(
     api_key: str | None = None,
     debug: bool = False,
     exec_script: str | None = None,
+    community_fallback: bool = True,
     log=print,
 ) -> PodHandle:
     if not platform.runpod_gpu_type:
@@ -267,16 +268,34 @@ def create_pod(
             body["networkVolumeId"] = pl.volume_id
             body["volumeMountPath"] = VOLUME
     data = None
-    for attempt in range(1, 4):  # RunPod answers 500 "Something went wrong" transiently
+    for attempt in range(1, 6):  # RunPod answers 500 "Something went wrong" transiently
         try:
             data = _req("POST", "/pods", body, key)
             break
         except RuntimeError as e:
-            if attempt == 3 or " 5" not in str(e)[:40]:
+            msg = str(e)
+            if "no instances currently available" in msg:
+                # "Low" stock is a momentary reading; unpin and, if allowed, take a
+                # community pod: no volume (cold caches, 80 GB container disk) but a run
+                if body.get("dataCenterIds") or body.get("networkVolumeId"):
+                    log("no secure instance in the volume's data center; retrying unpinned without the volume")
+                    body.pop("dataCenterIds", None)
+                    body.pop("networkVolumeId", None)
+                    body.pop("volumeMountPath", None)
+                    data_center = None
+                    continue
+                if community_fallback and body.get("cloudType") != "COMMUNITY":
+                    log("no secure instance anywhere; retrying on the community cloud")
+                    body["cloudType"] = "COMMUNITY"
+                    body["env"]["PIE_EVALS_CLOUD"] = "community"
+                    continue
                 raise
-            log(f"create pod attempt {attempt} failed ({str(e)[:120]}); retrying in 20 s")
+            if attempt == 3 or " 5" not in msg[:40]:
+                raise
+            log(f"create pod attempt {attempt} failed ({msg[:120]}); retrying in 20 s")
             time.sleep(20)
-    assert data is not None
+    if data is None:
+        raise RuntimeError(f"no RunPod instance for {platform.runpod_gpu_type} x{platform.count} (secure or community)")
     return PodHandle(id=data["id"], labels=platform.runner_labels, data_center=data_center)
 
 
