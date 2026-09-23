@@ -127,7 +127,7 @@ if [ ! -x "$V/.cargo/bin/rustup" ]; then
   echo "== installing rustup on $V"; mkdir -p "$V"
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | RUSTUP_HOME=$V/.rustup CARGO_HOME=$V/.cargo sh -s -- -y --profile minimal --default-toolchain none --no-modify-path || echo "== rustup install failed (non-fatal)"
 fi
-mkdir -p "$V/_work" "$V/.pie" "$V/.hf" "$V/.uv" "$V/.npm" "$V/pie-evals-cache" /tmp/target /tmp/pie
+mkdir -p /tmp/_work "$V/.pie" "$V/.hf" "$V/.uv" "$V/.npm" "$V/pie-evals-cache" /tmp/target /tmp/pie
 cat > /opt/actions-runner/.env <<ENV
 RUSTUP_HOME=$V/.rustup
 CARGO_HOME=$V/.cargo
@@ -154,7 +154,7 @@ echo "== token present: $([ -n "$TOKEN" ] && [ "$TOKEN" != null ] && echo yes ||
 cd /opt/actions-runner || {{ echo "== no /opt/actions-runner"; sleep {hold}; terminate; exit 1; }}
 export RUNNER_ALLOW_RUNASROOT=1
 ./config.sh --unattended --replace --ephemeral --disableupdate --url "https://github.com/{repo}" --token "$TOKEN" \
-  --name "runpod-${{RUNPOD_POD_ID:-$(hostname)}}" --labels "{lab}" --work "$V/_work"
+  --name "runpod-${{RUNPOD_POD_ID:-$(hostname)}}" --labels "{lab}" --work /tmp/_work
 RC=$?; echo "== config.sh exit $RC"
 if [ $RC -ne 0 ]; then sleep {hold}; terminate; exit $RC; fi
 ./run.sh; RC=$?; echo "== run.sh exit $RC $(date -u +%FT%TZ)"

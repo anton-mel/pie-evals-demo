@@ -72,19 +72,19 @@ def classify_failure(returncode: int, stderr: str, stdout: str, timed_out: bool)
     if timed_out:
         return ErrorClass.HANG, "timed out (hang is only ever observed via timeout)"
     text = stderr + "\n" + stdout
+    # A Python traceback is described by its exception line (the last
+    # "SomeError: ..." line), never by a code line that happens to contain a
+    # keyword ("resolved_model = resolve_local_model(args.model)" is not a message).
+    if "Traceback (most recent call last)" in text:
+        lines = [ln for ln in text.splitlines() if ln.strip()]
+        exc = next((ln.strip() for ln in reversed(lines) if re.match(r"^[A-Za-z_][A-Za-z0-9_.]*(Error|Exception|Exit|Interrupt)\b", ln.strip())), lines[-1].strip() if lines else "Traceback")
+        for cls, pat in _ERROR_PATTERNS[:3]:
+            if pat.search(exc):
+                return cls, exc[:400]
+        return ErrorClass.CRASH, exc[:400]
     for cls, pat in _ERROR_PATTERNS:
         m = pat.search(text)
         if m:
-            if m.group(0).startswith("Traceback"):
-                # the exception line is the last non-empty line of the traceback, and it is
-                # what a reader needs ("FileNotFoundError: missing .../lora_probe.wasm"), not "Traceback"
-                tail = [ln for ln in text.splitlines() if ln.strip()]
-                exc = next((ln for ln in reversed(tail) if re.match(r"^[A-Za-z_.]+(Error|Exception|Exit)\b", ln.strip())), tail[-1] if tail else m.group(0))
-                # re-classify by the exception text itself
-                for cls2, pat2 in _ERROR_PATTERNS[:3]:
-                    if pat2.search(exc):
-                        return cls2, exc.strip()[:400]
-                return cls, exc.strip()[:400]
             line = next((ln for ln in text.splitlines() if m.group(0) in ln), m.group(0))
             return cls, line.strip()[:400]
     if returncode < 0:

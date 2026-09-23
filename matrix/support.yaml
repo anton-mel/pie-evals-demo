@@ -38,6 +38,10 @@ unsupported:
     reason: "not an LLM serving workload"
   - when: {program_category: diffusion, engine: mlxlm}
     reason: "not an LLM serving workload"
+  - when: {artifact: nemotron-h-mini8}
+    reason: "shrink_checkpoint.py has no nemotron_h reader (supported: deepseek_v4, glm_moe_dsa, gpt_oss, kimi, muse_glimmer, qwen3_5_moe, qwen4_exp)"
+  - when: {artifact: mini-dit}
+    reason: "pie/mini-dit is not an HF repo; needs a checkpoint source"
   - when: {family: mini_dit, program_category: serving}
     reason: "diffusion model; no text serving path"
   - when: {family: mini_dit, program_category: speculative}

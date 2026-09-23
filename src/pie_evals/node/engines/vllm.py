@@ -31,7 +31,10 @@ class VllmEngine(Engine):
     def model_arg(self) -> str:
         # vLLM resolves HF ids itself (offline cache under HF_HUB_CACHE); a
         # local snapshot path is taken as-is.
-        return self.artifact.base_model
+        # The runner resolves the checkpoint (a miniature lives under a snapshot
+        # dir with no refs/main, so an HF id would not find it) and passes the
+        # path through the recipe; a bare HF id is the fallback.
+        return str(self.recipe.get("snapshot_dir") or self.artifact.base_model)
 
     def engine_args(self, workload: WorkloadSpec) -> list[str]:
         r = self.recipe

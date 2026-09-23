@@ -96,7 +96,7 @@ class Record(BaseModel):
     def validate_for_store(self) -> list[str]:
         """Return the list of missing mandatory provenance fields (empty = ok)."""
         missing = []
-        if self.status in (CellStatus.PASS, CellStatus.NOISY):
+        if self.status in (CellStatus.PASS, CellStatus.NOISY) and self.perf is not None:
             for f in Provenance.REQUIRED:
                 v = getattr(self.provenance, f)
                 if v in (None, "", {}, []):

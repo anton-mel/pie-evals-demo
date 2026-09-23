@@ -58,5 +58,5 @@ def ensure_snapshot(artifact: ArtifactSpec, hf_cache: Path, *, pie_root: Path | 
         kw["allow_patterns"] = ["*.json", artifact.gguf_file]
     else:
         kw["allow_patterns"] = WEIGHT_PATTERNS
-    path = snapshot_download(artifact.base_model, cache_dir=str(hf_cache), token=os.environ.get("HF_TOKEN"), **kw)
+    path = snapshot_download(artifact.base_model, cache_dir=str(hf_cache), token=os.environ.get("HF_TOKEN") or None, **kw)  # an empty secret must not become "Bearer "
     return Path(path)

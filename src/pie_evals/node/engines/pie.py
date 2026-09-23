@@ -141,7 +141,10 @@ class PieEngine(Engine):
     def model_arg(self) -> str:
         # pie_bench resolves an HF id through common.resolve_local_model (HF
         # cache, then ~/.pie/programs); a local path is taken as-is.
-        return self.artifact.base_model
+        # The runner resolves the checkpoint (a miniature lives under a snapshot
+        # dir with no refs/main, so an HF id would not find it) and passes the
+        # path through the recipe; a bare HF id is the fallback.
+        return str(self.recipe.get("snapshot_dir") or self.artifact.base_model)
 
     def pie_engine_name(self) -> str:
         return _BACKEND_TO_ENGINE[self.platform.backend]
