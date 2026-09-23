@@ -193,8 +193,9 @@ def watch_baselines(obj, lock):
 @click.option("--cuda", "cuda_versions", multiple=True, default=["13.0"], show_default=True, help="allowed host CUDA versions (pie pins cudarc cuda-13000)")
 @click.option("--debug", is_flag=True, help="serve the start log on the pod's :8080 proxy and hold a failed pod 10 min")
 @click.option("--exec", "exec_script", default=None, help="run this bash script on the pod (same env as a job) instead of a runner, then terminate; volume maintenance")
+@click.option("--wait-runner", type=int, default=0, help="seconds to wait for the pod's runner to register (needs GH_RUNNER_PAT); a pod that never registers is terminated and the next platform tried")
 @click.pass_obj
-def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_version, network_volume_id, kill_minutes, cuda_versions, debug, exec_script):
+def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_version, network_volume_id, kill_minutes, cuda_versions, debug, exec_script, wait_runner):
     from . import runpod
 
     m: Matrix = obj["matrix"]
@@ -214,6 +215,16 @@ def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_versi
                                   allowed_cuda_versions=list(cuda_versions) or None, debug=debug, exec_script=exec_script,
                                   community_fallback=bool(rp.get("community_fallback", True)), log=lambda m_: click.echo(m_, err=True))
             click.echo(f"launched on {pid}", err=True)
+            if wait_runner and runner_pat and not exec_script:
+                if not runpod.wait_for_runner(h.id, repo, runner_pat, wait_runner, log=lambda m_: click.echo(m_, err=True)):
+                    click.echo(f"pod {h.id} on {pid} never registered a runner within {wait_runner}s; terminating it", err=True)
+                    try:
+                        runpod.terminate_pod(h.id)
+                    except RuntimeError as e:
+                        click.echo(f"terminate {h.id}: {str(e)[:120]}", err=True)
+                    errors.append(f"{pid}: runner not registered within {wait_runner}s")
+                    h = None
+                    continue
             break
         except RuntimeError as e:
             errors.append(f"{pid}: {str(e)[:120]}")

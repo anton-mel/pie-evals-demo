@@ -309,6 +309,45 @@ def terminate_pod(pod_id: str, api_key: str | None = None) -> None:
     _req("DELETE", f"/pods/{pod_id}", api_key=api_key)
 
 
+def runner_registered(pod_id: str, repo: str, pat: str) -> bool:
+    """Whether the pod's runner (``runpod-<pod id>``, see startup_script) is
+    registered with the repo. Listing runners needs administration:read,
+    which the runner PAT has and the workflow token does not."""
+    import requests
+
+    runners: list[dict] = []
+    page = 1
+    while True:
+        r = requests.get(f"https://api.github.com/repos/{repo}/actions/runners", params={"per_page": 100, "page": page}, timeout=30,
+                         headers={"Authorization": f"Bearer {pat}", "Accept": "application/vnd.github+json"})
+        r.raise_for_status()
+        batch = r.json().get("runners") or []
+        runners += batch
+        if len(batch) < 100:
+            break
+        page += 1
+    return any(x.get("name") == f"runpod-{pod_id}" for x in runners)
+
+
+def wait_for_runner(pod_id: str, repo: str, pat: str, timeout_s: float, *, log=print) -> bool:
+    """Poll until the pod's runner registers or ``timeout_s`` passes. A pod
+    that shows RUNNING but never registers (image pull stalled, host trouble)
+    would otherwise leave its bench job queued for a runner that never comes
+    and hold the whole run open (nightly 35921789513, rtx5090-x1-s02)."""
+    deadline = time.monotonic() + timeout_s
+    t0 = time.monotonic()
+    while True:
+        try:
+            if runner_registered(pod_id, repo, pat):
+                log(f"runner runpod-{pod_id} registered after {time.monotonic() - t0:.0f}s")
+                return True
+        except Exception as e:  # noqa: BLE001 — a flaky listing is not a verdict
+            log(f"runner listing failed ({str(e)[:100]}); retrying")
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(20)
+
+
 def list_pods(api_key: str | None = None) -> list[dict]:
     return list(_req("GET", "/pods", api_key=api_key))
 
