@@ -24,9 +24,12 @@ jobs:
       - uses: astral-sh/setup-uv@v3
       - run: uv venv && uv pip install -e ".[orchestrate]"
       - id: c
+        env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           C="${{ github.event.inputs.pie_commit }}"
           [ -z "$C" ] && C=$(git ls-remote https://github.com/pie-project/pie.git refs/heads/main | cut -f1)
+          # a short SHA or a branch name cannot be shallow-fetched on the pod; resolve it to the full SHA here
+          if ! [[ "$C" =~ ^[0-9a-f]{40}$ ]]; then C=$(gh api "repos/pie-project/pie/commits/$C" --jq .sha); fi
           echo "commit=$C" >> "$GITHUB_OUTPUT"
       - id: b
         name: newer baseline releases?
