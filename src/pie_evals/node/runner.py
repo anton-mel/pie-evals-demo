@@ -33,7 +33,6 @@ from pathlib import Path
 from pie_evals.schema import (
     AccuracyMetrics,
     AccuracyStatus,
-    ArtifactKind,
     Cell,
     CellStatus,
     ErrorClass,
@@ -52,8 +51,9 @@ from .workloads import common_args_for
 
 
 class NodeRunner:
-    def __init__(self, job: JobSpec, *, pie_root: Path, out_dir: Path, hf_cache: Path | None = None, runner_name: str | None = None, build: bool = True):
+    def __init__(self, job: JobSpec, *, pie_root: Path, out_dir: Path, hf_cache: Path | None = None, runner_name: str | None = None, build: bool = True, download: bool = False):
         self.job = job
+        self.download = download
         self.pie_root = Path(pie_root)
         self.out = Path(out_dir)
         self.out.mkdir(parents=True, exist_ok=True)
@@ -154,19 +154,14 @@ class NodeRunner:
         self.log(f"pie interpreter for the bench: {os.environ.get('PIE_PY', 'python3')}")
 
     def snapshot_dir(self, cell: Cell) -> Path:
-        from .miniature import ensure_miniature
+        from .snapshots import ensure_snapshot
 
-        art = cell.artifact
-        if art.kind == ArtifactKind.MINIATURE:
-            return ensure_miniature(art, self.pie_root, self.hf_cache, python=os.environ.get("PIE_PY", "python3"))
-        org, _, name = art.base_model.partition("/")
-        base = self.hf_cache / f"models--{org}--{name}" / "snapshots"
-        if art.revision and (base / art.revision).exists():
-            return base / art.revision
-        snaps = sorted(base.glob("*")) if base.exists() else []
-        if not snaps:
-            raise EngineLaunchError(ErrorClass.LOAD_FAIL, f"checkpoint {art.base_model} not in HF cache {self.hf_cache} (pre-download it; resolve_local_model refuses network)")
-        return snaps[-1]
+        try:
+            return ensure_snapshot(cell.artifact, self.hf_cache, pie_root=self.pie_root, python=os.environ.get("PIE_PY", "python3"), download=self.download, log=self.log)
+        except EngineLaunchError:
+            raise
+        except Exception as e:  # download / shrink failure: the model, not the harness
+            raise EngineLaunchError(ErrorClass.LOAD_FAIL, f"checkpoint unavailable for {cell.artifact.id}: {str(e).strip().splitlines()[-1][:300] if str(e).strip() else e!r}") from e
 
     # ------------------------------------------------------------------ run
     def run(self) -> list[Record]:
@@ -204,6 +199,11 @@ class NodeRunner:
                 for c in cells:
                     self.emit(self._failed(c, e.error_class, str(e), fingerprint))
                 continue
+            except Exception as e:  # nothing about one model may take the job down
+                self.log(f"process setup crashed: {e}\n{traceback.format_exc()}")
+                for c in cells:
+                    self.emit(self._failed(c, ErrorClass.HARNESS_INVALID, f"process setup: {e}", fingerprint))
+                continue
             from .miniature import num_layers_of
 
             num_layers = num_layers_of(snapshot)
@@ -230,6 +230,8 @@ class NodeRunner:
             control_ok = True
             model_state = pre.before_model(self.platform) if hasattr(pre, "before_model") else machine_before
             for cell in order:
+                if cell.cell_id in self._done:
+                    continue
                 if self.over_budget():
                     self.log(f"soft budget exhausted at t+{self.elapsed_s():.0f}s; remaining cells of this process not started")
                     break
@@ -238,6 +240,8 @@ class NodeRunner:
                     records.append(rec)
                     self.emit(rec)
                     continue
+                if hasattr(engine, "program_path"):
+                    engine.program_path = cell.program.path  # the cell's own inferlet, not the process's first
                 rec = self._run_cell(cell, engine, snapshot, engine_version, recipe, recipe_name, fingerprint, machine_before)
                 if cell.workload.kind.value == "control_aa" and rec.status != CellStatus.PASS:
                     control_ok = False

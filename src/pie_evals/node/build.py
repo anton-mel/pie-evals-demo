@@ -60,7 +60,7 @@ def cache_dir(commit: str, features: list[str], root: Path | None = None) -> Pat
 
 def is_cached(commit: str, features: list[str], root: Path | None = None) -> bool:
     d = cache_dir(commit, features, root)
-    return (d / "pie").exists() and (d / "text_completion_bench.wasm").exists() and any(d.glob("pie_server-*.whl"))
+    return (d / "pie").exists() and (d / "wasm").is_dir() and any((d / "wasm").glob("*.wasm")) and any(d.glob("pie_server-*.whl"))
 
 
 def ensure_checkout(pie_root: Path, commit: str, mirror: Path | None = None, upstream: str = PIE_UPSTREAM) -> None:
@@ -110,11 +110,17 @@ def build(pie_root: Path, commit: str, features: list[str], *, cache_root: Path 
             _pip_install(py, ["maturin"])
             maturin = [str(py), "-m", "maturin"]
         subprocess.run([*maturin, "build", "--release", "-o", str(out), "--features", feats, "-i", str(py)], cwd=pie_root / "python/server", env=env, check=True, timeout=timeout_s)
-    # guest program: built in the examples/ workspace, in-tree (bench_inferlet_paths walks up to examples/target)
-    log("build: text-completion-bench (wasm32-wasip2)")
+    # guest programs: the whole examples/ workspace (every inferlet the matrix can name), built
+    # in-tree because bench_inferlet_paths walks up to examples/target; all .wasm are cached
+    log("build: every inferlet in examples/ (wasm32-wasip2)")
     genv = {k: v for k, v in env.items() if k != "CARGO_TARGET_DIR"}
-    subprocess.run(["cargo", "build", "--release", "--target", "wasm32-wasip2", "-p", "text-completion-bench"], cwd=pie_root / "examples", env=genv, check=True, timeout=timeout_s)
-    shutil.copy2(pie_root / "examples/target/wasm32-wasip2/release/text_completion_bench.wasm", out / "text_completion_bench.wasm")
+    subprocess.run(["cargo", "build", "--release", "--target", "wasm32-wasip2", "--workspace"], cwd=pie_root / "examples", env=genv, check=True, timeout=timeout_s)
+    (out / "wasm").mkdir(exist_ok=True)
+    n = 0
+    for w in (pie_root / "examples/target/wasm32-wasip2/release").glob("*.wasm"):
+        shutil.copy2(w, out / "wasm" / w.name)
+        n += 1
+    log(f"build: {n} guest programs cached")
     (out / "COMMIT").write_text(commit + "\n")
     log(f"build: cached at {out}")
     return out
@@ -128,9 +134,11 @@ def restore(pie_root: Path, commit: str, features: list[str], *, cache_root: Pat
     binary = pie_root / "target/release/pie"
     binary.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(d / "pie", binary)
-    wasm = pie_root / "examples/target/wasm32-wasip2/release/text_completion_bench.wasm"
-    wasm.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(d / "text_completion_bench.wasm", wasm)
+    wdir = pie_root / "examples/target/wasm32-wasip2/release"
+    wdir.mkdir(parents=True, exist_ok=True)
+    for w in (d / "wasm").glob("*.wasm"):
+        shutil.copy(w, wdir / w.name)
+        os.utime(wdir / w.name, None)  # newer than the freshly cloned sources (bench_inferlet_paths' staleness check)
     whl = sorted(d.glob("pie_server-*.whl"))
     if whl:
         py = bench_python(cache_root, log=log)

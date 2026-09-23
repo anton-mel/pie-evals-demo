@@ -108,11 +108,19 @@ def jobs(obj, tier, pie_commit, platforms, engines, out, label, skip_unavailable
 def collect(obj, tier, node_out):
     """Import node output directories (records.jsonl) into the store."""
     st: Store = obj["store"]
+    problems = []
     for d in node_out:
         d = Path(d)
         run_id = (d / "run_id.txt").read_text().strip() if (d / "run_id.txt").exists() else d.name
-        p = st.import_node_output(d, tier=Tier(tier), run_id=run_id)
-        click.echo(f"{d} -> {p}")
+        try:
+            p = st.import_node_output(d, tier=Tier(tier), run_id=run_id)
+        except Exception as e:
+            problems.append(f"{d}: {e}")
+            click.echo(f"{d}: IMPORT FAILED: {e}", err=True)
+            continue
+        click.echo(f"{d} -> {p if p else 'no records (node crashed before its first record)'}")
+    if problems:
+        sys.exit(1)
 
 
 @main.command("report")

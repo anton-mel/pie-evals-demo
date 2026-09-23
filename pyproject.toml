@@ -9,6 +9,7 @@ dependencies = [
     "pyarrow>=16.0",
     "numpy>=1.26",
     "click>=8.1",
+    "huggingface_hub>=0.24",
 ]
 
 [project.optional-dependencies]

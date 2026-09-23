@@ -63,7 +63,7 @@ class BenchResult:
 _ERROR_PATTERNS: list[tuple[ErrorClass, re.Pattern[str]]] = [
     (ErrorClass.OOM, re.compile(r"out of memory|CUDA_ERROR_OUT_OF_MEMORY|OutOfMemoryError|cudaErrorMemoryAllocation|MTLResourceOptions.*failed|insufficient memory", re.I)),
     (ErrorClass.DOESNT_FIT, re.compile(r"does not fit|refus\w+ .*fit|exceeds .*working set|recommendedMaxWorkingSetSize|host fit check", re.I)),
-    (ErrorClass.LOAD_FAIL, re.compile(r"failed to load|load plan|missing quant metadata|unknown variant|No such file|safetensors|model import|failed to import|not found in cache|resolve_local_model", re.I)),
+    (ErrorClass.LOAD_FAIL, re.compile(r"failed to load|load plan|missing quant metadata|unknown variant|No such file|safetensors|model import|failed to import|not found in cache|resolve_local_model|matches no SKU|no SKU this build|missing .*\.wasm|in /root/\.pie/models|not in HF cache", re.I)),
     (ErrorClass.CRASH, re.compile(r"Traceback|panicked at|Segmentation fault|SIGSEGV|SIGABRT|invalid resource handle|invalid argument|NCCL error|cudaGraphInstantiate", re.I)),
 ]
 
@@ -75,6 +75,16 @@ def classify_failure(returncode: int, stderr: str, stdout: str, timed_out: bool)
     for cls, pat in _ERROR_PATTERNS:
         m = pat.search(text)
         if m:
+            if m.group(0).startswith("Traceback"):
+                # the exception line is the last non-empty line of the traceback, and it is
+                # what a reader needs ("FileNotFoundError: missing .../lora_probe.wasm"), not "Traceback"
+                tail = [ln for ln in text.splitlines() if ln.strip()]
+                exc = next((ln for ln in reversed(tail) if re.match(r"^[A-Za-z_.]+(Error|Exception|Exit)\b", ln.strip())), tail[-1] if tail else m.group(0))
+                # re-classify by the exception text itself
+                for cls2, pat2 in _ERROR_PATTERNS[:3]:
+                    if pat2.search(exc):
+                        return cls2, exc.strip()[:400]
+                return cls, exc.strip()[:400]
             line = next((ln for ln in text.splitlines() if m.group(0) in ln), m.group(0))
             return cls, line.strip()[:400]
     if returncode < 0:

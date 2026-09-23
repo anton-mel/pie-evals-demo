@@ -69,19 +69,34 @@ def ensure_miniature(
     out = miniature_snapshot_dir(artifact, hf_cache)
     if (out / "config.json").exists():
         return out
-    # raw tensor cache outside the snapshot so the snapshot holds only the model
-    cache_dir = Path(hf_cache) / ".shrink-cache" / repo_cache_dirname(artifact.base_model)
+    # Build into a private temp dir and rename into place: the HF cache can be
+    # a network volume shared by concurrent pods, and two of them building the
+    # same miniature into the same directory destroyed each other's files.
+    # The raw-tensor cache is pod-local for the same reason (and it is only a
+    # download cache).
+    import os
+    import shutil
+    import tempfile
+
+    cache_dir = Path(os.environ.get("PIE_EVALS_SHRINK_CACHE", tempfile.gettempdir())) / "shrink-cache" / repo_cache_dirname(artifact.base_model)
     out.parent.mkdir(parents=True, exist_ok=True)
-    argv = miniature_argv(artifact, pie_root, out, python, cache_dir=cache_dir)
+    tmp = out.parent / f".tmp-{out.name}-{os.getpid()}"
+    shutil.rmtree(tmp, ignore_errors=True)
+    argv = miniature_argv(artifact, pie_root, tmp, python, cache_dir=cache_dir)
     proc = subprocess.run(argv, capture_output=True, text=True, timeout=timeout_s, check=False)
-    if proc.returncode != 0 or not (out / "config.json").exists():
+    if proc.returncode != 0 or not (tmp / "config.json").exists():
+        shutil.rmtree(tmp, ignore_errors=True)
         tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-20:]
         raise RuntimeError(
             f"shrink_checkpoint failed for {artifact.id} (exit {proc.returncode}):\n" + "\n".join(tail)
         )
-    (out / ".miniature.json").write_text(
+    (tmp / ".miniature.json").write_text(
         json.dumps({"artifact": artifact.id, "recipe": artifact.miniature.model_dump(), "argv": argv}, indent=2)
     )
+    if (out / "config.json").exists():  # someone else finished first
+        shutil.rmtree(tmp, ignore_errors=True)
+        return out
+    os.replace(tmp, out)
     return out
 
 

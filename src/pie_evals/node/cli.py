@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 
 import click
@@ -23,14 +24,15 @@ def main():
 @click.option("--hf-cache", type=click.Path(), default=None)
 @click.option("--no-build", is_flag=True, help="use the pie binary already in target/release")
 @click.option("--only", multiple=True, help="restrict to cells whose key contains this substring")
-def run(job_path, pie_root, out, hf_cache, no_build, only):
+@click.option("--download", is_flag=True, help="fetch missing full checkpoints here (default: no — `prepare` does that once before the fan-out)")
+def run(job_path, pie_root, out, hf_cache, no_build, only, download):
     """Execute a JobSpec and write records.jsonl under --out."""
     from .runner import NodeRunner
 
     job = JobSpec.model_validate_json(Path(job_path).read_text())
     if only:
         job = job.model_copy(update={"cells": [c for c in job.cells if any(s in c.cell_key for s in only)]})
-    runner = NodeRunner(job, pie_root=Path(pie_root), out_dir=Path(out), hf_cache=Path(hf_cache) if hf_cache else None, build=not no_build)
+    runner = NodeRunner(job, pie_root=Path(pie_root), out_dir=Path(out), hf_cache=Path(hf_cache) if hf_cache else None, build=not no_build, download=download)
     recs = runner.run()
     by = {}
     for r in recs:
@@ -59,6 +61,38 @@ def build_cmd(pie_commit, features, pie_root, mirror, target_dir, force):
         return
     out = pb.build(Path(pie_root), pie_commit, feats, target_dir=Path(target_dir) if target_dir else None, python=os.environ.get("PIE_PY", "python3"))
     click.echo(str(out))
+
+
+@main.command("prepare")
+@click.option("--tier", type=click.Choice(["smoke", "nightly", "weekly"]), required=True)
+@click.option("--matrix", "matrix_dir", default="matrix")
+@click.option("--platform", "platforms", multiple=True, help="restrict to artifacts these platforms run (default: all of the tier)")
+@click.option("--pie-root", type=click.Path(), default=os.environ.get("PIE_ROOT", "/root/pie"))
+@click.option("--hf-cache", type=click.Path(), default=None)
+def prepare_cmd(tier, matrix_dir, platforms, pie_root, hf_cache):
+    """Fetch every checkpoint a tier needs (downloads + miniatures) so bench pods find them on the volume.
+    Failures are reported per artifact and never abort the rest; exit 1 if any failed."""
+    from pie_evals.orchestrate.matrix import Matrix
+    from pie_evals.schema import Tier
+
+    from .snapshots import ensure_snapshot, hf_cache_dir
+
+    m = Matrix.load(matrix_dir)
+    cells = m.runnable(Tier(tier))
+    if platforms:
+        cells = [c for c in cells if c.platform.id in platforms]
+    arts = {c.artifact.id: c.artifact for c in cells}
+    cache = Path(hf_cache) if hf_cache else hf_cache_dir()
+    failed = {}
+    for aid, art in sorted(arts.items()):
+        try:
+            p = ensure_snapshot(art, cache, pie_root=Path(pie_root), python=os.environ.get("PIE_PY", "python3"), log=lambda m_: click.echo(m_, err=True))
+            click.echo(f"ok    {aid}: {p}")
+        except Exception as e:
+            failed[aid] = str(e).strip().splitlines()[-1][:200] if str(e).strip() else repr(e)
+            click.echo(f"FAIL  {aid}: {failed[aid]}", err=True)
+    click.echo(json.dumps({"prepared": len(arts) - len(failed), "failed": failed}))
+    sys.exit(1 if failed else 0)
 
 
 @main.command("preflight")

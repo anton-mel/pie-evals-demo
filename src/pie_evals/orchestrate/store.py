@@ -36,9 +36,16 @@ class Store:
         pq.write_table(records_to_table(records), out, compression="zstd")
         return out
 
-    def import_node_output(self, node_out: Path, *, tier: Tier, run_id: str) -> Path:
-        """Node writes ``records.jsonl``; the collector lifts it into parquet."""
-        recs = [Record.model_validate_json(line) for line in (node_out / "records.jsonl").read_text().splitlines() if line.strip()]
+    def import_node_output(self, node_out: Path, *, tier: Tier, run_id: str) -> Path | None:
+        """Node writes ``records.jsonl``; the collector lifts it into parquet.
+        A node that crashed before its first record leaves no file: that is
+        reported by the caller, not an exception that loses the other nodes."""
+        f = node_out / "records.jsonl"
+        if not f.exists():
+            return None
+        recs = [Record.model_validate_json(line) for line in f.read_text().splitlines() if line.strip()]
+        if not recs:
+            return None
         return self.write_run(recs, tier=tier, run_id=run_id)
 
     # ---- read ------------------------------------------------------------------------
