@@ -1,4 +1,7 @@
 name: nightly
+# the called tier.yml's collect job commits to main; a called job may not
+# request more than the caller grants (startup_failure otherwise)
+permissions: { contents: write, actions: read }
 on:
   schedule: [{ cron: "0 17 * * *" }]   # 02:00 KST; cron start is best-effort, records carry node timestamps
   workflow_dispatch:

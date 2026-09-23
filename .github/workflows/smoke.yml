@@ -2,6 +2,9 @@
 # workload shapes, every inferlet on one representative shape. Runs per pie
 # commit (repository_dispatch from the pie repo's CI, or manual).
 name: smoke
+# the called tier.yml's collect job commits to main; a called job may not
+# request more than the caller grants (startup_failure otherwise)
+permissions: { contents: write, actions: read }
 concurrency:
   group: smoke-${{ github.event.inputs.pie_commit || github.event.client_payload.pie_commit }}
   cancel-in-progress: false

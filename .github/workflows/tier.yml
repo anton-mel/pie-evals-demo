@@ -147,8 +147,9 @@ jobs:
         run: for f in pods/*.txt; do [ -f "$f" ] && .venv/bin/pie-evals terminate-pod "$(cat "$f")" || true; done
         env: { RUNPOD_API_KEY: "${{ secrets.RUNPOD_API_KEY }}" }
 
-  # Bookkeeping. NOT a nested `uses:` — a called workflow that itself calls a
-  # reusable workflow fails validation at startup (bisected 2026-09-22).
+  # Bookkeeping. Inline rather than a nested `uses:` of collect.yml: the nested
+  # form failed at startup because this job's `permissions` exceeded what the
+  # caller granted (callers now grant contents: write); kept inline anyway.
   collect:
     needs: [expand, bench]
     if: always()

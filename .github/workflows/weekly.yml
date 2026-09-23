@@ -1,4 +1,7 @@
 name: weekly
+# the called tier.yml's collect job commits to main; a called job may not
+# request more than the caller grants (startup_failure otherwise)
+permissions: { contents: write, actions: read }
 on:
   schedule: [{ cron: "0 15 * * 6" }]   # Sunday 00:00 KST
   workflow_dispatch:
