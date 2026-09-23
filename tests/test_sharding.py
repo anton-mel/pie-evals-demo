@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from pie_evals.orchestrate.jobs import make_jobs, process_key, shard_groups, cell_minutes
+from pie_evals.orchestrate.jobs import cell_minutes, make_jobs, process_key, shard_groups
 from pie_evals.orchestrate.matrix import Matrix
 from pie_evals.orchestrate.store import Store
 from pie_evals.schema import Tier
