@@ -25,9 +25,10 @@ def hf_cache_dir() -> Path:
 def snapshot_dir_if_present(artifact: ArtifactSpec, hf_cache: Path) -> Path | None:
     org, _, name = artifact.base_model.partition("/")
     base = hf_cache / f"models--{org}--{name}" / "snapshots"
-    if artifact.revision and (base / artifact.revision / "config.json").exists():
+    marker = artifact.gguf_file or "config.json"  # a GGUF repo carries no config.json
+    if artifact.revision and (base / artifact.revision / marker).exists():
         return base / artifact.revision
-    snaps = sorted(d for d in base.glob("*") if (d / "config.json").exists()) if base.exists() else []
+    snaps = sorted(d for d in base.glob("*") if (d / marker).exists()) if base.exists() else []
     return snaps[-1] if snaps else None
 
 
