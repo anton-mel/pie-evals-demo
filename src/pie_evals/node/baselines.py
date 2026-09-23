@@ -85,19 +85,26 @@ def ensure_flashinfer_aot(py: Path, marker: Path, log=print) -> bool:
         log(f"baseline: no flashinfer/torch to match an AOT cache to ({e})")
         return False
     cu = "cu" + cuda.replace(".", "")[:3]
-    index = f"https://flashinfer.ai/whl/{cu}/"
-    specs = [f"flashinfer-cubin=={fi}", f"flashinfer-jit-cache=={fi}"]
-    log(f"baseline: installing {' '.join(specs)} from {index}")
-    try:
-        if shutil.which("uv"):
-            subprocess.run(["uv", "pip", "install", "--quiet", "--python", str(py), "--extra-index-url", index, *specs], check=True, timeout=1800)
-        else:
-            subprocess.run([str(py), "-m", "pip", "install", "-q", "--extra-index-url", index, *specs], check=True, timeout=1800)
-    except (OSError, subprocess.SubprocessError) as e:
-        log(f"baseline: flashinfer AOT cache install failed ({e}); FlashInfer cells will JIT and need nvcc")
-        return False
-    marker.write_text(fi + "\n")
-    return True
+    # the cubins are CUDA-agnostic and live at the index root; the JIT cache
+    # (the compiled attention kernels) is per CUDA version
+    plan = [
+        (f"flashinfer-jit-cache=={fi}", f"https://flashinfer.ai/whl/{cu}/"),
+        (f"flashinfer-cubin=={fi}", "https://flashinfer.ai/whl/"),
+    ]
+    ok = True
+    for spec, index in plan:
+        log(f"baseline: installing {spec} from {index}")
+        try:
+            if shutil.which("uv"):
+                subprocess.run(["uv", "pip", "install", "--quiet", "--python", str(py), "--extra-index-url", index, spec], check=True, timeout=1800)
+            else:
+                subprocess.run([str(py), "-m", "pip", "install", "-q", "--extra-index-url", index, spec], check=True, timeout=1800)
+        except (OSError, subprocess.SubprocessError) as e:
+            log(f"baseline: {spec} install failed ({e}); FlashInfer may JIT and need nvcc")
+            ok = False
+    if ok:
+        marker.write_text(fi + "\n")
+    return ok
 
 
 def ensure_baseline(engine: str, version: str, root: Path | None = None, *, timeout_s: int = 3600, log=print) -> Path:
@@ -108,7 +115,7 @@ def ensure_baseline(engine: str, version: str, root: Path | None = None, *, time
     py = d / "bin" / "python"
     if (d / ".ok").exists():
         ensure_python_headers(py, log=log)
-        if engine == "vllm":
+        if engine in ("vllm", "sglang"):
             ensure_flashinfer_aot(py, d / ".flashinfer-aot", log=log)
         return py
     if d.exists():
@@ -121,7 +128,7 @@ def ensure_baseline(engine: str, version: str, root: Path | None = None, *, time
         subprocess.run(["python3", "-m", "venv", str(d)], check=True)
         subprocess.run([str(py), "-m", "pip", "install", "-q", *SPECS[engine](version)], check=True, timeout=timeout_s)
     ensure_python_headers(py, log=log)
-    if engine == "vllm":
+    if engine in ("vllm", "sglang"):
         ensure_flashinfer_aot(py, d / ".flashinfer-aot", log=log)
     (d / ".ok").write_text(version + "\n")
     return py
