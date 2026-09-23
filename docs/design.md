@@ -340,6 +340,59 @@ infra/            RunPod runner image, Mac runner setup
 
 ---
 
+## 11a. Findings from the RunPod campaign (2026-09-23)
+
+Everything below was learned from real pods; each item is now code.
+
+**Stock is the scarce resource.** Secure-cloud stock for a given GPU type
+in a given data center is momentary; "Low" often means the next create
+fails with "no instances currently available". A network volume binds to
+one data center, so the launcher tries: the preferred DC with a volume →
+any DC with stock, unpinned and without the volume (cold caches) → the
+community cloud. The build/prepare pod takes any GPU type from a fallback
+list (`RUNPOD_BUILD_PLATFORM`), since pie's build is GPU-agnostic (NVRTC).
+Cold pods shallow-fetch the pinned pie commit; the full-history mirror is
+only maintained when the volume is mounted (a mirror clone over a flaky
+host link died after 33 minutes).
+
+**Pods die silently when the container disk fills.** Miniature raw-tensor
+spans (tens of GB) went to `/tmp`; the runner then failed with "No space
+left on device" and the job left no log. Spans live on the volume under a
+per-process directory (deleted after the build), the container disk is 80
+GB, and `build`/`prepare` tee their logs to `$PIE_EVALS_CACHE/logs/` so a
+dead pod leaves a trace.
+
+**Miniatures must keep the checkpoint's tensor names.** `--text-only`
+strips the `language_model.` prefix and pie's readers then find no
+`embed_tokens`; the doc-exact `shrink_checkpoint.py` invocation matches.
+pie's catalog already ships 5-layer mini rows (`qwen36-35b-a3b-mini`,
+`dsv4-flash-u4g64-u2g64`), so recipes are `--layers 0-4 --experts 16`; the
+gpt-oss row is pie PR #623. A snapshot whose recipe changed is rebuilt.
+
+**What pie 1a3b2e2a loads.** Matching = a catalog `Row {layers, vocab,
+arch}` whose family reader lands every plane. Qwen3.5-0.8B and gemma-4-E4B
+load and benchmark; dense qwen3 has no reader (not planned) and Llama none.
+Both loaded SKUs report `max_context` 4096 regardless of `--max-model-len`;
+artifacts carry `max_context` and longer shapes are declared unsupported.
+
+**Inferlets pie_bench.py can drive.** Only those with text-completion-
+bench's input/output contract: `prefill-rows` wants `ids`,
+`prefix-tree-kv-cache` returns non-JSON, `mtp`/`cacheback` return no
+`num_output_tokens`, and the attention-only ones need `forward-hybrid` on
+hybrid models; sampling inferlets (`lora-probe`, `trackb-*`) reject
+temperature 0 and get `bench_args`. Each is a declared cell, not a fail.
+
+**One boot per model.** With `PIE_BENCH_SERVE_ONLY` the bench attaches to
+one server per process; before that gemma-4-E4B spent ~7 min per round
+loading. Smoke on one 4090 went from 75 min (16 cells unreached) to 36 min.
+
+**Baselines.** vLLM 0.26.1 does not exist on PyPI; pins are vLLM 0.30.0 and
+SGLang 0.5.20, installed once into venvs on the volume by `prepare`.
+
+**First numbers (RTX 4090, pie 1a3b2e2a, single stream decode tok/s):**
+Qwen3.5-0.8B 461–464, gemma-4-E4B 91.8; CoV ≤ 0.1 % across rounds; control
+A/A passes. prefix-1k-x64's first round is cold (CoV 5–8 %, `noisy`).
+
 ## 11. Findings from the first real run (2026-09-22)
 
 Validated end to end on this box (1× RTX PRO 4500 Blackwell, CUDA 13.0): pie
