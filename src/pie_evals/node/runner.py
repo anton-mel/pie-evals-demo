@@ -54,8 +54,11 @@ class NodeRunner:
     def __init__(self, job: JobSpec, *, pie_root: Path, out_dir: Path, hf_cache: Path | None = None, runner_name: str | None = None, build: bool = True, download: bool = False):
         self.job = job
         self.download = download
-        self.pie_root = Path(pie_root)
-        self.out = Path(out_dir)
+        self.pie_root = Path(pie_root).resolve()
+        # absolute: cell output paths are handed to bench subprocesses that run
+        # with their own cwd (scripts/bench), and a relative --out made them
+        # write bench.json somewhere the runner never looked
+        self.out = Path(out_dir).resolve()
         self.out.mkdir(parents=True, exist_ok=True)
         self.hf_cache = Path(hf_cache or os.environ.get("HF_HUB_CACHE") or Path.home() / ".cache/huggingface/hub")
         self.runner_name = runner_name or os.environ.get("RUNNER_NAME") or os.uname().nodename

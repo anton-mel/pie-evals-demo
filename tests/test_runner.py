@@ -161,3 +161,9 @@ def test_per_cell_timeout_is_bounded_by_kill_deadline(job, patched, tmp_path):
     finally:
         FakeEngine.run = orig
     assert seen and all(t <= 120 for t in seen)
+
+
+def test_out_dir_is_absolute_for_subprocesses(job, patched, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    r = runner_mod.NodeRunner(job, pie_root=tmp_path / "pie", out_dir=Path("out/rel"), hf_cache=patched, build=False)
+    assert r.out.is_absolute() and r.out == (tmp_path / "out/rel").resolve()
