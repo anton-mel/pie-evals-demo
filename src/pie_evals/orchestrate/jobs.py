@@ -115,6 +115,8 @@ def make_jobs(
                     est_minutes=est,
                 )
             )
+    # baseline comparisons first: a capped dispatch (--max-jobs) must not end up pie-only
+    jobs.sort(key=lambda j: (-len({str(c.engine) for c in j.cells}), -j.est_minutes))
     return jobs
 
 

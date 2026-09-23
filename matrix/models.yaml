@@ -73,37 +73,12 @@ artifacts:
     expected_gib: 0.5
     tiers: [smoke, nightly, weekly]
 
-  # ---------------- nightly: full mid-size, several schemes ----------------
+  # ---------------- nightly: full mid-size, several schemes (dense qwen3 has no reader in pie and is not planned) ----------------
   - id: gpt-oss-20b-mxfp4
     base_model: openai/gpt-oss-20b
     family: gpt_oss
     scheme: mxfp4
     expected_gib: 10.4
-    tiers: [nightly, weekly]
-  - id: qwen3-8b-bf16
-    base_model: Qwen/Qwen3-8B
-    family: qwen3
-    scheme: bf16
-    expected_gib: 16.4
-    tiers: [nightly, weekly]
-  - id: qwen3-8b-fp8
-    base_model: Qwen/Qwen3-8B-FP8
-    family: qwen3
-    scheme: fp8
-    expected_gib: 8.2
-    tiers: [nightly, weekly]
-  - id: qwen3-8b-awq
-    base_model: Qwen/Qwen3-8B-AWQ
-    family: qwen3
-    scheme: awq
-    expected_gib: 5.0
-    tiers: [nightly, weekly]
-  - id: qwen3-8b-gguf-q4km
-    base_model: Qwen/Qwen3-8B-GGUF
-    family: qwen3
-    scheme: gguf_q4_k_m
-    source_format: gguf
-    expected_gib: 4.7
     tiers: [nightly, weekly]
 
   # ---------------- macOS five (mlx-community 4-bit) + GGUF arms -----------
