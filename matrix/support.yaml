@@ -40,8 +40,6 @@ unsupported:
     reason: "not an LLM serving workload"
   # no reader in pie 1a3b2e2a for these architectures (models crate: qwen_3 reads the
   # Qwen3.5/3.6/3.8 hybrids; no llama family) — a catalog Row alone would not load them
-  - when: {artifact: qwen3-0.6b-bf16}
-    reason: "pie has no reader for dense qwen3 (model_type qwen3); catalog arches: qwen3_5, gemma4, gptoss, deepseek_v4, ..."
   - when: {artifact: llama-3.2-1b-bf16}
     reason: "pie has no llama family reader"
   - when: {artifact: nemotron-h-mini8}
