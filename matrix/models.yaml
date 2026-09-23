@@ -163,6 +163,7 @@ artifacts:
     family: qwen3_6
     scheme: gguf_q4_k_m
     source_format: gguf
+    gguf_file: Qwen3.6-27B-Q4_K_M.gguf
     expected_gib: 15.6
     tiers: [nightly, weekly]
 

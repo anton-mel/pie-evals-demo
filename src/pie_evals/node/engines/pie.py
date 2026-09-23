@@ -24,6 +24,44 @@ from pie_evals.schema import Backend, EngineName, ErrorClass, WorkloadSpec
 from .base import Engine, EngineLaunchError, classify_failure, register
 from .shape import max_model_len_for
 
+#: the sonames pie's loader (cudarc) tries for NCCL: the unversioned dev link
+#: and the CUDA-major-numbered ones — never the ``.so.2`` that ``libnccl2``
+#: alone installs (nightly 35921789513 lost every tp2 cell on a100-x2 to it).
+_NCCL_SONAMES = ("libnccl.so", "libnccl.so.13", "libnccl.so.12", "libnccl.so.11", "libnccl.so.10", "libnccl.so.9", "libnccl.so.1")
+
+
+def nccl_shim_dir(root: Path | None = None) -> Path | None:
+    """A directory holding ``libnccl.so`` -> the installed ``libnccl.so.2``
+    when the loader would otherwise find no NCCL; None when NCCL already
+    resolves under a name pie tries (or is absent altogether, in which case
+    tp>1 cells fail with the real message)."""
+    if sys.platform != "linux":
+        return None
+    try:
+        out = subprocess.run(["ldconfig", "-p"], capture_output=True, text=True, timeout=30, check=False).stdout
+    except OSError:
+        return None
+    found: dict[str, str] = {}
+    for line in out.splitlines():
+        if "libnccl" not in line or "=>" not in line:
+            continue
+        name, _, path = line.strip().partition(" => ")
+        found[name.split(" ")[0]] = path.strip()
+    if any(n in found for n in _NCCL_SONAMES) or "libnccl.so.2" not in found:
+        return None
+    from pie_evals.node.baselines import cache_root
+
+    d = cache_root(root) / "lib"
+    d.mkdir(parents=True, exist_ok=True)
+    link = d / "libnccl.so"
+    target = Path(found["libnccl.so.2"])
+    if not link.is_symlink() or link.resolve() != target.resolve():
+        if link.exists() or link.is_symlink():
+            link.unlink()
+        link.symlink_to(target)
+    return d
+
+
 #: platform backend -> pie_bench ``--engine``. ``vulkan``/``wgpu`` are the
 #: names pie's driver layer uses; pie_bench's argparse ``choices`` currently
 #: stops at cuda_native/metal (its own comment: "no build of pie hosts them"),
@@ -117,6 +155,10 @@ class PieEngine(Engine):
         ]
         existing = self.env.get("PYTHONPATH") or os.environ.get("PYTHONPATH")
         self.env["PYTHONPATH"] = ":".join(sdk_paths + ([existing] if existing else []))
+        shim = nccl_shim_dir()
+        if shim:
+            ld = self.env.get("LD_LIBRARY_PATH") or os.environ.get("LD_LIBRARY_PATH")
+            self.env["LD_LIBRARY_PATH"] = ":".join([str(shim)] + ([ld] if ld else []))
         self._server_log = None
 
     # ---- program (inferlet) ------------------------------------------------
