@@ -128,7 +128,9 @@ if [ ! -x "$V/.cargo/bin/rustup" ]; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | RUSTUP_HOME=$V/.rustup CARGO_HOME=$V/.cargo sh -s -- -y --profile minimal --default-toolchain none --no-modify-path || echo "== rustup install failed (non-fatal)"
 fi
 mkdir -p /tmp/_work "$V/.pie" "$V/.hf" "$V/.uv" "$V/.npm" "$V/pie-evals-cache" /tmp/target /tmp/pie
+VOL=$(mount | grep -q " $V " && echo 1 || echo "")
 cat > /opt/actions-runner/.env <<ENV
+PIE_EVALS_VOLUME=$VOL
 RUSTUP_HOME=$V/.rustup
 CARGO_HOME=$V/.cargo
 CARGO_TARGET_DIR=/tmp/target

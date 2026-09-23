@@ -17,6 +17,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 PIE_UPSTREAM = "https://github.com/pie-project/pie.git"  # public; pods have no SSH key
@@ -63,29 +64,57 @@ def is_cached(commit: str, features: list[str], root: Path | None = None) -> boo
     return (d / "pie").exists() and (d / "wasm").is_dir() and any((d / "wasm").glob("*.wasm")) and any(d.glob("pie_server-*.whl"))
 
 
+def _git(args: list[str], cwd: Path | None = None, retries: int = 3, timeout_s: int = 1800) -> None:
+    """git with HTTP/1.1 (RunPod hosts cancel HTTP/2 streams on long transfers) and retries."""
+    last: Exception | None = None
+    for attempt in range(1, retries + 1):
+        try:
+            subprocess.run(["git", "-c", "http.version=HTTP/1.1", "-c", "http.lowSpeedLimit=1000", "-c", "http.lowSpeedTime=120", *args], cwd=cwd, check=True, timeout=timeout_s)
+            return
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+            last = e
+            if attempt < retries:
+                time.sleep(15 * attempt)
+    assert last is not None
+    raise last
+
+
 def ensure_checkout(pie_root: Path, commit: str, mirror: Path | None = None, upstream: str = PIE_UPSTREAM) -> None:
-    """A pod-local checkout at ``pie_root`` pinned to ``commit``. If a bare
-    mirror exists on the volume it is the clone source (fast, no network);
-    the mirror itself is only ever fetched, never checked out, so N pods can
-    share it."""
+    """A pod-local checkout at ``pie_root`` pinned to ``commit``.
+
+    With a bare mirror on the shared volume it is the clone source (fast, no
+    network). Without one — a cold pod — only the pinned commit is fetched
+    (shallow): a full-history clone over a flaky host link took 33 minutes and
+    then died mid-transfer."""
     if not (pie_root / ".git").exists():
-        src = str(mirror) if mirror and mirror.exists() else upstream
-        subprocess.run(["git", "clone", "--quiet", src, str(pie_root)], check=True)
         if mirror and mirror.exists():
+            _git(["clone", "--quiet", str(mirror), str(pie_root)])
             subprocess.run(["git", "-C", str(pie_root), "remote", "set-url", "origin", upstream], check=False)
+        else:
+            pie_root.mkdir(parents=True, exist_ok=True)
+            subprocess.run(["git", "init", "--quiet", str(pie_root)], check=True)
+            subprocess.run(["git", "-C", str(pie_root), "remote", "add", "origin", upstream], check=True)
+            _git(["-C", str(pie_root), "fetch", "--quiet", "--depth", "1", "origin", commit])
+            subprocess.run(["git", "-C", str(pie_root), "checkout", "--quiet", "FETCH_HEAD"], check=True)
+            return
     head = subprocess.run(["git", "-C", str(pie_root), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     if not head.startswith(commit) and not commit.startswith(head):
         r = subprocess.run(["git", "-C", str(pie_root), "checkout", "--quiet", commit], capture_output=True, text=True)
         if r.returncode != 0:
-            subprocess.run(["git", "-C", str(pie_root), "fetch", "--quiet", "origin"], check=True)
-            subprocess.run(["git", "-C", str(pie_root), "checkout", "--quiet", commit], check=True)
+            _git(["-C", str(pie_root), "fetch", "--quiet", "--depth", "1", "origin", commit])
+            subprocess.run(["git", "-C", str(pie_root), "checkout", "--quiet", "FETCH_HEAD"], check=True)
 
 
 def update_mirror(mirror: Path, upstream: str = PIE_UPSTREAM) -> None:
+    """Maintain the bare mirror on the shared volume. Skipped when there is no
+    volume (``PIE_EVALS_VOLUME`` unset): a cold pod must not spend half an hour
+    mirroring history it will throw away."""
+    if not os.environ.get("PIE_EVALS_VOLUME") and not mirror.exists():
+        return
     if not mirror.exists():
-        subprocess.run(["git", "clone", "--quiet", "--mirror", upstream, str(mirror)], check=True)
+        _git(["clone", "--quiet", "--mirror", upstream, str(mirror)], timeout_s=3600)
     else:
-        subprocess.run(["git", "-C", str(mirror), "fetch", "--quiet", "--prune"], check=False)
+        subprocess.run(["git", "-C", str(mirror), "fetch", "--quiet", "--prune"], check=False, timeout=1800)
 
 
 def build(pie_root: Path, commit: str, features: list[str], *, cache_root: Path | None = None, target_dir: Path | None = None, python: str = "python3", timeout_s: int = 3600, log=print) -> Path:
