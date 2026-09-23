@@ -25,7 +25,7 @@ class SglangEngine(Engine):
     #: the runner image has no nvcc: DeepGEMM's JIT (gemma / gpt-oss on
     #: Blackwell, nightly 35921789513) would abort every cell; the FlashInfer
     #: kernels come precompiled (baselines.ensure_flashinfer_aot).
-    env_defaults = {"SGL_ENABLE_JIT_DEEPGEMM": "0"}
+    env_defaults = {"SGL_ENABLE_JIT_DEEPGEMM": "0", "SGLANG_ENABLE_JIT_DEEPGEMM": "0"}  # 0.5.20 reads the second, warns on the first
 
     def default_env(self) -> dict[str, str]:
         # sgl_kernel_jit builds land on the volume instead of the pod's

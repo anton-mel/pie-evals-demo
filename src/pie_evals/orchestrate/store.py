@@ -81,6 +81,11 @@ class Store:
         rows = sorted(t.to_pylist(), key=lambda r: r["started_at"])
         latest: dict[str, dict] = {}
         for r in rows:
+            # a not_run row says the job never reached the cell; it carries no
+            # measurement and must not hide an earlier one (nightly 35926457671
+            # dropped every vLLM gpt-oss row from baselines.md that way)
+            if r["status"] == "not_run" and r["cell_id"] in latest:
+                continue
             latest[r["cell_id"]] = r
         return latest
 
