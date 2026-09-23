@@ -13,4 +13,4 @@ preferred_data_centers: [EUR-IS-1, US-TX-3, EU-RO-1]
 cloud_type: SECURE
 # when no secure instance exists anywhere, take a community pod (no network volume: cold caches)
 community_fallback: true
-container_disk_gb: 80   # pie checkout + cargo target + runner; miniature spans live on the volume
+container_disk_gb: 160  # pie checkout + cargo target + runner; a pod that gets no volume also holds the vLLM/SGLang venvs (~12 GB each), the JIT caches and the checkpoints here (80 GB ran out: nightly 35926457671 l40s-x1-s05)

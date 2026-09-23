@@ -337,3 +337,31 @@ class Preflight:
             if a > b:
                 reasons.append(f"other GPU processes appeared during model: {b}->{a} ({after.get('gpu_processes')})")
         return reasons
+
+
+def cuda_init() -> str | None:
+    """None when the driver answers ``cuInit`` and reports a device; else the
+    reason. Some RunPod hosts hand out a pod whose container cannot reach the
+    driver (``cudaSetDevice answered 999`` in pie, torch's "CUDA unknown
+    error" in SGLang, nightlies 35921789513 / 35926457671): every cell of
+    the job would then fail for a reason that has nothing to do with the
+    engine, so the job says so once and stops."""
+    import ctypes
+    import sys
+
+    if sys.platform != "linux":
+        return None
+    try:
+        lib = ctypes.CDLL("libcuda.so.1")
+    except OSError as e:
+        return f"libcuda.so.1 not loadable: {e}"
+    rc = lib.cuInit(0)
+    if rc != 0:
+        return f"cuInit answered {rc}"
+    count = ctypes.c_int(0)
+    rc = lib.cuDeviceGetCount(ctypes.byref(count))
+    if rc != 0:
+        return f"cuDeviceGetCount answered {rc}"
+    if count.value < 1:
+        return "cuDeviceGetCount says 0 devices"
+    return None

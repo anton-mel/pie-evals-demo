@@ -180,6 +180,12 @@ class NodeRunner:
         except OSError:
             pass
         self.log(f"job {job.job_id} tier={job.tier} platform={job.platform_id} cells={len(job.cells)} run_id={self.run_id}")
+        broken = pf.cuda_init() if self.platform is not None and not pf._is_mac(str(self.platform.os)) else None
+        if broken:
+            self.log(f"GPU preflight failed: {broken}; this pod cannot reach the driver, so no cell is attempted")
+            for c in job.cells:
+                self.emit(self._failed(c, ErrorClass.HARNESS_INVALID, f"GPU preflight: {broken}", None))
+            return []
         try:
             self.ensure_pie()
         except Exception as e:  # a build failure fails every pie cell identically
