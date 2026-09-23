@@ -1,5 +1,5 @@
 # vLLM recipes. Knob -> flag mapping lives in VllmEngine.engine_args; every
-# knob here maps onto a flag benches/vllm_bench.py or benches/common.py
+# knob here maps onto a flag scripts/bench/vllm_bench.py or scripts/bench/common.py
 # parses. Knobs vllm_bench.py derives itself (max_num_seqs = --concurrency)
 # are listed for the record with `flag: none`.
 

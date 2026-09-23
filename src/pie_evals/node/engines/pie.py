@@ -1,6 +1,6 @@
-"""pie adapter: drives ``benches/pie_bench.py``.
+"""pie adapter: drives ``scripts/bench/pie_bench.py``.
 
-Everything emitted here is a flag ``pie_bench.py`` (or ``benches/common.py``)
+Everything emitted here is a flag ``pie_bench.py`` (or ``scripts/bench/common.py``)
 parses; knobs the script has no flag for are noted with ``TODO(pie/benches)``
 rather than invented. The bench inferlet (``text-completion-bench`` by
 default) is pointed at through ``PIE_BENCH_INFERLET_DIR`` and ``--inferlet-dir``.
@@ -101,19 +101,19 @@ def _num(cfg: dict[str, Any], *keys: str) -> float | None:
 @register
 class PieEngine(Engine):
     name = EngineName.PIE
-    script = "benches/pie_bench.py"
+    script = "scripts/bench/pie_bench.py"
 
     #: path under the pie tree of the bench inferlet project (a built
     #: ``Pie.toml`` + ``target/wasm32-wasip2/release/*.wasm``).
-    DEFAULT_PROGRAM_PATH = "tests/inferlets/text-completion-bench"
+    DEFAULT_PROGRAM_PATH = "examples/text-completion-bench"
 
     def __init__(self, *args: Any, program_path: str | None = None, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self._program_path = ""
         self.program_path = program_path or self.recipe.get("program_path") or self.DEFAULT_PROGRAM_PATH
         sdk_paths = [
-            str(self.pie_root / "sdk" / "client" / "python" / "src"),
-            str(self.pie_root / "sdk" / "server" / "python" / "python"),
+            str(self.pie_root / "python" / "client" / "src"),
+            str(self.pie_root / "python" / "server" / "python"),
         ]
         existing = self.env.get("PYTHONPATH") or os.environ.get("PYTHONPATH")
         self.env["PYTHONPATH"] = ":".join(sdk_paths + ([existing] if existing else []))
@@ -297,7 +297,7 @@ class PieEngine(Engine):
         env.pop("PIE_BENCH_SERVER_URL", None)
         log = log_path.open("w", encoding="utf-8")
         proc = subprocess.Popen(
-            argv, cwd=str(self.pie_root / "benches"), env=env,
+            argv, cwd=str(self.pie_root / "scripts/bench"), env=env,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1,
         )
         lines: queue.Queue[str | None] = queue.Queue()

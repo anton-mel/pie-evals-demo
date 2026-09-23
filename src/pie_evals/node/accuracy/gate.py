@@ -113,12 +113,12 @@ BENCH_SYSTEM_DEFAULT = "You are a helpful benchmarking assistant."
 
 
 def bench_system_prompt(pie_root: str | Path) -> str:
-    """The system prompt benches/common.py renders; read from the pinned tree
+    """The system prompt scripts/bench/common.py renders; read from the pinned tree
     so the reference tokenizes exactly what the engine saw."""
     import re
 
     try:
-        src = (Path(pie_root) / "benches" / "common.py").read_text()
+        src = (Path(pie_root) / "scripts/bench" / "common.py").read_text()
         m = re.search(r'^BENCH_SYSTEM\s*=\s*"([^"]*)"', src, re.M)
         return m.group(1) if m else BENCH_SYSTEM_DEFAULT
     except OSError:
@@ -126,7 +126,7 @@ def bench_system_prompt(pie_root: str | Path) -> str:
 
 
 def render_like_bench(snapshot_dir: str | Path, system: str, prompt: str, enable_thinking: bool | None = False) -> list[int]:
-    """Mirror ``benches/common.py::_render_chat`` + tokenize: chat template
+    """Mirror ``scripts/bench/common.py::_render_chat`` + tokenize: chat template
     when the tokenizer has one (Qwen3-family ``enable_thinking`` switch
     honoured), plain ``system\\n\\nprompt`` otherwise."""
     from transformers import AutoTokenizer
@@ -158,7 +158,7 @@ def t0_via_engine(
     """Run the fixed T0 prompt set through the engine adapter (greedy,
     ``ignore_eos``, one request per prompt) and compare with the reference.
 
-    The engine renders prompts through benches/common.py's chat template;
+    The engine renders prompts through scripts/bench/common.py's chat template;
     the reference tokenizes the same rendering and the prompt-token count the
     engine reported is checked against it. A count mismatch means the two
     saw different inputs: the gate then returns SKIPPED_NO_REFERENCE with the

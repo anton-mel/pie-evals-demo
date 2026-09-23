@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class FakeEngine(Engine):
     name = "pie"
-    script = "benches/fake.py"
+    script = "scripts/bench/fake.py"
     calls: list[str] = []
     behaviour: dict[str, object] = {}
 

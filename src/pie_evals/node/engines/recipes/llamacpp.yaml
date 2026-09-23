@@ -1,4 +1,4 @@
-# llama.cpp recipes. benches/llamacpp_bench.py spawns llama-server itself and
+# llama.cpp recipes. scripts/bench/llamacpp_bench.py spawns llama-server itself and
 # already forces `--flash-attn on`, `--parallel <concurrency>` and a per-slot
 # `--ctx-size`; everything else reaches the server through `--server-extra`
 # (a single space-separated string). Knob -> flag mapping is in

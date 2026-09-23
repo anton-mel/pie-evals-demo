@@ -255,7 +255,7 @@ def _cell(artifact: ArtifactSpec) -> Cell:
         platform=PlatformSpec(id="l40s", os="linux", backend=Backend.CUDA, accelerator="NVIDIA L40S", arch="ada", memory_gib=48),
         artifact=artifact,
         workload=WorkloadSpec(id="ss", kind=WorkloadKind.SINGLE_STREAM),
-        program=ProgramSpec(id="tcb", path="tests/inferlets/text-completion-bench", category="serving"),
+        program=ProgramSpec(id="tcb", path="examples/text-completion-bench", category="serving"),
         mode=Mode(),
     )
 

@@ -1,9 +1,9 @@
 """Engine adapter contract.
 
 All adapters drive the bench scripts under the pinned pie checkout's
-``benches/`` (``pie_bench.py``, ``vllm_bench.py``, ``sglang_bench.py``,
+``scripts/bench/`` (``pie_bench.py``, ``vllm_bench.py``, ``sglang_bench.py``,
 ``llamacpp_bench.py``, ``mlx_bench.py``). Those scripts share
-``benches/common.py`` — one client, one prompt construction, one JSON
+``scripts/bench/common.py`` — one client, one prompt construction, one JSON
 envelope — which is what makes a cross-engine number a comparison at all.
 The adapter's job is therefore: build the argv for a (artifact, mode,
 workload, recipe), run it under a timeout, classify failure, and lift the
@@ -89,7 +89,7 @@ def _pct(values: list[float], q: float) -> float | None:
 
 
 def perf_from_common_json(summary: dict[str, Any], requests: list[dict[str, Any]], num_layers: int | None) -> PerfMetrics:
-    """Lift ``benches/common.py``'s BenchSummary + RequestResult rows."""
+    """Lift ``scripts/bench/common.py``'s BenchSummary + RequestResult rows."""
     completed = [r for r in requests if r.get("ok")]
     out_tok = int(summary.get("output_tokens") or sum(r.get("output_tokens", 0) for r in completed))
     prompt_tok = int(summary.get("prompt_tokens") or sum(r.get("prompt_tokens", 0) for r in completed))
@@ -147,7 +147,7 @@ class Engine(ABC):
     """One adapter per engine. Instances are per (artifact, mode, platform)."""
 
     name: EngineName
-    #: bench script under the pie checkout, e.g. "benches/pie_bench.py"
+    #: bench script under the pie checkout, e.g. "scripts/bench/pie_bench.py"
     script: str
 
     def __init__(
@@ -235,7 +235,7 @@ class Engine(ABC):
         timed_out = False
         try:
             proc = subprocess.run(
-                argv, cwd=str(self.pie_root / "benches"), env=env, capture_output=True, text=True, timeout=timeout_s
+                argv, cwd=str(self.pie_root / "scripts/bench"), env=env, capture_output=True, text=True, timeout=timeout_s
             )
             rc, stdout, stderr = proc.returncode, proc.stdout, proc.stderr
         except subprocess.TimeoutExpired as e:

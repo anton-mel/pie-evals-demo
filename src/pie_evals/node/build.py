@@ -20,7 +20,7 @@ import subprocess
 from pathlib import Path
 
 PIE_UPSTREAM = "https://github.com/pie-project/pie.git"  # public; pods have no SSH key
-BENCH_DEPS = ["websockets", "msgpack", "blake3", "cryptography", "numpy"]  # pie_client + benches/common.py
+BENCH_DEPS = ["websockets", "msgpack", "blake3", "cryptography", "numpy"]  # pie_client + scripts/bench/common.py (pie_client itself rides on PYTHONPATH)
 
 
 def _cache_root(root: Path | None) -> Path:
@@ -109,18 +109,18 @@ def build(pie_root: Path, commit: str, features: list[str], *, cache_root: Path 
         else:
             _pip_install(py, ["maturin"])
             maturin = [str(py), "-m", "maturin"]
-        subprocess.run([*maturin, "build", "--release", "-o", str(out), "--features", feats, "-i", str(py)], cwd=pie_root / "sdk/server/python", env=env, check=True, timeout=timeout_s)
-    # guest program: built in-tree (bench_inferlet_paths looks under tests/inferlets/target)
+        subprocess.run([*maturin, "build", "--release", "-o", str(out), "--features", feats, "-i", str(py)], cwd=pie_root / "python/server", env=env, check=True, timeout=timeout_s)
+    # guest program: built in the examples/ workspace, in-tree (bench_inferlet_paths walks up to examples/target)
     log("build: text-completion-bench (wasm32-wasip2)")
     genv = {k: v for k, v in env.items() if k != "CARGO_TARGET_DIR"}
-    subprocess.run(["cargo", "build", "--release", "--target", "wasm32-wasip2", "-p", "text-completion-bench"], cwd=pie_root / "tests/inferlets", env=genv, check=True, timeout=timeout_s)
-    shutil.copy2(pie_root / "tests/inferlets/target/wasm32-wasip2/release/text_completion_bench.wasm", out / "text_completion_bench.wasm")
+    subprocess.run(["cargo", "build", "--release", "--target", "wasm32-wasip2", "-p", "text-completion-bench"], cwd=pie_root / "examples", env=genv, check=True, timeout=timeout_s)
+    shutil.copy2(pie_root / "examples/target/wasm32-wasip2/release/text_completion_bench.wasm", out / "text_completion_bench.wasm")
     (out / "COMMIT").write_text(commit + "\n")
     log(f"build: cached at {out}")
     return out
 
 
-def restore(pie_root: Path, commit: str, features: list[str], *, cache_root: Path | None = None, python: str = "python3", log=print) -> bool:
+def restore(pie_root: Path, commit: str, features: list[str], *, cache_root: Path | None = None, python: str = "python3", set_env: bool = True, log=print) -> bool:
     """Put cached artifacts where the bench scripts look. Returns False on a cache miss."""
     d = cache_dir(commit, features, cache_root)
     if not is_cached(commit, features, cache_root):
@@ -128,19 +128,24 @@ def restore(pie_root: Path, commit: str, features: list[str], *, cache_root: Pat
     binary = pie_root / "target/release/pie"
     binary.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(d / "pie", binary)
-    wasm = pie_root / "tests/inferlets/target/wasm32-wasip2/release/text_completion_bench.wasm"
+    wasm = pie_root / "examples/target/wasm32-wasip2/release/text_completion_bench.wasm"
     wasm.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(d / "text_completion_bench.wasm", wasm)
     whl = sorted(d.glob("pie_server-*.whl"))
     if whl:
         py = bench_python(cache_root, log=log)
         _pip_install(py, ["--force-reinstall", "--no-deps", str(whl[-1])])
-        # pie_bench.py puts sdk/server/python/python first on sys.path, which shadows the
-        # installed package; the compiled module must sit in the source dir (maturin develop layout)
+        # pie_bench.py puts python/server/python first on sys.path, which shadows the
+        # installed package; the compiled module must sit in the source dir (maturin develop layout).
+        # Its mtime must also be newer than every source under crates/ and python/server/src —
+        # pie_bench's staleness guard — and a fresh clone's sources are newer than a cached .so.
         so = subprocess.run([str(py), "-c", "import pie._engine as e; print(e.__file__)"], capture_output=True, text=True).stdout.strip()
         if so:
-            shutil.copy2(so, pie_root / "sdk/server/python/python/pie" / Path(so).name)
-        os.environ.setdefault("PIE_PY", str(py))  # the pie adapter's interpreter
+            dst = pie_root / "python/server/python/pie" / Path(so).name
+            shutil.copy(so, dst)
+            os.utime(dst, None)
+        if set_env:
+            os.environ.setdefault("PIE_PY", str(py))  # the pie adapter's interpreter
     log(f"restore: {d} -> {pie_root}")
     return True
 

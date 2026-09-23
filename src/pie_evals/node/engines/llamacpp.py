@@ -1,4 +1,4 @@
-"""llama.cpp adapter: drives ``benches/llamacpp_bench.py``.
+"""llama.cpp adapter: drives ``scripts/bench/llamacpp_bench.py``.
 
 The script spawns ``llama-server`` itself (``--server-bin`` + ``--gguf-model``)
 and already forces ``--flash-attn on``, ``--parallel <concurrency>`` and a
@@ -37,7 +37,7 @@ def _free_port() -> int:
 @register
 class LlamacppEngine(Engine):
     name = EngineName.LLAMACPP
-    script = "benches/llamacpp_bench.py"
+    script = "scripts/bench/llamacpp_bench.py"
 
     def default_python(self) -> str:
         # The script only needs `transformers` for the tokenizer; any

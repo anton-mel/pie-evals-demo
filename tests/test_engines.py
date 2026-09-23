@@ -3,7 +3,7 @@
 No GPU, no pie run. Every adapter is built against /root/pie and dummy specs;
 ``build_argv`` is checked for the flags a fair comparison needs, and every
 ``--flag`` it emits is checked against the set of option strings the
-corresponding script (plus benches/common.py) actually registers with
+corresponding script (plus scripts/bench/common.py) actually registers with
 argparse - parsed from source with ``ast`` so a renamed flag in pie fails here
 rather than at 3am on a runner.
 """
@@ -30,7 +30,7 @@ from pie_evals.node.workloads import common_args_for
 from pie_evals.schema import ArtifactSpec, Backend, Mode, PlatformSpec, WorkloadSpec
 
 PIE_ROOT = Path(os.environ.get("PIE_ROOT", "/root/pie"))
-BENCHES = PIE_ROOT / "benches"
+BENCHES = PIE_ROOT / "scripts/bench"
 
 pytestmark = pytest.mark.skipif(not BENCHES.is_dir(), reason=f"pie checkout not at {PIE_ROOT}")
 
@@ -251,7 +251,7 @@ def test_shape_helpers():
 def test_pie_cuda_tp2(tmp_path):
     eng = make(PieEngine, mode=Mode(id="tp2", tp=2))
     argv = argv_for(eng, WORKLOADS["c32"], tmp_path)
-    assert argv[1].endswith("benches/pie_bench.py") and argv[2] == "tput"
+    assert argv[1].endswith("scripts/bench/pie_bench.py") and argv[2] == "tput"
     assert flag_value(argv, "--engine") == "cuda_native"
     assert flag_value(argv, "--tp-size") == "2"
     # one --device flag carrying both ranks (pie_bench splits on ",")
@@ -262,15 +262,15 @@ def test_pie_cuda_tp2(tmp_path):
     assert flag_value(argv, "--concurrency") == "32"
     assert "--report-timing" in argv
     assert "--dump-all-token-ids" in argv and "--json-out" in argv
-    assert flag_value(argv, "--inferlet-dir") == str(PIE_ROOT / "tests/inferlets/text-completion-bench")
-    assert eng.env["PIE_BENCH_INFERLET_DIR"] == str(PIE_ROOT / "tests/inferlets/text-completion-bench")
-    assert eng.env["PYTHONPATH"].startswith(f"{PIE_ROOT}/sdk/client/python/src:{PIE_ROOT}/sdk/server/python/python")
+    assert flag_value(argv, "--inferlet-dir") == str(PIE_ROOT / "examples/text-completion-bench")
+    assert eng.env["PIE_BENCH_INFERLET_DIR"] == str(PIE_ROOT / "examples/text-completion-bench")
+    assert eng.env["PYTHONPATH"].startswith(f"{PIE_ROOT}/python/client/src:{PIE_ROOT}/python/server/python")
     assert "--kv-pages" not in argv  # documented dead for cuda_native
 
 
 def test_pie_program_path_is_settable(tmp_path):
     eng = make(PieEngine)
-    eng.program_path = "tests/inferlets/dflash-speculative-bench"
+    eng.program_path = "examples/dflash-speculative-bench"
     assert eng.env["PIE_BENCH_INFERLET_DIR"].endswith("dflash-speculative-bench")
     argv = argv_for(eng, WORKLOADS["ss-128-64"], tmp_path)
     assert flag_value(argv, "--inferlet-dir").endswith("dflash-speculative-bench")
@@ -336,8 +336,8 @@ def test_pie_serve_parses_url_and_stop(tmp_path, monkeypatch):
     """Drive serve() against a stand-in script that behaves like pie_bench
     under PIE_BENCH_SERVE_ONLY=1: announce the URL, then park."""
     fake_root = tmp_path / "pie"
-    (fake_root / "benches").mkdir(parents=True)
-    (fake_root / "benches" / "pie_bench.py").write_text(
+    (fake_root / "scripts/bench").mkdir(parents=True)
+    (fake_root / "scripts/bench" / "pie_bench.py").write_text(
         "import os, sys, time\n"
         "assert os.environ.get('PIE_BENCH_SERVE_ONLY') == '1'\n"
         "assert 'PIE_BENCH_SERVER_URL' not in os.environ\n"
@@ -361,7 +361,7 @@ def test_pie_serve_parses_url_and_stop(tmp_path, monkeypatch):
 def test_vllm_args(tmp_path):
     eng = make(VllmEngine, mode=Mode(id="tp2", tp=2))
     argv = argv_for(eng, WORKLOADS["c32"], tmp_path)
-    assert argv[1].endswith("benches/vllm_bench.py")
+    assert argv[1].endswith("scripts/bench/vllm_bench.py")
     assert flag_value(argv, "--model") == "Qwen/Qwen3-8B"
     assert flag_value(argv, "--tp-size") == "2"
     assert flag_value(argv, "--gpu-mem-util") == "0.9"
@@ -421,7 +421,7 @@ def test_llamacpp_args(tmp_path, hf_cache, monkeypatch):
                    source_format="gguf", gguf_file="Qwen3-8B-Q4_K_M.gguf")
     eng = make(LlamacppEngine, art=art, workload=WORKLOADS["c32"])
     argv = argv_for(eng, WORKLOADS["c32"], tmp_path)
-    assert argv[1].endswith("benches/llamacpp_bench.py")
+    assert argv[1].endswith("scripts/bench/llamacpp_bench.py")
     assert flag_value(argv, "--gguf-model") == str(hf_cache / "models--Qwen--Qwen3-8B-GGUF/snapshots/abc123/Qwen3-8B-Q4_K_M.gguf")
     assert flag_value(argv, "--server-bin") == "/opt/llama/llama-server"
     assert flag_value(argv, "--gpu-layers") == "all"
@@ -461,7 +461,7 @@ def test_mlxlm_args(tmp_path, hf_cache, monkeypatch):
     plat = platform(Backend.METAL, "apple9", count=1)
     eng = make(MlxlmEngine, art=art, plat=plat, workload=WORKLOADS["c32"])
     argv = argv_for(eng, WORKLOADS["c32"], tmp_path)
-    assert argv[0] == "/opt/mlx/bin/python" and argv[1].endswith("benches/mlx_bench.py")
+    assert argv[0] == "/opt/mlx/bin/python" and argv[1].endswith("scripts/bench/mlx_bench.py")
     assert flag_value(argv, "--model") == str(hf_cache / "models--mlx-community--Qwen3.6-27B-4bit/snapshots/def456")
     assert flag_value(argv, "--python") == "/opt/mlx/bin/python"
     assert flag_value(argv, "--prompt-cache-size") == "0"
@@ -501,7 +501,7 @@ def test_every_emitted_flag_is_parsed_by_the_script(label, cls, wl, over, tmp_pa
 
 
 def test_argparse_flag_extraction_sees_loop_registered_and_boolean_optional_flags():
-    flags = argparse_flags(PIE_ROOT / "benches/pie_bench.py")
+    flags = argparse_flags(PIE_ROOT / "scripts/bench/pie_bench.py")
     assert {"--inferlet-dir", "--engine", "--wasm-warm-slots", "--frame-submit-depth", "--pretokenized-prompts", "--no-pretokenized-prompts"} <= flags
     common = argparse_flags(BENCHES / "common.py")
     assert {"--model", "--ignore-eos", "--no-ignore-eos", "--tp-size", "--sglang-cuda-graph-max-bs", "--json-out"} <= common

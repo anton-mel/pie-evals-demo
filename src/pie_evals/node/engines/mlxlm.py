@@ -1,4 +1,4 @@
-"""mlx-lm adapter: drives ``benches/mlx_bench.py`` (macOS only).
+"""mlx-lm adapter: drives ``scripts/bench/mlx_bench.py`` (macOS only).
 
 mlx_bench.py spawns ``python -m mlx_lm server`` itself (``--spawn``, the
 default) with the interpreter given by ``--python``. Two things the script is
@@ -35,7 +35,7 @@ def _free_port() -> int:
 @register
 class MlxlmEngine(Engine):
     name = EngineName.MLXLM
-    script = "benches/mlx_bench.py"
+    script = "scripts/bench/mlx_bench.py"
 
     def default_python(self) -> str:
         return os.environ.get("MLX_PY") or "/tmp/pievenv/bin/python"

@@ -98,7 +98,7 @@ def test_ensure_miniature_short_circuits_on_existing(tmp_path):
 def test_ensure_miniature_runs_script_and_records_recipe(tmp_path):
     art = _mini()
     pie_root = tmp_path / "pie"
-    (pie_root / "benches").mkdir(parents=True)
+    (pie_root / "scripts/bench").mkdir(parents=True)
     # a stand-in for shrink_checkpoint.py that writes config.json into --out
     (pie_root / SHRINK_SCRIPT).write_text(
         "import argparse, json, pathlib\n"
@@ -122,7 +122,7 @@ def test_ensure_miniature_runs_script_and_records_recipe(tmp_path):
 def test_ensure_miniature_failure_raises(tmp_path):
     art = _mini()
     pie_root = tmp_path / "pie"
-    (pie_root / "benches").mkdir(parents=True)
+    (pie_root / "scripts/bench").mkdir(parents=True)
     (pie_root / SHRINK_SCRIPT).write_text("import sys; sys.stderr.write('boom\\n'); sys.exit(3)\n")
     import sys
 

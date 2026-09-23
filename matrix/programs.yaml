@@ -1,23 +1,24 @@
-# Inferlets (pie guest programs). Each is its own ETA program and therefore
-# its own coverage cell; the serving path is `text-completion-bench`.
+# Inferlets (pie guest programs) under pie's `examples/` workspace (pie >= 0.5.1;
+# `tests/inferlets/` before). Each is its own ETA program and therefore its own
+# coverage cell; the serving path is `text-completion-bench`.
 # `pie_only: true` programs have no baseline cell; `baseline_equivalents`
 # names the comparable feature flag on a baseline where one exists.
 # `workloads` restricts which shapes make sense for the program (default: all).
 programs:
   - id: text-completion-bench
-    path: tests/inferlets/text-completion-bench
+    path: examples/text-completion-bench
     category: serving
     pie_only: false
     accuracy_gate: token_parity
     tiers: [smoke, nightly, weekly]
   - id: prefill-rows
-    path: tests/inferlets/prefill-rows
+    path: examples/prefill-rows
     category: serving
     accuracy_gate: token_parity
     workloads: [ss-128-64, lc-2k-128, lc-8k-128, lc-32k-128]
     tiers: [smoke, nightly, weekly]
   - id: prefix-tree-kv-cache
-    path: tests/inferlets/prefix-tree-kv-cache
+    path: examples/prefix-tree-kv-cache
     category: serving
     accuracy_gate: token_parity
     baseline_equivalents: {vllm: enable-prefix-caching, sglang: radix-cache}
@@ -26,28 +27,28 @@ programs:
     tiers: [smoke, nightly, weekly]
 
   - id: dflash-speculative-bench
-    path: tests/inferlets/dflash-speculative-bench
+    path: examples/dflash-speculative-bench
     category: speculative
     accuracy_gate: acceptance_rate
     spec_dec: dflash2
     workloads: [ss-128-64, ss-512-256, c8]
     tiers: [smoke, nightly, weekly]
   - id: dflash-block-acceptance
-    path: tests/inferlets/dflash-block-acceptance
+    path: examples/dflash-block-acceptance
     category: speculative
     accuracy_gate: acceptance_rate
     spec_dec: dflash2
     workloads: [ss-128-64]
     tiers: [nightly, weekly]
   - id: mtp-speculative-decoding
-    path: tests/inferlets/mtp-speculative-decoding
+    path: examples/mtp-speculative-decoding
     category: speculative
     accuracy_gate: acceptance_rate
     spec_dec: mtp
     workloads: [ss-128-64, c8]
     tiers: [smoke, nightly, weekly]
   - id: cacheback-speculative-decoding
-    path: tests/inferlets/cacheback-speculative-decoding
+    path: examples/cacheback-speculative-decoding
     category: speculative
     accuracy_gate: acceptance_rate
     spec_dec: ngram
@@ -55,68 +56,81 @@ programs:
     pie_only: false
     workloads: [ss-128-64, c8]
     tiers: [smoke, nightly, weekly]
-  - id: test_eagle
-    path: tests/inferlets/test_eagle
+  - id: rs-speculative-decoding
+    path: examples/rs-speculative-decoding
     category: speculative
     accuracy_gate: acceptance_rate
-    spec_dec: eagle
+    spec_dec: rs
     workloads: [ss-128-64]
     tiers: [nightly, weekly]
 
-  - id: test_h2o
-    path: tests/inferlets/test_h2o
+  - id: trackb-h2o
+    path: examples/trackb-h2o
     category: kv_policy
     accuracy_gate: token_parity
     workloads: [lc-2k-128, lc-8k-128, lc-32k-128]
     tiers: [smoke, nightly, weekly]
-  - id: test_snapkv
-    path: tests/inferlets/test_snapkv
+  - id: trackb-snapkv
+    path: examples/trackb-snapkv
     category: kv_policy
     accuracy_gate: token_parity
     workloads: [lc-2k-128, lc-8k-128, lc-32k-128]
     tiers: [smoke, nightly, weekly]
-  - id: test_snapkv_eviction
-    path: tests/inferlets/test_snapkv_eviction
+  - id: snapkv-eviction
+    path: examples/snapkv-eviction
     category: kv_policy
     accuracy_gate: token_parity
     workloads: [lc-8k-128, kv-oversub]
     tiers: [nightly, weekly]
-  - id: quest-attention
-    path: tests/inferlets/quest-attention
+  - id: tova-attention
+    path: examples/tova-attention
     category: kv_policy
     accuracy_gate: token_parity
     workloads: [lc-8k-128, lc-32k-128]
     tiers: [nightly, weekly]
 
+  - id: attention-sink
+    path: examples/attention-sink
+    category: kv_policy
+    accuracy_gate: token_parity
+    workloads: [lc-2k-128, lc-8k-128]
+    tiers: [nightly, weekly]
+  - id: sliding-window-attention
+    path: examples/sliding-window-attention
+    category: kv_policy
+    accuracy_gate: token_parity
+    workloads: [lc-2k-128, lc-8k-128]
+    tiers: [nightly, weekly]
+
   - id: lora-probe
-    path: tests/inferlets/lora-probe
+    path: examples/lora-probe
     category: adapter
     accuracy_gate: token_parity
     workloads: [ss-128-64, c8]
     tiers: [smoke, nightly, weekly]
   - id: classifier-free-guidance
-    path: tests/inferlets/classifier-free-guidance
+    path: examples/classifier-free-guidance
     category: adapter
     accuracy_gate: token_parity
     workloads: [ss-128-64]
     tiers: [nightly, weekly]
 
   - id: diffusion-parity
-    path: tests/inferlets/diffusion-parity
+    path: examples/diffusion-parity
     category: diffusion
     accuracy_gate: cosine
     families: [mini_dit]
     workloads: [ss-128-64]
     tiers: [smoke, nightly, weekly]
   - id: mini-dit-parity
-    path: tests/inferlets/mini-dit-parity
+    path: examples/mini-dit-parity
     category: diffusion
     accuracy_gate: cosine
     families: [mini_dit]
     workloads: [ss-128-64]
     tiers: [smoke, nightly, weekly]
   - id: text-to-image
-    path: tests/inferlets/text-to-image
+    path: examples/text-to-image
     category: diffusion
     accuracy_gate: cosine
     families: [mini_dit, z_image, flux2_klein]

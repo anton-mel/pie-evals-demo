@@ -1,6 +1,6 @@
 """Miniature checkpoints: real shapes of big architectures, cheap.
 
-Wraps pie's ``benches/shrink_checkpoint.py`` (HTTP range requests against the
+Wraps pie's ``scripts/bench/shrink_checkpoint.py`` (HTTP range requests against the
 HF shards; keeps whole width dimensions, selects source layers, keeps the
 first N routed experts, optionally aliases the block ``--repeat`` times). The
 result is a genuine checkpoint of the same architecture that loads unmodified
@@ -21,7 +21,7 @@ from pathlib import Path
 
 from pie_evals.schema import ArtifactKind, ArtifactSpec, MiniatureRecipe
 
-SHRINK_SCRIPT = "benches/shrink_checkpoint.py"
+SHRINK_SCRIPT = "scripts/bench/shrink_checkpoint.py"
 
 
 def repo_cache_dirname(repo_id: str) -> str:

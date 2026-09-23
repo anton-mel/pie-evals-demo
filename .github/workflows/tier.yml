@@ -28,6 +28,7 @@ jobs:
         id: jobs
         run: |
           PLAT_ARGS=""
+          for p in $(echo "${{ inputs.platforms }}" | tr ',' ' '); do PLAT_ARGS="$PLAT_ARGS --platform $p"; done
           .venv/bin/pie-evals jobs --tier "${{ inputs.tier }}" --pie-commit "${{ inputs.pie_commit }}" --out jobs $PLAT_ARGS
           echo "matrix=$(cat jobs/gh-matrix.json)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4

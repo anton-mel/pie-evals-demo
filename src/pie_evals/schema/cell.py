@@ -109,7 +109,7 @@ class AccuracyStatus(StrEnumBase):
 
 class MiniatureRecipe(BaseModel):
     """Layer/expert truncation recipe, executed by pie's
-    ``benches/shrink_checkpoint.py`` (HTTP range requests against the HF
+    ``scripts/bench/shrink_checkpoint.py`` (HTTP range requests against the HF
     shards; the result is a real checkpoint of the same architecture that
     loads unmodified in pie and vLLM). Width dimensions are always kept;
     ``layers`` selects source layers so that the family's per-layer pattern
@@ -201,7 +201,7 @@ class ProgramSpec(BaseModel):
     program and is a coverage cell of its own."""
 
     id: str
-    path: str = Field(description="path under the pie tree, e.g. tests/inferlets/text-completion-bench")
+    path: str = Field(description="path under the pie tree, e.g. examples/text-completion-bench")
     category: str  # serving | speculative | kv_policy | adapter | diffusion
     baseline_equivalents: dict[str, str] = Field(
         default_factory=dict, description="engine -> mode flag that is the comparable feature, if any"

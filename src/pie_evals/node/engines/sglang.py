@@ -1,4 +1,4 @@
-"""SGLang adapter: drives ``benches/sglang_bench.py``.
+"""SGLang adapter: drives ``scripts/bench/sglang_bench.py``.
 
 The one flag that must never be left to the engine's default is
 ``--sglang-cuda-graph-max-bs``: SGLang derives its graph ceiling from a
@@ -21,7 +21,7 @@ from .shape import max_model_len_for, workload_concurrency
 @register
 class SglangEngine(Engine):
     name = EngineName.SGLANG
-    script = "benches/sglang_bench.py"
+    script = "scripts/bench/sglang_bench.py"
 
     def default_python(self) -> str:
         return os.environ.get("SGLANG_PY") or "/root/.venv/sglang/bin/python"

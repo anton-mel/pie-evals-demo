@@ -1,4 +1,4 @@
-"""Workload shapes → ``benches/common.py`` arguments.
+"""Workload shapes → ``scripts/bench/common.py`` arguments.
 
 common.py builds prompts from words (``--prompt``, ``--shared-prefix-words``,
 ``--mixed-phase`` ...), so a shape defined in tokens is realised as a
@@ -7,7 +7,7 @@ after a run, ``check_input_parity`` compares the prompt/output token counts
 every engine reported. If they differ the tok/s column is not a comparison
 and the record is marked INPUT_MISMATCH.
 
-TODO(pie): add ``--prompt-tokens-file`` to benches/common.py so shapes can be
+TODO(pie): add ``--prompt-tokens-file`` to scripts/bench/common.py so shapes can be
 pre-tokenized once and handed to every engine as ids; until then prompts are
 words and parity is verified rather than guaranteed.
 """

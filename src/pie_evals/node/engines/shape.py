@@ -83,7 +83,7 @@ def is_prefix_workload(workload: WorkloadSpec) -> bool:
     return str(workload.kind) == "prefix_shared"
 
 
-# ---- HF cache lookups (huggingface_hub-free, mirrors benches/common.py) -------
+# ---- HF cache lookups (huggingface_hub-free, mirrors scripts/bench/common.py) -------
 
 
 def hf_cache_roots() -> list[Path]:

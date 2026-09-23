@@ -1,5 +1,5 @@
-# pie recipes. Every knob maps onto a flag benches/pie_bench.py (or its
-# shared benches/common.py) actually parses; see PieEngine.engine_args for the
+# pie recipes. Every knob maps onto a flag scripts/bench/pie_bench.py (or its
+# shared scripts/bench/common.py) actually parses; see PieEngine.engine_args for the
 # mapping. Knobs the script has no flag for go through `engine_option`, which
 # is handed to the worker's `[model.engine.options]` verbatim (unknown keys
 # make the server refuse to boot, so only put keys the worker knows there).

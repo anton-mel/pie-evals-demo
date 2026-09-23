@@ -1,6 +1,6 @@
 # SGLang recipes. Knob -> flag mapping lives in SglangEngine.engine_args;
-# every knob maps onto a `--sglang-*` flag from benches/common.py or a flag
-# benches/sglang_bench.py parses.
+# every knob maps onto a `--sglang-*` flag from scripts/bench/common.py or a flag
+# scripts/bench/sglang_bench.py parses.
 
 default:
   knobs:

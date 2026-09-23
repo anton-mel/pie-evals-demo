@@ -1,4 +1,4 @@
-# mlx-lm recipes. benches/mlx_bench.py spawns `python -m mlx_lm server`
+# mlx-lm recipes. scripts/bench/mlx_bench.py spawns `python -m mlx_lm server`
 # itself; --decode-concurrency comes from --concurrency, the rest from the
 # flags below. Knob -> flag mapping is in MlxlmEngine.engine_args.
 

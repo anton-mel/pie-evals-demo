@@ -1,8 +1,8 @@
-"""vLLM adapter: drives ``benches/vllm_bench.py``.
+"""vLLM adapter: drives ``scripts/bench/vllm_bench.py``.
 
 vllm_bench.py boots the ``LLM`` (or ``AsyncLLM`` under ``--report-timing``)
 in-process, so there is no persistent-server path; each run loads the model.
-Every flag emitted here is parsed by vllm_bench.py or benches/common.py.
+Every flag emitted here is parsed by vllm_bench.py or scripts/bench/common.py.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ _VLLM_KV_DTYPES = {"bf16": "auto", "fp16": "auto", "auto": "auto", "fp8": "fp8",
 @register
 class VllmEngine(Engine):
     name = EngineName.VLLM
-    script = "benches/vllm_bench.py"
+    script = "scripts/bench/vllm_bench.py"
 
     def default_python(self) -> str:
         return os.environ.get("VLLM_PY") or "/root/.venv/vllm/bin/python"
