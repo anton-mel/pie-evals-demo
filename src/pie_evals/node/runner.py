@@ -161,7 +161,12 @@ class NodeRunner:
         from .snapshots import ensure_snapshot
 
         try:
-            return ensure_snapshot(cell.artifact, self.hf_cache, pie_root=self.pie_root, python=os.environ.get("PIE_PY", "python3"), download=self.download, log=self.log)
+            py = os.environ.get("PIE_PY")
+            if not py:
+                from .build import bench_python
+
+                py = str(bench_python(log=self.log))
+            return ensure_snapshot(cell.artifact, self.hf_cache, pie_root=self.pie_root, python=py, download=self.download, log=self.log)
         except EngineLaunchError:
             raise
         except Exception as e:  # download / shrink failure: the model, not the harness

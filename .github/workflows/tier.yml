@@ -75,6 +75,9 @@ jobs:
       - name: build pie at the pinned commit and cache it on the volume
         run: .venv/bin/pie-evals-node build --pie-commit "${{ inputs.pie_commit }}" --features cuda --pie-root "$PIE_ROOT" --mirror "$PIE_MIRROR" --target-dir "$CARGO_TARGET_DIR" 2>&1 | tee "$PIE_EVALS_CACHE/logs/build-${{ github.run_id }}.log"; exit ${PIPESTATUS[0]}
       - name: checkpoints and miniatures onto the volume
+        # only worth doing onto the shared volume; a cold pod's disk is thrown away (and 80 GB
+        # of everything filled it) — cold bench pods fetch their own shard's models instead
+        if: env.PIE_EVALS_VOLUME == '1'
         run: |
           ARGS=""
           for p in $(echo "${{ inputs.platforms }}" | tr ',' ' '); do ARGS="$ARGS --platform $p"; done

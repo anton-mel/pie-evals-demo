@@ -91,12 +91,14 @@ def prepare_cmd(tier, matrix_dir, platforms, engines_f, programs_f, pie_root, pi
     arts = {c.artifact.id: c.artifact for c in cells}
     cache = Path(hf_cache) if hf_cache else hf_cache_dir()
     failed = {}
+    from .build import bench_python
     from .importer import ensure_artifact, needs_import
 
     pie_bin = Path(pie_root) / "target/release/pie"
+    shrink_py = os.environ.get("PIE_PY") or str(bench_python(log=lambda m_: click.echo(m_, err=True)))  # shrink_checkpoint needs numpy
     for aid, art in sorted(arts.items()):
         try:
-            p = ensure_snapshot(art, cache, pie_root=Path(pie_root), python=os.environ.get("PIE_PY", "python3"), log=lambda m_: click.echo(m_, err=True))
+            p = ensure_snapshot(art, cache, pie_root=Path(pie_root), python=shrink_py, log=lambda m_: click.echo(m_, err=True))
             if pie_commit and needs_import(art) and pie_bin.exists():
                 p = ensure_artifact(art, p, pie_bin, pie_commit, log=lambda m_: click.echo(m_, err=True))
             click.echo(f"ok    {aid}: {p}")
