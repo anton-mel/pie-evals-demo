@@ -3,7 +3,8 @@ name: nightly
 # request more than the caller grants (startup_failure otherwise)
 permissions: { contents: write, actions: read }
 on:
-  schedule: [{ cron: "0 17 * * *" }]   # 02:00 KST; cron start is best-effort, records carry node timestamps
+  # schedule disabled until the tier is calibrated: an unfiltered nightly launched 16 pods at once
+  # (re-enable with a platforms/engines filter and max_jobs_per_platform)
   workflow_dispatch:
     inputs:
       pie_commit: { description: "pie commit (default: origin/main)", required: false, default: "" }

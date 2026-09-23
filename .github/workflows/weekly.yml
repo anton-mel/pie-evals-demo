@@ -3,7 +3,8 @@ name: weekly
 # request more than the caller grants (startup_failure otherwise)
 permissions: { contents: write, actions: read }
 on:
-  schedule: [{ cron: "0 15 * * 6" }]   # Sunday 00:00 KST
+  # schedule disabled until the tier is calibrated: an unfiltered weekly launched 16 pods at once
+  # (re-enable with a platforms/engines filter and max_jobs_per_platform)
   workflow_dispatch:
     inputs:
       pie_commit: { description: "pie commit (default: origin/main)", required: false, default: "" }
