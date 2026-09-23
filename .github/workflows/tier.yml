@@ -101,19 +101,42 @@ jobs:
           RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
           GH_RUNNER_PAT: ${{ secrets.GH_RUNNER_PAT }}
           RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
-      - name: record pod id
-        if: matrix.runpod
-        run: echo "${{ steps.pod.outputs.pod_id }}" > "pod-${{ matrix.platform }}.txt"
+      # a launched marker per job: the gate builds the bench matrix from these, so a
+      # job whose pod could not be created is skipped instead of queued for a runner
+      # that never comes (which held the concurrency group for an hour)
+      - name: launched marker
+        run: |
+          mkdir -p launched
+          printf '%s' '${{ toJson(matrix) }}' > "launched/${{ matrix.job_id }}.json"
+          [ -n "${{ steps.pod.outputs.pod_id }}" ] && echo "${{ steps.pod.outputs.pod_id }}" > "launched/pod-${{ matrix.job_id }}.txt" || true
       - uses: actions/upload-artifact@v4
-        if: matrix.runpod
-        with: { name: "pod-${{ matrix.platform }}", path: "pod-${{ matrix.platform }}.txt" }
+        with: { name: "launched-${{ matrix.job_id }}", path: launched/ }
 
-  bench:
+  gate:
     needs: [expand, launch]
     if: always() && fromJson(needs.expand.outputs.matrix).include[0] != null
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.gate.outputs.matrix }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { pattern: "launched-*", path: launched, merge-multiple: true }
+      - id: gate
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, glob, os
+          launched = [json.load(open(f)) for f in glob.glob("launched/*.json")]
+          print("matrix=" + json.dumps({"include": launched}))
+          print("count=" + str(len(launched)))
+          PY
+          echo "launched: $(ls launched 2>/dev/null | tr '\n' ' ')"
+
+  bench:
+    needs: [expand, gate]
+    if: always() && needs.gate.result == 'success' && fromJson(needs.gate.outputs.matrix).include[0] != null
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.expand.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.gate.outputs.matrix) }}
     runs-on: ${{ matrix.labels }}
     # hard kill = job budget × kill_factor (policy in matrix/suites.yaml); the pod self-destructs at the same mark
     timeout-minutes: 90   # = job_budget_minutes x kill_factor in matrix/suites.yaml; the runner watchdog and pod self-destruct enforce the exact value
@@ -139,7 +162,7 @@ jobs:
         with: { name: "out-${{ matrix.job_id }}", path: "out/${{ matrix.job_id }}", retention-days: 30 }
 
   teardown:
-    needs: [expand, launch, bench]
+    needs: [expand, launch, gate, bench]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -147,9 +170,9 @@ jobs:
       - uses: astral-sh/setup-uv@v3
       - run: uv venv && uv pip install -e ".[orchestrate]"
       - uses: actions/download-artifact@v4
-        with: { pattern: "pod-*", path: pods, merge-multiple: true }
+        with: { pattern: "launched-*", path: launched, merge-multiple: true }
       - name: terminate pods
-        run: for f in pods/*.txt; do [ -f "$f" ] && .venv/bin/pie-evals terminate-pod "$(cat "$f")" || true; done
+        run: for f in launched/pod-*.txt; do [ -f "$f" ] && .venv/bin/pie-evals terminate-pod "$(cat "$f")" || true; done
         env: { RUNPOD_API_KEY: "${{ secrets.RUNPOD_API_KEY }}" }
 
   # Bookkeeping. Inline rather than a nested `uses:` of collect.yml: the nested

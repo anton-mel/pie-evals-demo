@@ -256,6 +256,10 @@ class Engine(ABC):
         (out_dir / "stderr.txt").write_text(stderr)
         if rc != 0 or not json_out.exists():
             cls, msg = classify_failure(rc, stderr, stdout, timed_out)
+            if rc == 0 and not timed_out:
+                lines = [ln.strip() for ln in (stderr + "\n" + stdout).splitlines() if ln.strip() and not set(ln.strip()) <= set("─│╭╮╰╯═║╔╗╚╝ ")]
+                msg = "bench exited 0 without writing bench.json; last output: " + " | ".join(lines[-3:])[:400]
+                cls = ErrorClass.HARNESS_INVALID
             raise EngineLaunchError(cls, msg)
         data = json.loads(json_out.read_text())
         summary = data.get("summary", {})

@@ -258,7 +258,17 @@ def create_pod(
         if pl.volume_id:
             body["networkVolumeId"] = pl.volume_id
             body["volumeMountPath"] = VOLUME
-    data = _req("POST", "/pods", body, key)
+    data = None
+    for attempt in range(1, 4):  # RunPod answers 500 "Something went wrong" transiently
+        try:
+            data = _req("POST", "/pods", body, key)
+            break
+        except RuntimeError as e:
+            if attempt == 3 or " 5" not in str(e)[:40]:
+                raise
+            log(f"create pod attempt {attempt} failed ({str(e)[:120]}); retrying in 20 s")
+            time.sleep(20)
+    assert data is not None
     return PodHandle(id=data["id"], labels=platform.runner_labels, data_center=data_center)
 
 
