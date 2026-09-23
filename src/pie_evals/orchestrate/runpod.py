@@ -145,6 +145,12 @@ PATH=$V/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV
 echo "== env written; volume: $(df -h $V 2>/dev/null | tail -1)"
 # a pre-minted registration token (1 h, can only register a runner) is preferred over a PAT in the pod
+if [ -n "${{PIE_EVALS_EXEC:-}}" ]; then
+  echo "== exec mode"; set -a; . /opt/actions-runner/.env; set +a
+  echo "== disk:"; df -h / /tmp $V 2>/dev/null | tail -n +1; echo "== mem:"; free -g | head -2
+  bash -c "$PIE_EVALS_EXEC"; RC=$?; echo "== exec exit $RC $(date -u +%FT%TZ)"; echo "== disk after:"; df -h / /tmp $V 2>/dev/null
+  sleep {hold}; terminate; exit $RC
+fi
 TOKEN="${{GH_RUNNER_TOKEN:-}}"
 if [ -z "$TOKEN" ]; then
   echo "== minting registration token from PAT"
@@ -211,12 +217,13 @@ def create_pod(
     allowed_cuda_versions: list[str] | None = None,
     api_key: str | None = None,
     debug: bool = False,
+    exec_script: str | None = None,
     log=print,
 ) -> PodHandle:
     if not platform.runpod_gpu_type:
         raise ValueError(f"platform {platform.id} has no runpod_gpu_type")
-    if not (runner_pat or runner_token):
-        raise ValueError("need runner_token (pre-minted registration token) or runner_pat")
+    if not (runner_pat or runner_token or exec_script):
+        raise ValueError("need runner_token (pre-minted registration token) or runner_pat, or an exec script")
     key = api_key or os.environ["RUNPOD_API_KEY"]
     name = f"pie-evals-{platform.id}-{int(time.time())}"
     script = startup_script(platform.runner_labels, repo=repo, kill_minutes=kill_minutes, image_version=image_version, debug=debug)
@@ -235,6 +242,7 @@ def create_pod(
             "PIE_EVALS_PLATFORM": platform.id,
             "PIE_EVALS_KILL_MINUTES": str(kill_minutes),
             **({"GH_RUNNER_TOKEN": runner_token} if runner_token else {}),
+            **({"PIE_EVALS_EXEC": exec_script} if exec_script else {}),
             **({"GH_RUNNER_PAT": runner_pat} if runner_pat else {}),
             "RUNPOD_API_KEY": key,  # self-termination only
         },

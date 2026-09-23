@@ -183,20 +183,21 @@ def watch_baselines(obj, lock):
 @click.option("--kill-minutes", type=int, default=None, help="pod self-destruct; default = job budget × kill_factor")
 @click.option("--cuda", "cuda_versions", multiple=True, default=["13.0"], show_default=True, help="allowed host CUDA versions (pie pins cudarc cuda-13000)")
 @click.option("--debug", is_flag=True, help="serve the start log on the pod's :8080 proxy and hold a failed pod 10 min")
+@click.option("--exec", "exec_script", default=None, help="run this bash script on the pod (same env as a job) instead of a runner, then terminate; volume maintenance")
 @click.pass_obj
-def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_version, network_volume_id, kill_minutes, cuda_versions, debug):
+def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_version, network_volume_id, kill_minutes, cuda_versions, debug, exec_script):
     from . import runpod
 
     m: Matrix = obj["matrix"]
     plat = m.platforms[platform]
     rp = m.runpod
-    if not (runner_pat or runner_token):
+    if not (runner_pat or runner_token or exec_script):
         raise click.UsageError("set GH_RUNNER_PAT or GH_RUNNER_TOKEN (the workflow saw GH_RUNNER_PAT empty: check the org secret's name and its repository access list)")
     h = runpod.create_pod(plat, repo=repo, runner_pat=runner_pat, runner_token=runner_token, kill_minutes=kill_minutes or m.kill_minutes,
                           image=image or runpod.DEFAULT_IMAGE, image_version=image_version, network_volume_id=network_volume_id,
                           volumes=rp.get("volumes") or None, preferred_data_centers=rp.get("preferred_data_centers"),
                           container_disk_gb=int(rp.get("container_disk_gb", 40)), cloud_type=str(rp.get("cloud_type", "SECURE")),
-                          allowed_cuda_versions=list(cuda_versions) or None, debug=debug, log=lambda m_: click.echo(m_, err=True))
+                          allowed_cuda_versions=list(cuda_versions) or None, debug=debug, exec_script=exec_script, log=lambda m_: click.echo(m_, err=True))
     click.echo(h.id)
     if debug:
         click.echo(f"start log: https://{h.id}-8080.proxy.runpod.net/start.log", err=True)
