@@ -26,10 +26,11 @@ jobs:
         env: { RUNPOD_API_KEY: "${{ secrets.RUNPOD_API_KEY }}" }
       - name: job specs
         id: jobs
+        env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           PLAT_ARGS=""
           for p in $(echo "${{ inputs.platforms }}" | tr ',' ' '); do PLAT_ARGS="$PLAT_ARGS --platform $p"; done
-          .venv/bin/pie-evals jobs --tier "${{ inputs.tier }}" --pie-commit "${{ inputs.pie_commit }}" --out jobs $PLAT_ARGS
+          .venv/bin/pie-evals jobs --tier "${{ inputs.tier }}" --pie-commit "${{ inputs.pie_commit }}" --out jobs --skip-unavailable $PLAT_ARGS
           echo "matrix=$(cat jobs/gh-matrix.json)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with: { name: jobs, path: jobs/ }

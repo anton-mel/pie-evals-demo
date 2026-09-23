@@ -68,14 +68,26 @@ def check(obj):
 @click.option("--engine", "engines", multiple=True)
 @click.option("--out", type=click.Path(), default="jobs")
 @click.option("--label", default=None)
+@click.option("--skip-unavailable", is_flag=True, help="drop platforms with no RunPod type and no online runner (needs gh + a token with actions:read)")
+@click.option("--repo", default=None, help="owner/name for --skip-unavailable (default: $GITHUB_REPOSITORY)")
 @click.pass_obj
-def jobs(obj, tier, pie_commit, platforms, engines, out, label):
-    """Write one JobSpec JSON per platform, plus a GitHub Actions matrix file."""
+def jobs(obj, tier, pie_commit, platforms, engines, out, label, skip_unavailable, repo):
+    """Write one JobSpec JSON per platform shard, plus a GitHub Actions matrix file."""
+    from .jobs import available_platforms
+
     m: Matrix = obj["matrix"]
     st: Store = obj["store"]
-    js = make_jobs(m, Tier(tier), pie_commit=pie_commit, store=st, platforms=list(platforms) or None, engines=list(engines) or None, label=label)
     outp = Path(out)
     outp.mkdir(parents=True, exist_ok=True)
+    plats = list(platforms) or None
+    if skip_unavailable:
+        ok, skipped = available_platforms(m, repo or os.environ.get("GITHUB_REPOSITORY", "pie-project/pie-evals"))
+        plats = [p for p in (plats or list(m.platforms))] if plats else list(m.platforms)
+        plats = [p for p in plats if p in ok]
+        (outp / "skipped-platforms.json").write_text(json.dumps(skipped, indent=1))
+        for pid, why in skipped.items():
+            click.echo(f"skip platform {pid}: {why}", err=True)
+    js = make_jobs(m, Tier(tier), pie_commit=pie_commit, store=st, platforms=plats, engines=list(engines) or None, label=label)
     gh = []
     for j in js:
         (outp / f"{j.job_id}.json").write_text(j.model_dump_json(indent=1))

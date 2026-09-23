@@ -56,3 +56,16 @@ def test_multi_gpu_platforms_only_run_tp_gt1(matrix):
     for c in matrix.expand():
         if c.platform.count >= 2 and c.mode.tp == 1:
             assert c.tiers == [], f"{c.platform.id} tp1 must not be scheduled"
+
+
+def test_available_platforms_keeps_runpod_and_online_resident(matrix, monkeypatch):
+    import json
+
+    from pie_evals.orchestrate import jobs as J
+
+    runners = {"runners": [{"status": "online", "labels": [{"name": "self-hosted"}, {"name": "macos"}, {"name": "m1-max-32g"}]},
+                           {"status": "offline", "labels": [{"name": "m4-pro-48g"}]}]}
+    monkeypatch.setattr(J.subprocess, "run", lambda *a, **k: type("R", (), {"stdout": json.dumps(runners)})())
+    ok, skipped = J.available_platforms(matrix, "o/r")
+    assert "l40s-x1" in ok and "m1-max-32g" in ok
+    assert "m4-pro-48g" in skipped and "m2-max" in skipped

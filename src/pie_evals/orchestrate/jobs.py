@@ -4,6 +4,9 @@ pins and the history each cell needs for adaptive repetition."""
 from __future__ import annotations
 
 import hashlib
+import json
+import os
+import subprocess
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
@@ -113,6 +116,32 @@ def make_jobs(
                 )
             )
     return jobs
+
+
+def available_platforms(matrix: Matrix, repo: str, token: str | None = None) -> tuple[list[str], dict[str, str]]:
+    """Platforms a job can actually land on right now: RunPod ones (an
+    ephemeral runner is created per job) and resident ones with an *online*
+    registered runner carrying the platform's label. Everything else is
+    skipped with a reason — a job queued for a runner that never comes sits
+    in GitHub's queue for 24 h and holds the workflow's concurrency group."""
+    env = {**os.environ, **({"GH_TOKEN": token} if token else {})}
+    try:
+        out = subprocess.run(["gh", "api", f"repos/{repo}/actions/runners?per_page=100"], capture_output=True, text=True, env=env, check=True).stdout
+        runners = json.loads(out).get("runners", [])
+    except Exception as e:  # no gh / no token: only RunPod platforms are known-schedulable
+        runners, note = [], f"runner list unavailable ({e}); resident platforms skipped"
+    else:
+        note = ""
+    online = {lab["name"] for r in runners if r.get("status") == "online" for lab in r.get("labels", [])}
+    ok, skipped = [], {}
+    for p in matrix.platforms.values():
+        if p.runpod_gpu_type:
+            ok.append(p.id)
+        elif p.id in online:
+            ok.append(p.id)
+        else:
+            skipped[p.id] = note or f"no online runner with label '{p.id}'"
+    return ok, skipped
 
 
 def _feature_for(backend: str) -> str:
