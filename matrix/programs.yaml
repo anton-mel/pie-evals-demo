@@ -66,28 +66,28 @@ programs:
 
   - id: trackb-h2o
     path: examples/trackb-h2o
-    bench_args: [\"--temperature\", \"0.7\"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
+    bench_args: ["--temperature", "0.7"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
     category: kv_policy
     accuracy_gate: token_parity
     workloads: [lc-2k-128, lc-8k-128, lc-32k-128]
     tiers: [smoke, nightly, weekly]
   - id: trackb-snapkv
     path: examples/trackb-snapkv
-    bench_args: [\"--temperature\", \"0.7\"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
+    bench_args: ["--temperature", "0.7"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
     category: kv_policy
     accuracy_gate: token_parity
     workloads: [lc-2k-128, lc-8k-128, lc-32k-128]
     tiers: [smoke, nightly, weekly]
   - id: snapkv-eviction
     path: examples/snapkv-eviction
-    bench_args: [\"--temperature\", \"0.7\"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
+    bench_args: ["--temperature", "0.7"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
     category: kv_policy
     accuracy_gate: token_parity
     workloads: [lc-8k-128, kv-oversub]
     tiers: [nightly, weekly]
   - id: tova-attention
     path: examples/tova-attention
-    bench_args: [\"--temperature\", \"0.7\"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
+    bench_args: ["--temperature", "0.7"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
     category: kv_policy
     accuracy_gate: token_parity
     workloads: [lc-8k-128, lc-32k-128]
@@ -95,14 +95,14 @@ programs:
 
   - id: attention-sink
     path: examples/attention-sink
-    bench_args: [\"--temperature\", \"0.7\"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
+    bench_args: ["--temperature", "0.7"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
     category: kv_policy
     accuracy_gate: token_parity
     workloads: [lc-2k-128, lc-8k-128]
     tiers: [nightly, weekly]
   - id: sliding-window-attention
     path: examples/sliding-window-attention
-    bench_args: [\"--temperature\", \"0.7\"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
+    bench_args: ["--temperature", "0.7"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
     category: kv_policy
     accuracy_gate: token_parity
     workloads: [lc-2k-128, lc-8k-128]
@@ -110,7 +110,7 @@ programs:
 
   - id: lora-probe
     path: examples/lora-probe
-    bench_args: [\"--temperature\", \"0.7\"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
+    bench_args: ["--temperature", "0.7"]   # rejects temperature 0: 'temperature must be finite and greater than 0'
     category: adapter
     accuracy_gate: token_parity
     workloads: [ss-128-64, c8]

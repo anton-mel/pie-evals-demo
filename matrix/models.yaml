@@ -25,6 +25,7 @@ artifacts:
     base_model: google/gemma-4-E4B-it
     family: gemma4
     scheme: bf16
+    max_context: 4096    # pie's gemma4-e4b SKU: "past the model's max_context of 4096 tokens"
     expected_gib: 8.0
     tiers: [smoke, nightly, weekly]
 

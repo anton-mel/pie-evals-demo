@@ -47,10 +47,15 @@ unsupported:
   # measured on pie 1a3b2e2a (smoke run 35820128533)
   - when: {program: prefill-rows}
     reason: "prefill-rows takes its own input (`ids`); pie_bench.py cannot drive it"
-  - when: {program: prefix-tree-kv-cache, family: [qwen3_5, qwen3_6, qwen3_6_moe]}
-    reason: "attention-only inferlet (pie:inferlet/forward) on a hybrid model; needs forward-hybrid"
-  - when: {program: mtp-speculative-decoding, family: [qwen3_5, qwen3_6, qwen3_6_moe]}
-    reason: "attention-only inferlet (pie:inferlet/forward) on a hybrid model; needs forward-hybrid"
+  # these inferlets answer with a different envelope than text-completion-bench
+  # (non-JSON, or no num_output_tokens), so pie_bench.py cannot read their result;
+  # they need a driver of their own before they can be cells
+  - when: {program: prefix-tree-kv-cache, engine: pie}
+    reason: "returns non-JSON to pie_bench.py (JSONDecodeError); on hybrid models also needs forward-hybrid"
+  - when: {program: mtp-speculative-decoding, engine: pie}
+    reason: "return envelope lacks num_output_tokens (pie_bench.py KeyError); on hybrid models also needs forward-hybrid"
+  - when: {program: cacheback-speculative-decoding, engine: pie}
+    reason: "return envelope lacks num_output_tokens (pie_bench.py KeyError)"
   - when: {artifact: nemotron-h-mini8}
     reason: "shrink_checkpoint.py has no nemotron_h reader (supported: deepseek_v4, glm_moe_dsa, gpt_oss, kimi, muse_glimmer, qwen3_5_moe, qwen4_exp)"
   - when: {artifact: mini-dit}
