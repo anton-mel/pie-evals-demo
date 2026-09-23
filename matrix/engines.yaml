@@ -15,14 +15,14 @@ engines:
     formats: [hf_safetensors]
     tiers: [nightly, weekly]
     recipe: competitive
-    pin: "0.26.1"
+    pin: "0.30.0"
     release_source: pypi:vllm
   - id: sglang
     os: [linux]
     formats: [hf_safetensors]
     tiers: [nightly, weekly]
     recipe: competitive
-    pin: "0.5.16"
+    pin: "0.5.20"
     release_source: pypi:sglang
   - id: llamacpp
     os: [linux, macos]

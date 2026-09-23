@@ -65,15 +65,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: uv venv --quiet .venv && uv pip install --quiet --python .venv/bin/python -e "."
+      - name: previous prepare log on the volume (a pod that died mid-prepare leaves one)
+        run: |
+          L="$PIE_EVALS_CACHE/logs"; mkdir -p "$L"; ls -t "$L" 2>/dev/null | head -3
+          f=$(ls -t "$L"/prepare-*.log 2>/dev/null | head -1); [ -n "$f" ] && { echo "== tail of $f"; tail -40 "$f"; } || true
       - name: build pie at the pinned commit and cache it on the volume
-        run: .venv/bin/pie-evals-node build --pie-commit "${{ inputs.pie_commit }}" --features cuda --pie-root "$PIE_ROOT" --mirror "$PIE_MIRROR" --target-dir "$CARGO_TARGET_DIR"
+        run: .venv/bin/pie-evals-node build --pie-commit "${{ inputs.pie_commit }}" --features cuda --pie-root "$PIE_ROOT" --mirror "$PIE_MIRROR" --target-dir "$CARGO_TARGET_DIR" 2>&1 | tee "$PIE_EVALS_CACHE/logs/build-${{ github.run_id }}.log"; exit ${PIPESTATUS[0]}
       - name: checkpoints and miniatures onto the volume
         run: |
           ARGS=""
           for p in $(echo "${{ inputs.platforms }}" | tr ',' ' '); do ARGS="$ARGS --platform $p"; done
           for e in $(echo "${{ inputs.engines }}" | tr ',' ' '); do ARGS="$ARGS --engine $e"; done
           for g in $(echo "${{ inputs.programs }}" | tr ',' ' '); do ARGS="$ARGS --program $g"; done
-          .venv/bin/pie-evals-node prepare --tier "${{ inputs.tier }}" --pie-root "$PIE_ROOT" $ARGS || echo "::warning::some checkpoints/baselines could not be prepared (their cells will be load_fail)"
+          .venv/bin/pie-evals-node prepare --tier "${{ inputs.tier }}" --pie-root "$PIE_ROOT" $ARGS 2>&1 | tee "$PIE_EVALS_CACHE/logs/prepare-${{ github.run_id }}.log" || echo "::warning::some checkpoints/baselines could not be prepared (their cells will be load_fail)"
         env: { HF_TOKEN: "${{ secrets.HF_TOKEN }}" }
   build-teardown:
     needs: [build-launch, build]
