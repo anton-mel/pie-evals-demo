@@ -120,7 +120,7 @@ class MiniatureRecipe(BaseModel):
     layers: str = Field(description="source layer selection, e.g. '0-4' or '0-5,39'")
     experts: int | None = Field(default=None, description="routed experts kept per MoE layer (None = all)")
     repeat: int = 1
-    text_only: bool = True
+    text_only: bool = False  # --text-only renames tensors (drops the language_model. prefix) and pie's readers then miss embed_tokens
     period: int = Field(default=1, description="layer-type pattern period the selection must be a multiple of")
     note: str = ""
 
@@ -136,6 +136,8 @@ class MiniatureRecipe(BaseModel):
             t += f"-e{self.experts}"
         if self.repeat > 1:
             t += f"-r{self.repeat}"
+        if self.text_only:
+            t += "-txt"
         return t
 
 
