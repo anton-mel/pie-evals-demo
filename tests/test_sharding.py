@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from pie_evals.orchestrate.jobs import make_jobs, process_key, shard_groups
+from pie_evals.orchestrate.jobs import make_jobs, process_key, shard_groups, cell_minutes
 from pie_evals.orchestrate.matrix import Matrix
 from pie_evals.orchestrate.store import Store
 from pie_evals.schema import Tier
@@ -20,7 +20,7 @@ def test_shards_respect_budget_and_keep_groups_whole(matrix):
     shards = shard_groups(cells, matrix.job_budget_minutes)
     assert sum(len(s) for s in shards) == len(cells)
     for sh in shards:
-        assert sum(c.workload.est_minutes for c in sh) <= matrix.job_budget_minutes
+        assert sum(cell_minutes(c) for c in sh) <= matrix.job_budget_minutes
     # a process group is either entirely inside one shard, or (only if it was itself over budget) split
     placement = {}
     for i, sh in enumerate(shards):
@@ -31,7 +31,7 @@ def test_shards_respect_budget_and_keep_groups_whole(matrix):
         groups.setdefault(process_key(c), []).append(c)
     for k, idxs in placement.items():
         if len(idxs) > 1:
-            assert sum(c.workload.est_minutes for c in groups[k]) > matrix.job_budget_minutes, f"group {k} split without need"
+            assert sum(cell_minutes(c) for c in groups[k]) > matrix.job_budget_minutes, f"group {k} split without need"
 
 
 def test_jobs_carry_time_policy(matrix, tmp_path):
