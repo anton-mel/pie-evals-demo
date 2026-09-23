@@ -173,7 +173,7 @@ def watch_baselines(obj, lock):
 
 
 @main.command("launch-pod")
-@click.option("--platform", required=True)
+@click.option("--platform", required=True, help="platform id, or a comma-separated fallback list tried in order (build pods: any GPU will do)")
 @click.option("--repo", required=True, help="owner/name the runner registers with")
 @click.option("--runner-pat", envvar="GH_RUNNER_PAT", default=None, help="PAT with Administration: read/write on --repo; minted into a registration token inside the pod")
 @click.option("--runner-token", envvar="GH_RUNNER_TOKEN", default=None, help="pre-minted registration token (preferred: 1 h, registration-only); one of --runner-pat/--runner-token is required")
