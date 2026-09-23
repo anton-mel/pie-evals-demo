@@ -52,6 +52,17 @@ platforms:
     runpod_gpu_type: "NVIDIA H100 80GB HBM3"
     tp_capable: true
     tiers: [weekly]
+  - id: pro6000-x1
+    os: linux
+    backend: cuda
+    accelerator: NVIDIA RTX PRO 6000 Blackwell Server Edition
+    arch: blackwell
+    count: 1
+    memory_gib: 96
+    interconnect: pcie
+    runner_labels: [self-hosted, linux, pro6000-x1]
+    runpod_gpu_type: "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+    tiers: [smoke, nightly, weekly]
   - id: pro6000-x4
     os: linux
     backend: cuda
