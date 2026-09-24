@@ -170,7 +170,9 @@ def recorded_cell_keys(store: Store, tier: Tier, pie_commit: str) -> set[str]:
         return set()
     keys = t.column("cell_key").to_pylist()
     commits = t.column("pie_commit").to_pylist()
-    return {k for k, c in zip(keys, commits, strict=True) if c == pie_commit}
+    statuses = t.column("status").to_pylist()
+    # a cell the budget never reached was not run; it is exactly what a re-dispatch is for
+    return {k for k, c, s in zip(keys, commits, statuses, strict=True) if c == pie_commit and s != "not_run"}
 
 
 def plan_pods(matrix: Matrix, jobs: list[JobSpec]) -> list[dict]:
