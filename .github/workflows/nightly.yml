@@ -11,6 +11,7 @@ on:
       platforms: { description: "comma-separated platform ids", required: false, default: "" }
       engines: { description: "comma-separated engine ids", required: false, default: "" }
       programs: { description: "comma-separated program ids", required: false, default: "" }
+      artifacts: { description: "comma-separated artifact ids", required: false, default: "" }
       max_jobs: { description: "cap on jobs", required: false, default: "" }
       build_platform: { description: "platform for the build/prepare pod", required: false, default: "" }
       max_jobs_per_platform: { description: "cap per platform", required: false, default: "" }
@@ -45,6 +46,7 @@ jobs:
       platforms: ${{ github.event.inputs.platforms || '' }}
       engines: ${{ github.event.inputs.engines || '' }}
       programs: ${{ github.event.inputs.programs || '' }}
+      artifacts: ${{ github.event.inputs.artifacts || '' }}
       max_jobs: ${{ github.event.inputs.max_jobs || '' }}
       build_platform: ${{ github.event.inputs.build_platform || '' }}
       max_jobs_per_platform: ${{ github.event.inputs.max_jobs_per_platform || '' }}

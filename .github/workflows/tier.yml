@@ -10,6 +10,7 @@ on:
       platforms: { type: string, required: false, default: "" }
       engines: { type: string, required: false, default: "" }
       programs: { type: string, required: false, default: "" }
+      artifacts: { type: string, required: false, default: "" }
       max_jobs: { type: string, required: false, default: "" }
       max_jobs_per_platform: { type: string, required: false, default: "" }
       build_platform: { type: string, required: false, default: "" }
@@ -37,6 +38,7 @@ jobs:
           for p in $(echo "${{ inputs.platforms }}" | tr ',' ' '); do PLAT_ARGS="$PLAT_ARGS --platform $p"; done
           for e in $(echo "${{ inputs.engines }}" | tr ',' ' '); do PLAT_ARGS="$PLAT_ARGS --engine $e"; done
           for g in $(echo "${{ inputs.programs }}" | tr ',' ' '); do PLAT_ARGS="$PLAT_ARGS --program $g"; done
+          for a in $(echo "${{ inputs.artifacts }}" | tr ',' ' '); do PLAT_ARGS="$PLAT_ARGS --artifact $a"; done
           [ -n "${{ inputs.max_jobs }}" ] && PLAT_ARGS="$PLAT_ARGS --max-jobs ${{ inputs.max_jobs }}"
           [ -n "${{ inputs.max_jobs_per_platform }}" ] && PLAT_ARGS="$PLAT_ARGS --max-jobs-per-platform ${{ inputs.max_jobs_per_platform }}"
           .venv/bin/pie-evals jobs --tier "${{ inputs.tier }}" --pie-commit "${{ inputs.pie_commit }}" --out jobs --skip-unavailable $PLAT_ARGS

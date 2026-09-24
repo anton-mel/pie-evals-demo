@@ -67,6 +67,7 @@ def check(obj):
 @click.option("--platform", "platforms", multiple=True)
 @click.option("--engine", "engines", multiple=True)
 @click.option("--program", "programs", multiple=True, help="restrict to these program ids")
+@click.option("--artifact", "artifacts", multiple=True, help="restrict to these artifact ids")
 @click.option("--max-jobs", type=int, default=None, help="cap the number of jobs (shards) written, baseline-bearing first")
 @click.option("--max-jobs-per-platform", type=int, default=None, help="cap per platform, so a capped dispatch spans every platform")
 @click.option("--out", type=click.Path(), default="jobs")
@@ -74,7 +75,7 @@ def check(obj):
 @click.option("--skip-unavailable", is_flag=True, help="drop platforms with no RunPod type and no online runner (needs gh + a token with actions:read)")
 @click.option("--repo", default=None, help="owner/name for --skip-unavailable (default: $GITHUB_REPOSITORY)")
 @click.pass_obj
-def jobs(obj, tier, pie_commit, platforms, engines, programs, max_jobs, max_jobs_per_platform, out, label, skip_unavailable, repo):
+def jobs(obj, tier, pie_commit, platforms, engines, programs, artifacts, max_jobs, max_jobs_per_platform, out, label, skip_unavailable, repo):
     """Write one JobSpec JSON per platform shard, plus a GitHub Actions matrix file."""
     from .jobs import available_platforms
 
@@ -93,6 +94,8 @@ def jobs(obj, tier, pie_commit, platforms, engines, programs, max_jobs, max_jobs
     cells = m.expand()
     if programs:
         cells = [c for c in cells if c.program.id in programs]
+    if artifacts:
+        cells = [c for c in cells if c.artifact.id in artifacts]
     js = make_jobs(m, Tier(tier), pie_commit=pie_commit, store=st, platforms=plats, engines=list(engines) or None, cells=cells, label=label)
     if max_jobs_per_platform is not None:
         seen: dict[str, int] = {}
