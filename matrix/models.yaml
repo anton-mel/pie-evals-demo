@@ -96,7 +96,7 @@ artifacts:
     # dense layer 0 + KDA/KDA/KDA/MLA twice, 32 of 896 experts (top-16 kept), AttnRes blocks of 4
     miniature: {layers: "0-7", experts: 32, period: 4, attn_res_block_size: 4, note: "shrink family kimi_k3; 18.4 GiB download"}
     max_context: 4096
-    expected_gib: 19.0
+    expected_gib: 22.0   # 19 GiB of weights + the KDA state pool; on a 24 GB card the load reserves 3.2 GB and the first fire wants 4.0 GB (nightly 35935510089)
     tiers: [smoke, nightly, weekly]
   - id: nemotron-h-mini8
     base_model: nvidia/Nemotron-H-8B-Base-8K

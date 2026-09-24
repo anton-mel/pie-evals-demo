@@ -66,37 +66,60 @@ def ensure_python_headers(py: Path, log=print) -> bool:
     return ok
 
 
-def ensure_nvcc(py: Path, log=print) -> bool:
-    """The runner image is ``nvidia/cuda:*-runtime``: no nvcc, no CUDA headers.
-    The AOT FlashInfer wheels cover the common attention kernels, but vLLM
-    still JIT-compiles gemma's head_dim-512 prefill and SGLang its
-    ``sgl_kernel_jit`` activation kernels (nightly 35918372228 lost all of
-    gemma and every SGLang cell to ``nvcc: not found``). Install the toolkit
-    packages for the venv's torch CUDA version from the NVIDIA apt repo the
-    image already carries; once per pod (container disk)."""
+def cuda_toolkit_version(py: Path | None = None) -> tuple[str, str] | None:
+    """(major, minor) of the CUDA this image was built for: torch's, when a
+    baseline interpreter is given, else /usr/local/cuda/version.json."""
+    if py is not None:
+        try:
+            cuda = subprocess.run([str(py), "-c", "import torch; print(torch.version.cuda)"], capture_output=True, text=True, check=True, timeout=300).stdout.strip()
+            major, minor = cuda.split(".")[:2]
+            return major, minor
+        except (OSError, subprocess.SubprocessError, ValueError):
+            pass
+    try:
+        import json
+
+        v = json.loads(Path("/usr/local/cuda/version.json").read_text())["cuda"]["version"]
+        major, minor = v.split(".")[:2]
+        return major, minor
+    except (OSError, KeyError, ValueError):
+        return None
+
+
+def ensure_cuda_devkit(py: Path | None = None, log=print) -> bool:
+    """The runner image is ``nvidia/cuda:*-runtime``: no nvcc, no CUDA headers,
+    no ``libcudadevrt.a``. vLLM/SGLang JIT kernels with nvcc (gemma's
+    head_dim-512 prefill, ``sgl_kernel_jit``; nightly 35918372228), and pie's
+    NVRTC path needs ``libcudadevrt.a`` for cooperative launches
+    (``attention.mla_latents`` on the GLM mini, nightly 35935510089). Install
+    the toolkit packages for the image's CUDA from the NVIDIA apt repo it
+    already carries; once per pod (container disk)."""
     nvcc = Path("/usr/local/cuda/bin/nvcc")
     header = Path("/usr/local/cuda/include/cuda_runtime.h")
-    if nvcc.exists() and header.exists():
+    devrt = Path("/usr/local/cuda/lib64/libcudadevrt.a")
+    if nvcc.exists() and header.exists() and devrt.exists():
         return True
-    try:
-        cuda = subprocess.run([str(py), "-c", "import torch; print(torch.version.cuda)"], capture_output=True, text=True, check=True, timeout=300).stdout.strip()
-        major, minor = cuda.split(".")[:2]
-    except (OSError, subprocess.SubprocessError, ValueError) as e:
-        log(f"baseline: cannot read torch's CUDA version from {py}: {e}")
+    ver = cuda_toolkit_version(py)
+    if ver is None:
+        log("baseline: cannot tell the image's CUDA version; not installing the toolkit")
         return False
-    pkgs = [p for p, missing in ((f"cuda-nvcc-{major}-{minor}", not nvcc.exists()), (f"cuda-cudart-dev-{major}-{minor}", not header.exists())) if missing]
-    log(f"baseline: {nvcc} / {header} missing; installing {' '.join(pkgs)}")
+    major, minor = ver
+    pkgs = [p for p, missing in ((f"cuda-nvcc-{major}-{minor}", not nvcc.exists()), (f"cuda-cudart-dev-{major}-{minor}", not (header.exists() and devrt.exists()))) if missing]
+    log(f"baseline: {nvcc.name}/{header.name}/{devrt.name} missing; installing {' '.join(pkgs)}")
     apt = ["apt-get"] if os.geteuid() == 0 else ["sudo", "-n", "apt-get"]
     env = dict(os.environ, DEBIAN_FRONTEND="noninteractive")
     try:
         subprocess.run(apt + ["update", "-qq"], env=env, check=False, timeout=600, capture_output=True)
         subprocess.run(apt + ["install", "-y", "-qq", "--no-install-recommends", *pkgs], env=env, check=True, timeout=1200, capture_output=True)
     except (OSError, subprocess.SubprocessError) as e:
-        log(f"baseline: nvcc install failed ({e}); engines that JIT CUDA kernels will crash")
+        log(f"baseline: CUDA toolkit install failed ({e}); engines that JIT CUDA kernels will crash")
         return False
-    ok = nvcc.exists() and header.exists()
-    log(f"baseline: nvcc present: {nvcc.exists()}, cuda_runtime.h present: {header.exists()}")
+    ok = nvcc.exists() and header.exists() and devrt.exists()
+    log(f"baseline: nvcc {nvcc.exists()}, cuda_runtime.h {header.exists()}, libcudadevrt.a {devrt.exists()}")
     return ok
+
+
+ensure_nvcc = ensure_cuda_devkit  # the old name
 
 
 def ensure_flashinfer_aot(py: Path, marker: Path, log=print) -> bool:

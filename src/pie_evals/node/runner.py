@@ -186,6 +186,10 @@ class NodeRunner:
             for c in job.cells:
                 self.emit(self._failed(c, ErrorClass.HARNESS_INVALID, f"GPU preflight: {broken}", None))
             return []
+        if self.platform is not None and not pf._is_mac(str(self.platform.os)) and os.geteuid() == 0:
+            from .baselines import ensure_cuda_devkit
+
+            ensure_cuda_devkit(log=self.log)  # nvcc + headers + libcudadevrt.a for pie's NVRTC and the baselines' JITs
         try:
             self.ensure_pie()
         except Exception as e:  # a build failure fails every pie cell identically
