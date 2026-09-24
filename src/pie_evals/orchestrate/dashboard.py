@@ -166,9 +166,7 @@ function people() {
       `<td>${last ? `<a href="https://github.com/${DATA.pie_repo}/commit/${last.sha}" target="_blank">${last.sha.slice(0, 7)}</a> ${last.date}` : `<span class="muted">none yet</span>`}</td></tr>`;
   }
   if (!DATA.people.length) html += `<tr><td colspan="4" class="muted">Nobody has a setup yet: everyone gets ${modelName(DATA.default_model)} on every connected Mac.</td></tr>`;
-  document.getElementById("main").innerHTML = html + `</table><div class="muted" style="margin-top:8px">` +
-    `Anyone who can write to <b>${DATA.repo}</b> can set their own. For one commit only, add a line to its message: ` +
-    `<code>Evals: models=${DATA.default_model} macs=${DATA.pool[0]?.id || "m5-max-48g"}</code></div></div>`;
+  document.getElementById("main").innerHTML = html + `</table></div>`;
 }
 
 async function gh(path, opts = {}) {
