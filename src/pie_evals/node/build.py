@@ -37,7 +37,7 @@ def bench_python(cache_root: Path | None = None, log=print) -> Path:
     if not py.exists():
         log(f"venv: creating {venv}")
         if shutil.which("uv"):
-            subprocess.run(["uv", "venv", "--quiet", str(venv)], check=True)
+            subprocess.run(["uv", "venv", "--quiet", "--python", "3.12", str(venv)], check=True)
         else:
             subprocess.run(["python3", "-m", "venv", str(venv)], check=True)
         _pip_install(py, BENCH_DEPS)
@@ -61,7 +61,8 @@ def cache_dir(commit: str, features: list[str], root: Path | None = None) -> Pat
 
 def is_cached(commit: str, features: list[str], root: Path | None = None) -> bool:
     d = cache_dir(commit, features, root)
-    return (d / "pie").exists() and (d / "wasm").is_dir() and any((d / "wasm").glob("*.wasm")) and any(d.glob("pie_server-*.whl"))
+    wheel = any(d.glob("pie_server-*.whl")) or "cuda" not in features
+    return (d / "pie").exists() and (d / "wasm").is_dir() and any((d / "wasm").glob("*.wasm")) and wheel
 
 
 def _git(args: list[str], cwd: Path | None = None, retries: int = 3, timeout_s: int = 1800) -> None:
@@ -181,8 +182,8 @@ def restore(pie_root: Path, commit: str, features: list[str], *, cache_root: Pat
             dst = pie_root / "python/server/python/pie" / Path(so).name
             shutil.copy(so, dst)
             os.utime(dst, None)
-        if set_env:
-            os.environ.setdefault("PIE_PY", str(py))  # the pie adapter's interpreter
+    if set_env:
+        os.environ.setdefault("PIE_PY", str(bench_python(cache_root, log=log)))  # the pie adapter's interpreter
     log(f"restore: {d} -> {pie_root}")
     return True
 

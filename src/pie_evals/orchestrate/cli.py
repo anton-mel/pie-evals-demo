@@ -13,6 +13,8 @@ import click
 from pie_evals.schema import Tier
 
 from . import baselines as bl
+from . import dashboard as dash
+from . import pr_report as prr
 from . import report as rp
 from .jobs import make_jobs
 from .matrix import Matrix, summarize
@@ -168,6 +170,37 @@ def report(obj, tier, out):
     if os.environ.get("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
             f.write(f"regressions={n_reg}\npie_trails={trails}\n")
+
+
+@main.command("pr-report")
+@click.argument("node_out", nargs=-1, type=click.Path(exists=True))
+@click.option("--pie-commit", required=True)
+@click.option("--mode", default="targeted", show_default=True)
+@click.option("--expect", default="", help="comma-separated platform ids that should have a result")
+@click.option("--run-url", default=None)
+@click.option("--dashboard", "dashboard_url", default=None)
+@click.option("--out", type=click.Path(), default="pr-report.md", show_default=True)
+@click.pass_obj
+def pr_report(obj, node_out, pie_commit, mode, expect, run_url, dashboard_url, out):
+    """One pie commit's node outputs against main's history, as a PR comment."""
+    rows = prr.node_rows([Path(d) for d in node_out])
+    history = prr.main_history(obj["store"], exclude_commit=pie_commit)
+    body, verdict = prr.build(rows, history, pie_commit=pie_commit, mode=mode, run_url=run_url,
+                              dashboard=dashboard_url, expected=[p for p in expect.split(",") if p])
+    Path(out).write_text(body)
+    click.echo(json.dumps(verdict))
+    if os.environ.get("GITHUB_OUTPUT"):
+        with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+            f.write(f"regressions={verdict['regressions']}\nbroken={verdict['broken']}\nmissing={len(verdict['missing'])}\n")
+
+
+@main.command("dashboard")
+@click.option("--out", type=click.Path(), default="site", show_default=True)
+@click.pass_obj
+def dashboard(obj, out):
+    """Render the store's pie history over commits as a static site."""
+    n = dash.render(obj["store"], Path(out))
+    click.echo(f"{n} series -> {out}/index.html")
 
 
 @main.command("watch-baselines")

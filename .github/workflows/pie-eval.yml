@@ -1,0 +1,108 @@
+# One pie commit, sent by pie's CI (repository_dispatch `pie-eval`) or by hand.
+# mode targeted: the `targeted` tier (pie alone, one small model, six shapes,
+# ~5 min per platform); mode full: the `smoke` tier. A PR commit gets a comment
+# and a commit status on pie and is never written to the store; a main commit
+# is written to the store, which the history page is built from.
+name: pie eval
+permissions: { contents: write, actions: read }
+concurrency:
+  group: pie-eval-${{ github.event.client_payload.pr || github.event.inputs.pr || github.event.client_payload.pie_commit || github.event.inputs.pie_commit }}
+  cancel-in-progress: true
+on:
+  repository_dispatch:
+    types: [pie-eval]
+  workflow_dispatch:
+    inputs:
+      pie_commit: { description: "pie commit", required: true }
+      pr: { description: "pie PR number to comment on (empty: a main commit)", required: false, default: "" }
+      mode: { description: "targeted | full", required: false, default: "targeted" }
+      platforms: { description: "comma-separated platform ids, or mac / gpu (empty: every platform of the mode)", required: false, default: "" }
+
+env:
+  PIE_REPO: pie-project/pie
+  DASHBOARD: ${{ vars.PIE_EVALS_DASHBOARD || 'https://pie-project.github.io/pie-evals/' }}
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.p.outputs.commit }}
+      pr: ${{ steps.p.outputs.pr }}
+      mode: ${{ steps.p.outputs.mode }}
+      tier: ${{ steps.p.outputs.tier }}
+      platforms: ${{ steps.p.outputs.platforms }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        env:
+          COMMIT: ${{ github.event.client_payload.pie_commit || github.event.inputs.pie_commit }}
+          PR: ${{ github.event.client_payload.pr || github.event.inputs.pr }}
+          MODE: ${{ github.event.client_payload.mode || github.event.inputs.mode || 'targeted' }}
+          PLATFORMS: ${{ github.event.client_payload.platforms || github.event.inputs.platforms }}
+        run: |
+          [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::pie_commit must be a full sha, got '$COMMIT'"; exit 1; }
+          [[ -z "$PR" || "$PR" =~ ^[0-9]+$ ]] || { echo "::error::pr must be a number, got '$PR'"; exit 1; }
+          case "$MODE" in targeted) tier=targeted ;; full) tier=smoke ;; *) echo "::error::mode must be targeted or full"; exit 1 ;; esac
+          case "$PLATFORMS" in
+            mac) PLATFORMS=$(yq -r '.platforms[] | select(.os == "macos") | .id' matrix/platforms.yaml | paste -sd, -) ;;
+            gpu) PLATFORMS=$(yq -r '.platforms[] | select(.os == "linux") | .id' matrix/platforms.yaml | paste -sd, -) ;;
+          esac
+          [[ "$PLATFORMS" =~ ^[a-z0-9.,-]*$ ]] || { echo "::error::bad platforms '$PLATFORMS'"; exit 1; }
+          { echo "commit=$COMMIT"; echo "pr=$PR"; echo "mode=$MODE"; echo "tier=$tier"; echo "platforms=$PLATFORMS"; } >> "$GITHUB_OUTPUT"
+      - name: pending status on the pie commit
+        if: steps.p.outputs.pr != ''
+        env: { GH_TOKEN: "${{ secrets.PIE_REPO_TOKEN }}" }
+        run: |
+          [ -n "$GH_TOKEN" ] || { echo "::warning::PIE_REPO_TOKEN is not set; nothing is posted to pie"; exit 0; }
+          gh api -X POST "repos/$PIE_REPO/statuses/${{ steps.p.outputs.commit }}" -f state=pending \
+            -f context="pie-evals/${{ steps.p.outputs.mode }}" -f description="running" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
+
+  run:
+    needs: start
+    uses: ./.github/workflows/tier.yml
+    with:
+      tier: ${{ needs.start.outputs.tier }}
+      pie_commit: ${{ needs.start.outputs.commit }}
+      platforms: ${{ needs.start.outputs.platforms }}
+      persist: ${{ needs.start.outputs.pr == '' }}
+    secrets: inherit
+
+  report:
+    needs: [start, run]
+    if: always() && needs.start.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: astral-sh/setup-uv@v3
+      - run: uv venv && uv pip install -e ".[orchestrate]"
+      - uses: actions/download-artifact@v4
+        with: { pattern: "out-*", path: out }
+      - name: report
+        id: report
+        run: |
+          shopt -s nullglob
+          .venv/bin/pie-evals pr-report out/out-* --pie-commit "${{ needs.start.outputs.commit }}" --mode "${{ needs.start.outputs.mode }}" \
+            --expect "${{ needs.run.outputs.platforms }}" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --dashboard "$DASHBOARD" --out pr-report.md
+          cat pr-report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: comment and status on the pie PR
+        if: needs.start.outputs.pr != ''
+        env: { GH_TOKEN: "${{ secrets.PIE_REPO_TOKEN }}" }
+        run: |
+          [ -n "$GH_TOKEN" ] || { echo "::warning::PIE_REPO_TOKEN is not set; nothing is posted to pie"; exit 0; }
+          pr="${{ needs.start.outputs.pr }}"
+          existing=$(gh api "repos/$PIE_REPO/issues/$pr/comments" --paginate \
+                       -q '.[] | select(.body | startswith("<!-- pie-evals -->")) | .id' | head -1)
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/$PIE_REPO/issues/comments/$existing" -F body=@pr-report.md >/dev/null
+          else
+            gh api -X POST "repos/$PIE_REPO/issues/$pr/comments" -F body=@pr-report.md >/dev/null
+          fi
+          state=success; desc="within noise of main"
+          if [ "${{ steps.report.outputs.regressions }}" != "0" ]; then state=failure; desc="${{ steps.report.outputs.regressions }} slower than main"; fi
+          if [ "${{ steps.report.outputs.broken }}" != "0" ] || [ "${{ steps.report.outputs.missing }}" != "0" ]; then state=error; desc="not every platform ran"; fi
+          gh api -X POST "repos/$PIE_REPO/statuses/${{ needs.start.outputs.commit }}" -f state="$state" \
+            -f context="pie-evals/${{ needs.start.outputs.mode }}" -f description="$desc" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null

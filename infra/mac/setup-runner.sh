@@ -10,6 +10,8 @@ RUNNER_VERSION="${RUNNER_VERSION:-2.321.0}"
 DIR="$HOME/actions-runner"
 mkdir -p "$DIR" && cd "$DIR"
 [ -f run.sh ] || curl -sL "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-osx-arm64-${RUNNER_VERSION}.tar.gz" | tar xz
+[ -d "$HOME/pie/.git" ] || git clone -q https://github.com/pie-project/pie "$HOME/pie"
+export PATH="$HOME/.cargo/bin:$HOME/.local/bin:/opt/homebrew/bin:$PATH"
 ./config.sh --unattended --url "https://github.com/$REPO" --token "$TOKEN" --name "$(scutil --get ComputerName)-$PLATFORM_ID" \
   --labels "self-hosted,macos,$PLATFORM_ID" --work _work --replace
 ./svc.sh install && ./svc.sh start
