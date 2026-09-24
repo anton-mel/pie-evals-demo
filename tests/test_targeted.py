@@ -92,7 +92,7 @@ def test_site_has_pushes_pool_and_people(tmp_path, matrix, monkeypatch):
     assert "openCommit" in (tmp_path / "site" / "index.html").read_text()
 
 
-def test_people_last_active_and_ci(tmp_path, monkeypatch):
+def test_people_access_and_last_active(tmp_path, monkeypatch):
     runs = [{"workflow_runs": [
         {"display_title": "pie eval " + "a" * 40, "event": "repository_dispatch", "triggering_actor": {"login": "bot"}, "status": "completed",
          "run_started_at": "2026-09-21T10:00:00Z", "updated_at": "2026-09-21T10:06:00Z", "created_at": "2026-09-21T10:00:00Z"},
@@ -107,7 +107,7 @@ def test_people_last_active_and_ci(tmp_path, monkeypatch):
     assert used == {"author": {"last": "2026-09-21T10:00:00Z"}, "friend": {"last": "2026-09-01T10:00:00Z"}}
     users = tmp_path / "users"
     users.mkdir()
-    (users / "friend.json").write_text('{"enabled": true}')
-    (users / "idle.json").write_text('{"enabled": false}')
+    (users / "friend.json").write_text('{"models": ["qwen3.5-0.8b-bf16"]}')
+    (users / "idle.json").write_text('{"models": []}')
     rows = dashboard.people("o/evals", {"a" * 40: "author"}, users)
-    assert [(r["login"], r["role"], r["ci"]) for r in rows] == [("author", "write", False), ("friend", "admin", True), ("idle", "write", False)]
+    assert [(r["login"], r["role"]) for r in rows] == [("author", "write"), ("friend", "admin"), ("idle", "write")]

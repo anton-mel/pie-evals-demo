@@ -106,7 +106,6 @@ PAGE = """<!doctype html>
     font-size: 13px; line-height: 1; border: 1px solid #d0d7de; border-radius: 999px; background-color: #fff; color: #1f2328; }
   .auto .tag { padding: 0 12px; }
   .auto .tag.off { background: #fff8c5; border-color: #eac54f; }
-  .dot.on { background: #1a7f37; } .dot.off { background: #afb8c1; }
   .on-word { color: #656d76; }
   h2.group { font-size: 15px; font-weight: 600; color: #1f2328; margin: 0 0 8px 2px; }
   h2.group .muted { font-weight: 400; margin-left: 4px; }
@@ -215,8 +214,8 @@ function overview() {
 
 function summary() {
   const tag = x => `<span class="tag">${esc(x)}</span>`;
-  if (!mine || mine.enabled !== true) return `<span class="tag off">nothing, switched off</span>`;
-  const models = (mine?.models || []).length ? mine.models.map(modelName) : [modelName(DATA.default_model)];
+  if (!(mine?.models || []).length) return `<span class="tag off">nothing, no models selected</span>`;
+  const models = mine.models.map(modelName);
   const where = (mine?.macs || []).length ? mine.macs.map(macName) : ["every connected machine"];
   return `${models.map(tag).join("")}<span class="on-word">on</span>${where.map(tag).join("")}`;
 }
@@ -301,21 +300,21 @@ function openCommit(sha) {
 }
 
 async function editMine() {
-  const cur = mine || { models: [DATA.default_model], macs: [], enabled: false };
+  const cur = mine || { models: [], macs: [] };
   const pick = (name, items, checked) => items.map(x => `<label class="check"><input type="checkbox" name="${name}" value="${x.id}" ${checked.includes(x.id) ? "checked" : ""}> ${esc(x.name)}</label>`).join("");
-  sheet(`<h2>What runs on your pushes</h2><p class="muted">Every commit you land on pie main runs this.</p>` +
-    `<label class="check"><input type="checkbox" name="enabled" ${cur.enabled === true ? "checked" : ""}> benchmark my pushes</label>` +
+  sheet(`<h2>What runs on your pushes</h2><p class="muted">Every commit you land on pie main runs these models on these machines. Select no model to run nothing.</p>` +
     `<div class="row"><div><div class="label">Models</div>${pick("model", DATA.models, cur.models || [])}</div>` +
     `<div><div class="label">Machines</div><label class="check"><input type="checkbox" name="all" ${(cur.macs || []).length ? "" : "checked"}> every connected machine</label>` +
     `${pick("mac", RUNNABLE, cur.macs || [])}</div></div><button class="act" id="save">Save</button> <span id="msg" class="muted"></span>`);
   const picked = n => [...document.querySelectorAll(`#sheet input[name=${n}]:checked`)].map(x => x.value);
   document.getElementById("save").onclick = async () => {
-    const data = { ...(mine || {}), models: picked("model"), macs: picked("all").length ? [] : picked("mac"), enabled: picked("enabled").length > 0 };
+    const { enabled, ...keep } = mine || {};
+    const data = { ...keep, models: picked("model"), macs: picked("all").length ? [] : picked("mac") };
     const msg = document.getElementById("msg"); msg.textContent = "Saving…";
     try {
       const path = `repos/${DATA.repo}/contents/users/${me.login}.json`, now = await gh(path);
       await gh(path, { method: "PUT", body: JSON.stringify({
-        message: `users: ${me.login} ${data.enabled ? "runs " + (data.models.join(", ") || "the default") : "skips benchmarks"}`,
+        message: `users: ${me.login} ${data.models.length ? "runs " + data.models.join(", ") : "runs nothing"}`,
         content: btoa(JSON.stringify(data, null, 2) + NL), ...(now ? { sha: now.sha } : {}) }) });
       mine = data; closeSheet(); draw();
     } catch (e) { msg.textContent = "Could not save: " + e.message; }
@@ -346,13 +345,13 @@ function pool() {
 }
 function people() {
   const ago = d => { if (!d) return "–"; const h = (Date.now() - new Date(d)) / 36e5; return h < 1 ? "just now" : h < 24 ? `${Math.round(h)}h ago` : `${Math.round(h / 24)}d ago`; };
-  let html = `<div class="card"><table class="compact"><tr><th>who</th><th>access</th><th>benchmark ci</th><th class="num">last active</th></tr>`;
+  let html = `<div class="card"><table class="compact"><tr><th>who</th><th>access</th><th class="num">last active</th></tr>`;
   for (const p of DATA.people) {
     html += `<tr class="person" data-login="${esc(p.login)}"><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}</td>` +
-      `<td class="muted">${esc(p.role || "–")}</td><td><span class="dot ${p.ci ? "on" : "off"}"></span>${p.ci ? "on" : "off"}</td>` +
+      `<td class="muted">${esc(p.role || "–")}</td>` +
       `<td class="num muted">${ago(p.last)}</td></tr>`;
   }
-  if (!DATA.people.length) html += `<tr><td colspan="4" class="muted">Nobody yet.</td></tr>`;
+  if (!DATA.people.length) html += `<tr><td colspan="3" class="muted">Nobody yet.</td></tr>`;
   document.getElementById("main").innerHTML = html + `</table></div>`;
   document.querySelectorAll("tr.person").forEach(tr => tr.onclick = () => { author = tr.dataset.login; tab = "Pushes"; draw(); });
 }
@@ -399,7 +398,7 @@ async function signIn() {
         const path = `repos/${DATA.repo}/contents/users/${me.login}.json`, f = await gh(path);
         if (f) mine = JSON.parse(atob(f.content));
         else {
-          mine = { models: [DATA.default_model], macs: [], enabled: false, joined: new Date().toISOString().slice(0, 10) };
+          mine = { models: [], macs: [], joined: new Date().toISOString().slice(0, 10) };
           await gh(path, { method: "PUT", body: JSON.stringify({ message: `users: ${me.login} joined`, content: btoa(JSON.stringify(mine, null, 2) + NL) }) });
         }
       } catch { mine = null; }
@@ -517,16 +516,11 @@ def usage(repo: str, authors: dict[str, str]) -> dict[str, dict]:
 
 
 def people(repo: str, authors: dict[str, str], users_dir: Path) -> list[dict]:
-    ci: dict[str, bool] = {}
-    for f in sorted(users_dir.glob("*.json")) if users_dir.is_dir() else []:
-        try:
-            ci[f.stem] = json.loads(f.read_text()).get("enabled") is True
-        except json.JSONDecodeError:
-            continue
+    members = {f.stem for f in users_dir.glob("*.json")} if users_dir.is_dir() else set()
     roles = {c["login"]: c.get("role_name", "") for page in _paginate(f"repos/{repo}/collaborators?affiliation=all&per_page=100") for c in page}
     used = usage(repo, authors)
     none = {"last": ""}
-    rows = [{"login": who, "role": roles.get(who, ""), "ci": ci.get(who, False), **used.get(who, none)} for who in set(roles) | set(ci) | set(used)]
+    rows = [{"login": who, "role": roles.get(who, ""), **used.get(who, none)} for who in set(roles) | members | set(used)]
     rows.sort(key=lambda p: p["login"].lower())
     return sorted(rows, key=lambda p: p["last"], reverse=True)
 

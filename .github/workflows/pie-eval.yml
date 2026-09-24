@@ -41,7 +41,7 @@ jobs:
           models=""; macs=""; source="not signed up"; skip=true
           if [ -n "$author" ] && [ -f "users/$author.json" ]; then
             models=$(jq -r '.models // [] | join(",")' "users/$author.json"); macs=$(jq -r '.macs // [] | join(",")' "users/$author.json"); source="users/$author.json"
-            [ "$(jq -r '.enabled == true' "users/$author.json")" = true ] && skip=false
+            [ -n "$models" ] && skip=false
             if [ -n "$line" ]; then
               m=$(grep -oE 'models=[^ ]+' <<<"$line" | cut -d= -f2 || true); k=$(grep -oE 'macs=[^ ]+' <<<"$line" | cut -d= -f2 || true)
               [ -n "$m" ] && models=$m; [ -n "$k" ] && macs=$k; source="commit message"; skip=false
