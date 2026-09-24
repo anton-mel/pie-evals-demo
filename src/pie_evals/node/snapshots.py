@@ -48,7 +48,7 @@ def ensure_snapshot(artifact: ArtifactSpec, hf_cache: Path, *, pie_root: Path | 
         return ensure_miniature(artifact, pie_root, hf_cache, python=python)
     have = snapshot_dir_if_present(artifact, hf_cache)
     if have:
-        return have
+        return _with_gguf_config(artifact, have, log)
     if not download:
         raise SnapshotMissing(f"checkpoint {artifact.base_model} not in HF cache {hf_cache} (run `pie-evals-node prepare`, or `run --download`; pie's resolve_local_model refuses network)")
     from huggingface_hub import snapshot_download
@@ -60,12 +60,17 @@ def ensure_snapshot(artifact: ArtifactSpec, hf_cache: Path, *, pie_root: Path | 
     else:
         kw["allow_patterns"] = WEIGHT_PATTERNS
     path = snapshot_download(artifact.base_model, cache_dir=str(hf_cache), token=os.environ.get("HF_TOKEN") or None, **kw)  # an empty secret must not become "Bearer "
-    if artifact.gguf_config_from and not (Path(path) / "config.json").exists():
+    return _with_gguf_config(artifact, Path(path), log)
+
+
+def _with_gguf_config(artifact: ArtifactSpec, path: Path, log=print) -> Path:
+    """pie reads a snapshot's encoding from config.json ("a snapshot must carry
+    the config.json its encoding is read from"); a GGUF repo ships none, so the
+    base model's is copied in — also into a snapshot fetched before this existed."""
+    if artifact.gguf_config_from and not (path / "config.json").exists():
         from huggingface_hub import hf_hub_download
 
-        # pie reads a snapshot's encoding from config.json ("a snapshot must carry the
-        # config.json its encoding is read from"); a GGUF repo ships none, the base model does
         log(f"download: config.json of {artifact.gguf_config_from} -> {path}")
         src = hf_hub_download(artifact.gguf_config_from, "config.json", token=os.environ.get("HF_TOKEN") or None)
-        (Path(path) / "config.json").write_bytes(Path(src).read_bytes())
-    return Path(path)
+        (path / "config.json").write_bytes(Path(src).read_bytes())
+    return path
