@@ -110,7 +110,6 @@ PAGE = """<!doctype html>
   h2.group { font-size: 15px; font-weight: 600; color: #1f2328; margin: 0 0 8px 2px; }
   h2.group .muted { font-weight: 400; margin-left: 4px; }
   .card + h2.group { margin-top: 24px; }
-  .kicker { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: #656d76; margin-right: 4px; }
   .pill.small { padding: 0 12px; gap: 6px; margin-left: 4px; }
   .filter select { padding: 0 30px 0 12px; }
   .filter { font-size: 14px; color: #424a53; display: inline-flex; align-items: center; gap: 6px; }
@@ -147,7 +146,7 @@ PAGE = """<!doctype html>
 <div id="modal" class="modal" hidden><div class="sheet"><button class="x" id="close" aria-label="close">×</button><div id="sheet"></div></div></div>
 <script>
 const DATA = __DATA__;
-const TABS = ["Overview", "Pushes", "Machines", "People"];
+const TABS = ["Overview", "CI/CD", "Pushes", "Machines", "People"];
 const COLORS = ["#0969da", "#bf8700", "#8250df", "#1a7f37", "#cf222e"];
 const NL = String.fromCharCode(10);
 const esc = x => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
@@ -225,15 +224,11 @@ const fmtTime = d => { const t = when(d); return t && !isNaN(t) && d.length > 10
 const ALL = [...DATA.commits, ...DATA.history].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 const allCommits = () => ALL;
 function pushes() {
-  const head = me
-    ? `<div class="auto"><span class="kicker">CI/CD</span><span>Your pushes run</span>${summary()}<button class="pill small" id="edit">` +
-      `<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>Change</button></div>`
-    : `<div class="auto muted"><a href="#" id="sig">Sign in</a> to choose what runs on your pushes and to add runs to any commit.</div>`;
   const commits = allCommits(), authors = [...new Set(commits.map(c => c.author).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   if (author && !authors.includes(author)) authors.push(author);
   const filter = `<label class="filter">author <select id="author"><option value="">everyone</option>` +
     authors.map(a => `<option value="${esc(a)}" ${a === author ? "selected" : ""}>${esc(a)}</option>`).join("") + `</select></label>`;
-  let html = `<div class="toolbar">${head}${filter}</div><div class="card"><table class="compact fixed"><colgroup><col><col style="width:140px"><col style="width:96px"><col style="width:60px"><col style="width:120px"></colgroup>` +
+  let html = `<div class="toolbar"><span></span>${filter}</div><div class="card"><table class="compact fixed"><colgroup><col><col style="width:140px"><col style="width:96px"><col style="width:60px"><col style="width:120px"></colgroup>` +
              `<tr><th>commit</th><th>author</th><th>date</th><th>time</th><th>benchmarks</th></tr>`;
   const matching = commits.filter(c => !author || c.author === author);
   const pages = Math.max(1, Math.ceil(matching.length / PER_PAGE));
@@ -250,9 +245,6 @@ function pushes() {
   document.querySelectorAll("tr.push").forEach(tr => tr.onclick = () => openCommit(tr.dataset.sha));
   document.getElementById("author").onchange = e => { author = e.target.value; page = 0; draw(); };
   document.querySelectorAll(".pager button[data-page]").forEach(b => b.onclick = () => { page = +b.dataset.page; draw(); window.scrollTo(0, 0); });
-  const e = document.getElementById("edit"), s = document.getElementById("sig");
-  if (e) e.onclick = editMine;
-  if (s) s.onclick = ev => { ev.preventDefault(); openSignIn(); };
 }
 function pager(pages) {
   if (pages < 2) return "";
@@ -299,14 +291,21 @@ function openCommit(sha) {
   };
 }
 
-async function editMine() {
+function cicd() {
+  const main = document.getElementById("main");
+  if (!me) {
+    main.innerHTML = `<div class="card"><h2>What runs on your pushes</h2><p class="muted">Sign in to choose which models run on which machines when your commits land on pie main.</p>` +
+      `<button class="act" id="sig">Sign in</button></div>`;
+    document.getElementById("sig").onclick = openSignIn;
+    return;
+  }
   const cur = mine || { models: [], macs: [] };
   const pick = (name, items, checked) => items.map(x => `<label class="check"><input type="checkbox" name="${name}" value="${x.id}" ${checked.includes(x.id) ? "checked" : ""}> ${esc(x.name)}</label>`).join("");
-  sheet(`<h2>What runs on your pushes</h2><p class="muted">Every commit you land on pie main runs these models on these machines. Select no model to run nothing.</p>` +
-    `<div class="row"><div><div class="label">Models</div>${pick("model", DATA.models, cur.models || [])}</div>` +
+  main.innerHTML = `<div class="auto" style="margin-bottom:12px"><span>Your pushes run</span>${summary()}</div>` +
+    `<div class="card"><div class="row"><div><div class="label">Models</div>${pick("model", DATA.models, cur.models || [])}</div>` +
     `<div><div class="label">Machines</div><label class="check"><input type="checkbox" name="all" ${(cur.macs || []).length ? "" : "checked"}> every connected machine</label>` +
-    `${pick("mac", RUNNABLE, cur.macs || [])}</div></div><button class="act" id="save">Save</button> <span id="msg" class="muted"></span>`);
-  const picked = n => [...document.querySelectorAll(`#sheet input[name=${n}]:checked`)].map(x => x.value);
+    `${pick("mac", RUNNABLE, cur.macs || [])}</div></div><button class="act" id="save">Save</button> <span id="msg" class="muted"></span></div>`;
+  const picked = n => [...main.querySelectorAll(`input[name=${n}]:checked`)].map(x => x.value);
   document.getElementById("save").onclick = async () => {
     const { enabled, ...keep } = mine || {};
     const data = { ...keep, models: picked("model"), macs: picked("all").length ? [] : picked("mac") };
@@ -316,7 +315,7 @@ async function editMine() {
       await gh(path, { method: "PUT", body: JSON.stringify({
         message: `users: ${me.login} ${data.models.length ? "runs " + data.models.join(", ") : "runs nothing"}`,
         content: btoa(JSON.stringify(data, null, 2) + NL), ...(now ? { sha: now.sha } : {}) }) });
-      mine = data; closeSheet(); draw();
+      mine = data; draw();
     } catch (e) { msg.textContent = "Could not save: " + e.message; }
   };
 }
@@ -426,7 +425,7 @@ function draw() {
   document.getElementById("tabs").innerHTML = TABS.map(t => `<button class="${t === tab ? "on" : ""}">${t}</button>`).join("");
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { tab = b.textContent; draw(); });
   document.getElementById("controls").hidden = tab !== "Overview";
-  ({ "Overview": overview, "Pushes": pushes, "Machines": pool, "People": people })[tab]();
+  ({ "Overview": overview, "CI/CD": cicd, "Pushes": pushes, "Machines": pool, "People": people })[tab]();
 }
 signIn().then(draw);
 </script>
