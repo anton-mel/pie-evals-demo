@@ -2,11 +2,11 @@
 
 | status | cells |
 |---|---|
-| pass | 517 |
-| fail | 562 |
+| pass | 518 |
+| fail | 557 |
 | declared_unsupported | 7537 |
 | not_run | 3721 |
-| noisy | 153 |
+| noisy | 157 |
 
 ## Gaps (expected supported, but not passing)
 
@@ -229,20 +229,15 @@
 | vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | engine setup: Command '['uv', 'pip', 'install', '--quiet', '--python', '/workspace/pie-evals-cache/venv-vllm-0.30.0/bin/ |
 | sglang | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | checkpoint unavailable for qwen3.5-0.8b-bf16: '[Errno 28] No space left on device' |
 | sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | checkpoint unavailable for qwen3.5-0.8b-bf16: '[Errno 28] No space left on device' |
-| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | control-aa | text-completion-bench | tp1 | fail | load_fail | artifact import: ✗ /workspace/pie-evals-cache/artifacts/.tmp-qwen3.6-27b-gguf-q4km-3801f892-70fb4fc5b39b-891-0c156f/qwen |
-| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | ss-128-64 | text-completion-bench | tp1 | fail | load_fail | artifact import: ✗ /workspace/pie-evals-cache/artifacts/.tmp-qwen3.6-27b-gguf-q4km-3801f892-70fb4fc5b39b-891-0c156f/qwen |
-| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | ss-512-256 | text-completion-bench | tp1 | fail | load_fail | artifact import: ✗ /workspace/pie-evals-cache/artifacts/.tmp-qwen3.6-27b-gguf-q4km-3801f892-70fb4fc5b39b-891-0c156f/qwen |
-| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | c8 | text-completion-bench | tp1 | fail | load_fail | artifact import: ✗ /workspace/pie-evals-cache/artifacts/.tmp-qwen3.6-27b-gguf-q4km-3801f892-70fb4fc5b39b-891-0c156f/qwen |
-| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | c32 | text-completion-bench | tp1 | fail | load_fail | artifact import: ✗ /workspace/pie-evals-cache/artifacts/.tmp-qwen3.6-27b-gguf-q4km-3801f892-70fb4fc5b39b-891-0c156f/qwen |
-| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | c64 | text-completion-bench | tp1 | fail | load_fail | artifact import: ✗ /workspace/pie-evals-cache/artifacts/.tmp-qwen3.6-27b-gguf-q4km-3801f892-70fb4fc5b39b-891-0c156f/qwen |
-| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | c256 | text-completion-bench | tp1 | fail | load_fail | artifact import: ✗ /workspace/pie-evals-cache/artifacts/.tmp-qwen3.6-27b-gguf-q4km-3801f892-70fb4fc5b39b-891-0c156f/qwen |
-| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | lc-1k-128 | text-completion-bench | tp1 | fail | load_fail | artifact import: ✗ /workspace/pie-evals-cache/artifacts/.tmp-qwen3.6-27b-gguf-q4km-3801f892-70fb4fc5b39b-891-0c156f/qwen |
-| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | lc-2k-128 | text-completion-bench | tp1 | fail | load_fail | artifact import: ✗ /workspace/pie-evals-cache/artifacts/.tmp-qwen3.6-27b-gguf-q4km-3801f892-70fb4fc5b39b-891-0c156f/qwen |
-| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | lc-8k-128 | text-completion-bench | tp1 | fail | load_fail | artifact import: ✗ /workspace/pie-evals-cache/artifacts/.tmp-qwen3.6-27b-gguf-q4km-3801f892-70fb4fc5b39b-891-0c156f/qwen |
-| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | lc-32k-128 | text-completion-bench | tp1 | fail | load_fail | artifact import: ✗ /workspace/pie-evals-cache/artifacts/.tmp-qwen3.6-27b-gguf-q4km-3801f892-70fb4fc5b39b-891-0c156f/qwen |
-| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | prefix-1k-x64 | text-completion-bench | tp1 | fail | load_fail | artifact import: ✗ /workspace/pie-evals-cache/artifacts/.tmp-qwen3.6-27b-gguf-q4km-3801f892-70fb4fc5b39b-891-0c156f/qwen |
-| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | mixed-256 | text-completion-bench | tp1 | fail | load_fail | artifact import: ✗ /workspace/pie-evals-cache/artifacts/.tmp-qwen3.6-27b-gguf-q4km-3801f892-70fb4fc5b39b-891-0c156f/qwen |
-| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | kv-oversub | text-completion-bench | tp1 | fail | load_fail | artifact import: ✗ /workspace/pie-evals-cache/artifacts/.tmp-qwen3.6-27b-gguf-q4km-3801f892-70fb4fc5b39b-891-0c156f/qwen |
+| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | c32 | text-completion-bench | tp1 | fail | crash | all 128 requests failed: g0 take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admission |
+| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | c64 | text-completion-bench | tp1 | fail | crash | all 256 requests failed: out take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admissio |
+| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | c256 | text-completion-bench | tp1 | fail | crash | all 1024 requests failed: g0 take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admissio |
+| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | lc-1k-128 | text-completion-bench | tp1 | fail | crash | all 4 requests failed: g0 take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admission a |
+| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | lc-8k-128 | text-completion-bench | tp1 | fail | crash | all 4 requests failed: prefill chunk submit @0: pipeline: frame slot 0: pipeline: this fire would grow its sequence to 5 |
+| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | lc-32k-128 | text-completion-bench | tp1 | fail | crash | all 4 requests failed: prefill chunk submit @0: pipeline: frame slot 0: pipeline: this fire would grow its sequence to 2 |
+| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | all 64 requests failed: g0 take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admission  |
+| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | mixed-256 | text-completion-bench | tp1 | fail | crash | all 256 requests failed: g0 take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admission |
+| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | kv-oversub | text-completion-bench | tp1 | fail | crash | all 256 requests failed: drain prefill chunk @0: drop_tok_c take: channel is poisoned: pipeline: forward failed: direct  |
 | pie | l40s-x1 | qwen3.6-35b-a3b-mini5 | ss-128-64 | rs-speculative-decoding | tp1,rs | fail | crash | all 8 requests failed: KeyError: 'num_output_tokens' |
 | pie | l40s-x2 | gemma-4-e4b-bf16 | c256 | text-completion-bench | tp2 | fail | crash | all 1024 requests failed: TimeoutError:  |
 | pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | trackb-h2o | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
@@ -648,6 +643,10 @@
 | pie | l40s-x1 | kimi-k3-mini8 | ss-128-64 | classifier-free-guidance | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | noisy |  |  |
 | sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | noisy |  |  |
+| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | ss-128-64 | text-completion-bench | tp1 | noisy |  |  |
+| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | ss-512-256 | text-completion-bench | tp1 | noisy |  |  |
+| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | c8 | text-completion-bench | tp1 | noisy |  |  |
+| pie | l40s-x1 | qwen3.6-27b-gguf-q4km | lc-2k-128 | text-completion-bench | tp1 | noisy |  |  |
 | pie | l40s-x2 | gemma-4-e4b-bf16 | ss-512-256 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x2 | gemma-4-e4b-bf16 | c8 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x2 | gemma-4-e4b-bf16 | c32 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
@@ -4490,5 +4489,5 @@
 | gpt_oss | 0/59 | 0/59 | 0/59 | 33/59 | 10/59 | 0/71 | 0/71 | 0/71 | 0/59 | 17/59 | 0/59 | 24/59 | 23/59 |
 | kimi_k3 | 0/14 | 0/14 | 0/14 | 12/14 | 0/14 | 0/18 | 0/18 | 0/18 | 6/14 | 6/14 | 0/14 | · | 0/14 |
 | qwen3_5 | 0/14 | 0/14 | 0/14 | 12/14 | 4/14 | 0/18 | 0/18 | 0/18 | 8/14 | 7/14 | 0/14 | 12/14 | 0/14 |
-| qwen3_6 | 0/32 | 0/32 | 0/32 | 0/32 | 0/32 | 0/40 | 0/40 | 0/40 | 0/32 | 0/32 | 0/32 | 2/32 | 0/32 |
+| qwen3_6 | 0/32 | 0/32 | 0/32 | 1/32 | 0/32 | 0/40 | 0/40 | 0/40 | 0/32 | 0/32 | 0/32 | 2/32 | 0/32 |
 | qwen3_6_moe | 0/30 | 0/30 | 0/30 | 0/30 | 0/30 | 0/38 | 0/38 | 0/38 | 0/30 | 8/30 | 0/30 | 12/30 | 0/30 |
