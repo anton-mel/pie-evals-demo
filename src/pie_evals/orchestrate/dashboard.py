@@ -115,9 +115,9 @@ PAGE = """<!doctype html>
   button.link { border: 0; background: none; color: #0969da; font: inherit; cursor: pointer; padding: 0 0 0 6px; }
   #who { position: relative; }
   .menu { position: absolute; right: 0; top: 40px; background: #fff; border: 1px solid #d0d7de; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 6px; z-index: 20; min-width: 160px; display: flex; flex-direction: column; }
-  .menu button { display: flex; align-items: center; gap: 10px; border: 0; background: none; font: inherit; font-size: 14px; text-align: left; padding: 8px 12px; border-radius: 8px; cursor: pointer; color: #1f2328; }
+  .menu button { display: flex; align-items: center; gap: 8px; border: 0; background: none; font: inherit; font-size: 14px; text-align: left; padding: 8px 12px; border-radius: 8px; cursor: pointer; color: #1f2328; }
   .menu button:hover { background: #f6f8fa; }
-  .menu button svg { color: #656d76; flex: none; }
+  .menu button svg { color: #656d76; flex: none; width: 13px; height: 13px; }
   .gridwrap { overflow-x: auto; margin: 12px 0; }
   table.grid td, table.grid th { padding: 5px 8px; font-size: 13px; }
   table.grid .c { text-align: center; }
