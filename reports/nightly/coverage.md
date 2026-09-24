@@ -2,10 +2,10 @@
 
 | status | cells |
 |---|---|
-| pass | 524 |
-| fail | 557 |
-| declared_unsupported | 7537 |
-| not_run | 3715 |
+| pass | 514 |
+| fail | 567 |
+| declared_unsupported | 7898 |
+| not_run | 4184 |
 | noisy | 157 |
 
 ## Gaps (expected supported, but not passing)
@@ -525,8 +525,18 @@
 | pie | rtx5090-x1 | gpt-oss-20b-mlx-mxfp4 | lc-1k-128 | attention-sink | tp1 | fail | crash | all 4 requests failed: first_token take: channel is poisoned: pipeline: forward failed: direct launch rejected: invalid  |
 | pie | rtx5090-x1 | gpt-oss-20b-mlx-mxfp4 | lc-1k-128 | sliding-window-attention | tp1 | fail | crash | all 4 requests failed: first_token take: channel is poisoned: pipeline: forward failed: direct launch rejected: invalid  |
 | pie | rtx5090-x1 | gpt-oss-20b-mlx-mxfp4 | ss-128-64 | classifier-free-guidance | tp1 | fail | crash | all 8 requests failed: uncond_prefill_logits take: channel is poisoned: pipeline: forward failed: direct launch rejected |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | c64 | text-completion-bench | tp1 | fail | crash | all 256 requests failed: out take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admissio |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | fail | crash | all 1024 requests failed: out take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admissi |
+| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | control-aa | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | ss-512-256 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | c8 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | c32 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | c64 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | lc-2k-128 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | mixed-256 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
 | vllm | rtx5090-x1 | kimi-k3-mini8 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | fail | crash | vllm.v1.engine.exceptions.EngineDeadError: EngineCore encountered an issue. See stack trace (above) for the root cause. |
 | vllm | rtx5090-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
 | vllm | rtx5090-x1 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
@@ -3293,6 +3303,475 @@
 | mlxlm | m4-pro-48g | qwen3.6-35b-a3b-mlx4 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | mlxlm | m4-pro-48g | qwen3.6-35b-a3b-mlx4 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | mlxlm | m4-pro-48g | qwen3.6-35b-a3b-mlx4 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | control-aa | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | ss-128-64 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | ss-512-256 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | c8 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | ss-128-64 | dflash-block-acceptance | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | lc-1k-128 | trackb-h2o | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | lc-1k-128 | trackb-snapkv | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | lc-1k-128 | snapkv-eviction | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | lc-1k-128 | tova-attention | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4-flash-mini5 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | deepseek-v4-flash-mini5 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | deepseek-v4-flash-mini5 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | deepseek-v4-flash-mini5 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | deepseek-v4-flash-mini5 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | deepseek-v4-flash-mini5 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | deepseek-v4-flash-mini5 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | deepseek-v4-flash-mini5 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | deepseek-v4-flash-mini5 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | deepseek-v4-flash-mini5 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | deepseek-v4-flash-mini5 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | deepseek-v4-flash-mini5 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | deepseek-v4-flash-mini5 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | deepseek-v4-flash-mini5 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | deepseek-v4-flash-mini5 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| mlxlm | m5-max-48g | deepseek-v4-flash-mini5 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | control-aa | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | ss-128-64 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | ss-512-256 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | c8 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | ss-128-64 | dflash-block-acceptance | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | lc-1k-128 | trackb-h2o | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | lc-1k-128 | trackb-snapkv | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | lc-1k-128 | snapkv-eviction | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | lc-1k-128 | tova-attention | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
+| pie | m5-max-48g | deepseek-v4.1-flash-mini8 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | control-aa | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | ss-128-64 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | ss-512-256 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | c8 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | ss-128-64 | dflash-block-acceptance | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | lc-1k-128 | trackb-h2o | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | lc-1k-128 | trackb-snapkv | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | lc-1k-128 | snapkv-eviction | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | lc-1k-128 | tova-attention | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-26b-a4b-mlx4 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-26b-a4b-mlx4 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | control-aa | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | ss-128-64 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | ss-512-256 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | c8 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | ss-128-64 | dflash-block-acceptance | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | lc-1k-128 | trackb-h2o | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | lc-1k-128 | trackb-snapkv | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | lc-1k-128 | snapkv-eviction | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | lc-1k-128 | tova-attention | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-31b-mlx4 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| mlxlm | m5-max-48g | gemma-4-31b-mlx4 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | control-aa | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | ss-128-64 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | ss-512-256 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | c8 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | ss-128-64 | dflash-block-acceptance | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | lc-1k-128 | trackb-h2o | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | lc-1k-128 | trackb-snapkv | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | lc-1k-128 | snapkv-eviction | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | lc-1k-128 | tova-attention | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
+| pie | m5-max-48g | gemma-4-e4b-bf16 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | control-aa | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | ss-128-64 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | ss-512-256 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | c8 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | ss-128-64 | dflash-block-acceptance | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | ss-128-64 | rs-speculative-decoding | tp1,rs | not_run |  |  |
+| pie | m5-max-48g | glm-5.3-flash-mini8 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | glm-5.3-flash-mini8 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | glm-5.3-flash-mini8 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | glm-5.3-flash-mini8 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | glm-5.3-flash-mini8 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | glm-5.3-flash-mini8 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | glm-5.3-flash-mini8 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | glm-5.3-flash-mini8 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | glm-5.3-flash-mini8 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | glm-5.3-flash-mini8 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | glm-5.3-flash-mini8 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | glm-5.3-flash-mini8 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | glm-5.3-flash-mini8 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | glm-5.3-flash-mini8 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | glm-5.3-flash-mini8 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| mlxlm | m5-max-48g | glm-5.3-flash-mini8 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | control-aa | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | ss-128-64 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | ss-512-256 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | c8 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | ss-128-64 | dflash-block-acceptance | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | lc-1k-128 | trackb-h2o | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | lc-1k-128 | trackb-snapkv | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | lc-1k-128 | snapkv-eviction | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | lc-1k-128 | tova-attention | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| mlxlm | m5-max-48g | gpt-oss-20b-mlx-mxfp4 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | control-aa | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | ss-128-64 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | ss-512-256 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | c8 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | ss-128-64 | dflash-block-acceptance | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | lc-1k-128 | trackb-h2o | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | lc-1k-128 | trackb-snapkv | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | lc-1k-128 | snapkv-eviction | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | lc-1k-128 | tova-attention | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | control-aa | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | ss-512-256 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | c8 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | dflash-block-acceptance | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | trackb-h2o | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | trackb-snapkv | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | snapkv-eviction | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | tova-attention | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | sliding-window-attention | tp1 | not_run |  |  |
+| pie | m5-max-48g | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | control-aa | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | ss-128-64 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | ss-512-256 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | c8 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | ss-128-64 | dflash-block-acceptance | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | ss-128-64 | rs-speculative-decoding | tp1,rs | not_run |  |  |
+| pie | m5-max-48g | kimi-k3-mini8 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | control-aa | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | ss-128-64 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | ss-512-256 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | c8 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | ss-128-64 | dflash-block-acceptance | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | ss-128-64 | rs-speculative-decoding | tp1,rs | not_run |  |  |
+| pie | m5-max-48g | qwen3.5-0.8b-bf16 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | control-aa | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | c8 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | c32 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | c64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | c256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | ss-128-64 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | ss-512-256 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | c8 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | ss-128-64 | dflash-block-acceptance | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | ss-128-64 | rs-speculative-decoding | tp1,rs | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-gguf-q4km | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | c8 | text-completion-bench | tp1 | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | c32 | text-completion-bench | tp1 | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | c64 | text-completion-bench | tp1 | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | c256 | text-completion-bench | tp1 | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| llamacpp | m5-max-48g | qwen3.6-27b-gguf-q4km | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | control-aa | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | ss-128-64 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | ss-512-256 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | c8 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | ss-128-64 | dflash-block-acceptance | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | ss-128-64 | rs-speculative-decoding | tp1,rs | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-27b-mlx4 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-27b-mlx4 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | control-aa | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | ss-128-64 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | ss-512-256 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | c8 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | ss-128-64 | dflash-block-acceptance | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | ss-128-64 | rs-speculative-decoding | tp1,rs | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mini5 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mini5 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mini5 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mini5 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mini5 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mini5 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mini5 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mini5 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mini5 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mini5 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mini5 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mini5 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mini5 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mini5 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mini5 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mini5 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | control-aa | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | ss-128-64 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | ss-512-256 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | c8 | dflash-speculative-bench | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | ss-128-64 | dflash-block-acceptance | tp1,dflash2 | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | ss-128-64 | rs-speculative-decoding | tp1,rs | not_run |  |  |
+| pie | m5-max-48g | qwen3.6-35b-a3b-mlx4 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | c8 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | c32 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | c64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | c256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
+| mlxlm | m5-max-48g | qwen3.6-35b-a3b-mlx4 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | pie | pro4500-x1 | gemma-4-26b-a4b-mlx4 | control-aa | text-completion-bench | tp1 | not_run |  |  |
 | pie | pro4500-x1 | gemma-4-26b-a4b-mlx4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
 | pie | pro4500-x1 | gemma-4-26b-a4b-mlx4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
@@ -4446,42 +4925,42 @@
 
 | reason | cells |
 |---|---|
-| pie has no llama family reader | 781 |
-| pie/mini-dit is not an HF repo; needs a checkpoint source | 664 |
+| pie has no llama family reader | 818 |
+| pie/mini-dit is not an HF repo; needs a checkpoint source | 692 |
+| prefill-rows takes its own input (`ids`); pie_bench.py cannot drive it | 658 |
 | CUDA engine exposes no draft head (Metal only) — wiki speculative-decoding/ | 636 |
-| prefill-rows takes its own input (`ids`); pie_bench.py cannot drive it | 608 |
-| shrink_checkpoint.py has no nemotron_h reader (supported: deepseek_v4, deepseek_v41, glm_moe_dsa, gpt_oss, kimi, muse_glimmer, qwen3_5_moe, qwen4_exp) | 560 |
-| returns non-JSON to pie_bench.py (JSONDecodeError); on hybrid models also needs forward-hybrid | 400 |
-| return envelope lacks num_output_tokens (pie_bench.py KeyError); on hybrid models also needs forward-hybrid | 400 |
-| return envelope lacks num_output_tokens (pie_bench.py KeyError) | 400 |
-| seeds a fixed-size adapter bank (1572864 bytes) that must match the model's layer count; needs a per-model input contract | 400 |
-| shape needs 8320 tokens > the artifact's max_context 4096 | 363 |
-| shape needs 32896 tokens > the artifact's max_context 4096 | 363 |
+| shrink_checkpoint.py has no nemotron_h reader (supported: deepseek_v4, deepseek_v41, glm_moe_dsa, gpt_oss, kimi, muse_glimmer, qwen3_5_moe, qwen4_exp) | 580 |
+| returns non-JSON to pie_bench.py (JSONDecodeError); on hybrid models also needs forward-hybrid | 434 |
+| return envelope lacks num_output_tokens (pie_bench.py KeyError); on hybrid models also needs forward-hybrid | 434 |
+| return envelope lacks num_output_tokens (pie_bench.py KeyError) | 434 |
+| seeds a fixed-size adapter bank (1572864 bytes) that must match the model's layer count; needs a per-model input contract | 434 |
+| shape needs 8320 tokens > the artifact's max_context 4096 | 384 |
+| shape needs 32896 tokens > the artifact's max_context 4096 | 384 |
 | engine-cuda refuses attention.pool_lse_selected (dsv4 flash rows are CANNOT_SERVE on CUDA; Metal/Vulkan/wgpu only) | 330 |
 | engine-cuda refuses attention.pool_lse_selected (dsv41 rows are CANNOT_SERVE on CUDA; Metal/Vulkan/wgpu only) | 330 |
 | runner image has no nvcc; no CUDA llama.cpp build on pods yet | 170 |
-| attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the qwen3_6_moe forward pass is hybrid | 156 |
-| attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the qwen3_6 forward pass is hybrid | 156 |
+| attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the qwen3_6_moe forward pass is hybrid | 168 |
+| attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the qwen3_6 forward pass is hybrid | 168 |
 | vLLM 0.30.0 has no deepseek_v41 (CSA2/Engram) model; revisit at the next pin | 150 |
 | SGLang 0.5.20 gemma-4 crashes in its attention/view path on every card tried; revisit at the next pin | 150 |
 | SGLang 0.5.20 has no deepseek_v41 (CSA2/Engram) model; revisit at the next pin | 150 |
-| attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the qwen3_5 forward pass is hybrid | 78 |
-| attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the glm5_next forward pass is hybrid | 78 |
-| attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the nemotron_h forward pass is hybrid | 78 |
-| attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the kimi_k3 forward pass is hybrid | 72 |
+| attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the qwen3_5 forward pass is hybrid | 84 |
+| attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the glm5_next forward pass is hybrid | 84 |
+| attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the nemotron_h forward pass is hybrid | 84 |
+| attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the kimi_k3 forward pass is hybrid | 78 |
 | does not fit: 27.5 GiB per device > 24.0 GiB | 64 |
 
 ## pie pass rate by family × platform
 
-| family | a100-pcie-x1 | a100-x2 | h100-pcie-x1 | l40s-x1 | l40s-x2 | m1-max-32g | m2-max | m4-pro-48g | pro4500-x1 | pro6000-x1 | pro6000-x4 | rtx4090-x1 | rtx5090-x1 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| deepseek_v4 | · | · | · | · | · | 0/23 | 0/23 | 0/23 | · | · | · | · | · |
-| deepseek_v41 | · | · | · | · | · | 0/23 | 0/23 | 0/23 | · | · | · | · | · |
-| gemma4 | 0/40 | 0/40 | 0/40 | 0/40 | 3/40 | 0/48 | 0/48 | 0/48 | 0/40 | 6/40 | 0/40 | 5/40 | 0/40 |
-| gemma4_moe | 0/21 | 0/21 | 0/21 | 0/21 | 0/21 | 0/25 | 0/25 | 0/25 | 0/21 | 0/21 | 0/21 | 1/21 | 0/21 |
-| glm5_next | 0/14 | 0/14 | 0/14 | 0/14 | 4/14 | 0/18 | 0/18 | 0/18 | 6/14 | 11/14 | 0/14 | 0/14 | 0/14 |
-| gpt_oss | 0/59 | 0/59 | 0/59 | 33/59 | 10/59 | 0/71 | 0/71 | 0/71 | 0/59 | 21/59 | 0/59 | 24/59 | 23/59 |
-| kimi_k3 | 0/14 | 0/14 | 0/14 | 12/14 | 0/14 | 0/18 | 0/18 | 0/18 | 6/14 | 6/14 | 0/14 | · | 0/14 |
-| qwen3_5 | 0/14 | 0/14 | 0/14 | 12/14 | 4/14 | 0/18 | 0/18 | 0/18 | 8/14 | 7/14 | 0/14 | 12/14 | 0/14 |
-| qwen3_6 | 0/32 | 0/32 | 0/32 | 1/32 | 0/32 | 0/40 | 0/40 | 0/40 | 0/32 | 0/32 | 0/32 | 2/32 | 0/32 |
-| qwen3_6_moe | 0/30 | 0/30 | 0/30 | 0/30 | 0/30 | 0/38 | 0/38 | 0/38 | 0/30 | 8/30 | 0/30 | 12/30 | 0/30 |
+| family | a100-pcie-x1 | a100-x2 | h100-pcie-x1 | l40s-x1 | l40s-x2 | m1-max-32g | m2-max | m4-pro-48g | m5-max-48g | pro4500-x1 | pro6000-x1 | pro6000-x4 | rtx4090-x1 | rtx5090-x1 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| deepseek_v4 | · | · | · | · | · | 0/23 | 0/23 | 0/23 | 0/23 | · | · | · | · | · |
+| deepseek_v41 | · | · | · | · | · | 0/23 | 0/23 | 0/23 | 0/23 | · | · | · | · | · |
+| gemma4 | 0/40 | 0/40 | 0/40 | 0/40 | 3/40 | 0/48 | 0/48 | 0/48 | 0/48 | 0/40 | 6/40 | 0/40 | 5/40 | 0/40 |
+| gemma4_moe | 0/21 | 0/21 | 0/21 | 0/21 | 0/21 | 0/25 | 0/25 | 0/25 | 0/25 | 0/21 | 0/21 | 0/21 | 1/21 | 0/21 |
+| glm5_next | 0/14 | 0/14 | 0/14 | 0/14 | 4/14 | 0/18 | 0/18 | 0/18 | 0/18 | 6/14 | 11/14 | 0/14 | 0/14 | 0/14 |
+| gpt_oss | 0/59 | 0/59 | 0/59 | 33/59 | 10/59 | 0/71 | 0/71 | 0/71 | 0/71 | 0/59 | 21/59 | 0/59 | 24/59 | 13/59 |
+| kimi_k3 | 0/14 | 0/14 | 0/14 | 12/14 | 0/14 | 0/18 | 0/18 | 0/18 | 0/18 | 6/14 | 6/14 | 0/14 | · | 0/14 |
+| qwen3_5 | 0/14 | 0/14 | 0/14 | 12/14 | 4/14 | 0/18 | 0/18 | 0/18 | 0/18 | 8/14 | 7/14 | 0/14 | 12/14 | 0/14 |
+| qwen3_6 | 0/32 | 0/32 | 0/32 | 1/32 | 0/32 | 0/40 | 0/40 | 0/40 | 0/40 | 0/32 | 0/32 | 0/32 | 2/32 | 0/32 |
+| qwen3_6_moe | 0/30 | 0/30 | 0/30 | 0/30 | 0/30 | 0/38 | 0/38 | 0/38 | 0/38 | 0/30 | 8/30 | 0/30 | 12/30 | 0/30 |
