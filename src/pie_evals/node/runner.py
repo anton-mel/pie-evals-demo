@@ -46,9 +46,14 @@ from . import preflight as pf
 from . import provenance as prov
 from .engines import EngineLaunchError, get_engine
 from .engines.recipes import load_recipe
-from .engines.shape import serve_envelope
+from .engines.shape import context_tokens_for, serve_envelope
 from .metrics.stats import cov, decide_repetition, median
 from .workloads import common_args_for
+
+# the long-context shapes (lc-8k, lc-32k) size the server's arena and KV rows; when
+# that envelope does not fit the card the short shapes still can (gemma-4-26b on a 4090)
+SHORT_CONTEXT_TOKENS = 8192
+MEMORY_BOUND_MARKS = ("device memory exhausted", "weight residency", "does not hold this deployment")
 
 
 class NodeRunner:
@@ -274,20 +279,42 @@ class NodeRunner:
                 # one boot per model: the bench then attaches to this server for every
                 # cell and round instead of reloading the weights each time (gemma-4 E4B
                 # spent ~7 min per round loading; the measurement itself takes seconds)
-                widest = serve_envelope([c.workload for c in cells])
                 serve_log = self.out / "serve" / f"{artifact_key.replace('/', '_')}-{mode_key}.log"
-                try:
-                    engine.serve(widest, serve_log, int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
-                except EngineLaunchError as e:
-                    from .importer import RELAYOUT_MARK, ensure_artifact
 
-                    if RELAYOUT_MARK not in str(e) or str(first.engine) != "pie" or not self.job.pie_commit or model_path != snapshot:
+                def boot(shape):
+                    nonlocal engine, model_path
+                    try:
+                        engine.serve(shape, serve_log, int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
+                    except EngineLaunchError as e:
+                        from .importer import RELAYOUT_MARK, ensure_artifact
+
+                        if RELAYOUT_MARK not in str(e) or str(first.engine) != "pie" or not self.job.pie_commit or model_path != snapshot:
+                            raise
+                        self.log("pie refuses to serve this checkpoint directly; importing it as an artifact and retrying")
+                        model_path = ensure_artifact(first.artifact, snapshot, self.pie_root / "target/release/pie", self.job.pie_commit, log=self.log)
+                        recipe["snapshot_dir"] = str(model_path)
+                        engine = cls(pie_root=self.pie_root, artifact=first.artifact, platform=first.platform, mode=first.mode, recipe=recipe, num_layers=num_layers)
+                        engine.serve(shape, serve_log, int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
+
+                try:
+                    boot(serve_envelope([c.workload for c in cells]))
+                except EngineLaunchError as e:
+                    # a 32k envelope does not fit a 24 GB card beside a 16 GiB model
+                    # (nightly 35985312978): give the long shapes up, keep the short ones
+                    short = [c for c in cells if context_tokens_for(c.workload) <= SHORT_CONTEXT_TOKENS]
+                    if not any(m in str(e) for m in MEMORY_BOUND_MARKS) or not short or len(short) == len(cells):
                         raise
-                    self.log("pie refuses to serve this checkpoint directly; importing it as an artifact and retrying")
-                    model_path = ensure_artifact(first.artifact, snapshot, self.pie_root / "target/release/pie", self.job.pie_commit, log=self.log)
-                    recipe["snapshot_dir"] = str(model_path)
+                    self.log(f"engine boot at the full envelope failed for memory; retrying with the shapes under {SHORT_CONTEXT_TOKENS} tokens ({len(short)} of {len(cells)} cells)")
+                    for c in cells:
+                        if c not in short:
+                            self.emit(self._failed(c, e.error_class, f"does not fit beside the short shapes: {e}", fingerprint))
+                    try:
+                        engine.stop()
+                    except Exception:
+                        pass
                     engine = cls(pie_root=self.pie_root, artifact=first.artifact, platform=first.platform, mode=first.mode, recipe=recipe, num_layers=num_layers)
-                    engine.serve(widest, serve_log, int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
+                    cells = short
+                    boot(serve_envelope([c.workload for c in cells]))
                 if getattr(engine, "server_url", None):
                     self.log(f"serving {artifact_key} at {engine.server_url}")
             except EngineLaunchError as e:
