@@ -108,7 +108,6 @@ PAGE = """<!doctype html>
   .auto .tag { padding: 0 12px; }
   .auto .tag.off { background: #fff8c5; border-color: #eac54f; }
   .on-word { color: #656d76; }
-  .tag.kind { background: #fff; border: 1px solid #d0d7de; }
   .kicker { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: #656d76; margin-right: 4px; }
   .pill.small { padding: 0 12px; gap: 6px; margin-left: 4px; }
   .filter select { padding: 0 30px 0 12px; }
@@ -321,11 +320,16 @@ async function editMine() {
 }
 
 function pool() {
-  let html = `<div class="card"><table class="compact"><tr><th>machine</th><th>type</th><th>memory</th><th>status</th><th>last run</th></tr>`;
-  for (const m of DATA.pool) html += `<tr><td>${esc(m.name)} <span class="muted">${m.id}</span></td><td><span class="tag kind">${esc(m.kind)}</span></td>` +
-    `<td>${m.memory_gib ? m.memory_gib + " GB" : ""}</td><td><span class="dot ${m.status}"></span>${m.status}</td><td>${m.last}</td></tr>`;
-  if (!DATA.pool.length) html += `<tr><td colspan="5" class="muted">No machine is connected.</td></tr>`;
-  document.getElementById("main").innerHTML = html + `</table></div>`;
+  let html = "";
+  for (const kind of [...new Set(["self-hosted", ...DATA.pool.map(m => m.kind)])]) {
+    const list = DATA.pool.filter(m => m.kind === kind);
+    html += `<div class="phase">${esc(kind)}</div><div class="card"><table class="compact"><tr><th>machine</th><th>memory</th><th>status</th><th>last run</th></tr>`;
+    for (const m of list) html += `<tr><td>${esc(m.name)} <span class="muted">${m.id}</span></td>` +
+      `<td>${m.memory_gib ? m.memory_gib + " GB" : ""}</td><td><span class="dot ${m.status}"></span>${m.status}</td><td>${m.last}</td></tr>`;
+    if (!list.length) html += `<tr><td colspan="4" class="muted">None connected.</td></tr>`;
+    html += `</table></div>`;
+  }
+  document.getElementById("main").innerHTML = html;
 }
 function people() {
   const ago = d => { if (!d) return "–"; const h = (Date.now() - new Date(d)) / 36e5; return h < 1 ? "just now" : h < 24 ? `${Math.round(h)}h ago` : `${Math.round(h / 24)}d ago`; };
