@@ -171,3 +171,23 @@ def recorded_cell_keys(store: Store, tier: Tier, pie_commit: str) -> set[str]:
     keys = t.column("cell_key").to_pylist()
     commits = t.column("pie_commit").to_pylist()
     return {k for k, c in zip(keys, commits, strict=True) if c == pie_commit}
+
+
+def plan_pods(matrix: Matrix, jobs: list[JobSpec]) -> list[dict]:
+    """One pod per hardware configuration: every job whose platform names this pod
+    (an x1 on its x2) is routed to it by runner label and runs there in turn, so the
+    build, the checkpoints and the caches are shared. Resident runners (Macs) need
+    no pod and are left out. The kill timer covers the whole queue."""
+    pods: dict[str, dict] = {}
+    for j in jobs:
+        plat = matrix.platforms[j.platform_id]
+        host = matrix.platforms[plat.pod or plat.id]
+        if not host.runpod_gpu_type:
+            continue
+        p = pods.setdefault(host.id, {"pod": host.id, "labels": list(host.runner_labels), "jobs": [], "est_minutes": 0.0})
+        p["labels"] = sorted(set(p["labels"]) | set(plat.runner_labels))
+        p["jobs"].append(j.job_id)
+        p["est_minutes"] = round(p["est_minutes"] + j.est_minutes, 1)
+    for p in pods.values():
+        p["kill_minutes"] = max(matrix.kill_minutes, int(p["est_minutes"] * matrix.kill_factor) + 30)
+    return sorted(pods.values(), key=lambda p: p["pod"])

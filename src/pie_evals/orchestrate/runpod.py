@@ -103,13 +103,17 @@ def create_network_volume(name: str, size_gb: int, data_center_id: str, api_key:
 
 # ---- startup ----------------------------------------------------------------------
 
-def startup_script(labels: list[str], *, repo: str, kill_minutes: int, image_version: str = "latest", volume: str = VOLUME, debug: bool = False) -> str:
+def startup_script(labels: list[str], *, repo: str, kill_minutes: int, image_version: str = "latest", volume: str = VOLUME, debug: bool = False, idle_minutes: int = 20) -> str:
     """Runs as the pod's start command on the runpod-ci-runner image.
 
-    Every step is logged to ``/tmp/pie-evals-logs/start.log`` (never the
-    token). With ``debug`` the log directory is served on port 8080 — reachable
-    through RunPod's proxy at ``https://<pod>-8080.proxy.runpod.net/start.log``
-    — and a failed registration keeps the pod alive for 10 minutes instead of
+    The runner is not ephemeral: one pod hosts every job of its hardware
+    configuration (labels cover the x1 and the x2 platform), GitHub hands them
+    over one after another, and the pod terminates itself once no job has run
+    for ``idle_minutes`` — or at ``kill_minutes`` regardless. Every step is
+    logged to ``/tmp/pie-evals-logs/start.log`` (never the token). With
+    ``debug`` the log directory is served on port 8080 — reachable through
+    RunPod's proxy at ``https://<pod>-8080.proxy.runpod.net/start.log`` — and a
+    failed registration keeps the pod alive for 10 minutes instead of
     terminating at once, so the log can be read."""
     lab = ",".join(labels + [f"img-{image_version}"])
     hold = "600" if debug else "0"
@@ -121,8 +125,21 @@ exec > >(tee -a /tmp/pie-evals-logs/start.log) 2>&1
 echo "== start $(date -u +%FT%TZ) pod=${{RUNPOD_POD_ID:-?}} platform=${{PIE_EVALS_PLATFORM:-?}}"
 echo "== $(nvidia-smi --query-gpu=name,driver_version,compute_cap,memory.total --format=csv,noheader 2>/dev/null || echo 'no GPU visible')"
 {"(cd /tmp/pie-evals-logs && python3 -m http.server 8080 >/dev/null 2>&1 &)" if debug else ""}
-terminate() {{ echo "== terminate $(date -u +%FT%TZ)"; curl -fsS -X DELETE -H "Authorization: Bearer ${{RUNPOD_API_KEY:-}}" "https://rest.runpod.io/v1/pods/${{RUNPOD_POD_ID:-}}" >/dev/null 2>&1 || true; }}
+terminate() {{
+  echo "== terminate $(date -u +%FT%TZ)"
+  # drop the registration so no offline runner lingers on the repo (needs the PAT; a token-only pod leaves it to reap)
+  if [ -n "${{GH_RUNNER_PAT:-}}" ] && [ -f /opt/actions-runner/.runner ]; then
+    RT=$(curl -fsS -X POST -H "Authorization: Bearer $GH_RUNNER_PAT" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/{repo}/actions/runners/remove-token" | jq -r .token)
+    (cd /opt/actions-runner && RUNNER_ALLOW_RUNASROOT=1 ./config.sh remove --token "$RT" >/dev/null 2>&1) || true
+  fi
+  curl -fsS -X DELETE -H "Authorization: Bearer ${{RUNPOD_API_KEY:-}}" "https://rest.runpod.io/v1/pods/${{RUNPOD_POD_ID:-}}" >/dev/null 2>&1 || true
+}}
 ( sleep $(( {kill_minutes} * 60 )); echo "== self-destruct: {kill_minutes} min"; terminate ) &
+# idle watchdog: a job is running while Runner.Worker exists; {idle_minutes} min without one ends the pod
+( last=$(date +%s); while sleep 60; do
+    if pgrep -f Runner.Worker >/dev/null 2>&1; then last=$(date +%s)
+    elif [ $(( $(date +%s) - last )) -ge $(( {idle_minutes} * 60 )) ]; then echo "== idle {idle_minutes} min: no job"; terminate; fi
+  done ) &
 if [ ! -x "$V/.cargo/bin/rustup" ]; then
   echo "== installing rustup on $V"; mkdir -p "$V"
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | RUSTUP_HOME=$V/.rustup CARGO_HOME=$V/.cargo sh -s -- -y --profile minimal --default-toolchain none --no-modify-path || echo "== rustup install failed (non-fatal)"
@@ -165,7 +182,7 @@ fi
 echo "== token present: $([ -n "$TOKEN" ] && [ "$TOKEN" != null ] && echo yes || echo NO)"
 cd /opt/actions-runner || {{ echo "== no /opt/actions-runner"; sleep {hold}; terminate; exit 1; }}
 export RUNNER_ALLOW_RUNASROOT=1
-./config.sh --unattended --replace --ephemeral --disableupdate --url "https://github.com/{repo}" --token "$TOKEN" \
+./config.sh --unattended --replace --disableupdate --url "https://github.com/{repo}" --token "$TOKEN" \
   --name "runpod-${{RUNPOD_POD_ID:-$(hostname)}}" --labels "{lab}" --work /tmp/_work
 RC=$?; echo "== config.sh exit $RC"
 if [ $RC -ne 0 ]; then sleep {hold}; terminate; exit $RC; fi
@@ -225,6 +242,8 @@ def create_pod(
     debug: bool = False,
     exec_script: str | None = None,
     community_fallback: bool = True,
+    labels: list[str] | None = None,
+    idle_minutes: int = 20,
     log=print,
 ) -> PodHandle:
     if not platform.runpod_gpu_type:
@@ -233,7 +252,7 @@ def create_pod(
         raise ValueError("need runner_token (pre-minted registration token) or runner_pat, or an exec script")
     key = api_key or os.environ["RUNPOD_API_KEY"]
     name = f"pie-evals-{platform.id}-{int(time.time())}"
-    script = startup_script(platform.runner_labels, repo=repo, kill_minutes=kill_minutes, image_version=image_version, debug=debug)
+    script = startup_script(labels or platform.runner_labels, repo=repo, kill_minutes=kill_minutes, image_version=image_version, debug=debug, idle_minutes=idle_minutes)
     body: dict = {
         "name": name,
         "imageName": image,

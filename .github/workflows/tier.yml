@@ -28,6 +28,7 @@ jobs:
       needs_pods: ${{ steps.jobs.outputs.needs_pods }}
       platforms: ${{ steps.jobs.outputs.platforms }}
       bench_timeout_minutes: ${{ steps.jobs.outputs.bench_timeout_minutes }}
+      pods: ${{ steps.jobs.outputs.pods }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
@@ -56,99 +57,40 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: jobs, path: jobs/ }
 
-  # Build once, on one pod, before the fan-out: the bench pods then restore
-  # pie from $PIE_EVALS_CACHE/builds/<commit>-cuda on the network volume
-  # instead of each building it.
-  build-launch:
+  # One pod per hardware configuration: its runner carries the labels of every
+  # platform it hosts (an x1 rides its x2, one GPU masked), GitHub hands it the
+  # shards one after another, and the first shard builds pie and fetches the
+  # checkpoints for all that follow. The pod ends itself when its queue is empty.
+  launch:
     needs: expand
     if: needs.expand.outputs.needs_pods == 'true'
     runs-on: ubuntu-latest
-    outputs: { pod_id: "${{ steps.pod.outputs.pod_id }}", platform: "${{ steps.pod.outputs.platform }}" }
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
-      - run: uv venv && uv pip install -e ".[orchestrate]"
-      - id: pod
-        run: .venv/bin/pie-evals launch-pod --platform "${{ inputs.build_platform || vars.RUNPOD_BUILD_PLATFORM || 'rtx4090-x1,rtx5090-x1,pro6000-x1,l40s-x1,a100-pcie-x1,h100-pcie-x1' }}" --repo "${{ github.repository }}" --image "${{ vars.RUNPOD_IMAGE || 'pieproject/runpod-ci-runner:latest' }}" --kill-minutes 60 --wait-runner 480
-        env:
-          RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
-          GH_RUNNER_PAT: ${{ secrets.GH_RUNNER_PAT }}
-          RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
-  build:
-    needs: build-launch
-    runs-on: [self-hosted, linux, "${{ needs.build-launch.outputs.platform }}"]
-    timeout-minutes: 90   # a cold volume also installs vLLM/SGLang venvs here
-    steps:
-      - uses: actions/checkout@v4
-      - run: uv venv --quiet .venv && uv pip install --quiet --python .venv/bin/python -e "."
-      - name: previous prepare log on the volume (a pod that died mid-prepare leaves one)
-        run: |
-          L="$PIE_EVALS_CACHE/logs"; mkdir -p "$L"; ls -t "$L" 2>/dev/null | head -3
-          f=$(ls -t "$L"/prepare-*.log 2>/dev/null | head -1); [ -n "$f" ] && { echo "== tail of $f"; tail -40 "$f"; } || true
-      - name: build pie at the pinned commit and cache it on the volume
-        run: .venv/bin/pie-evals-node build --pie-commit "${{ inputs.pie_commit }}" --features cuda --pie-root "$PIE_ROOT" --mirror "$PIE_MIRROR" --target-dir "$CARGO_TARGET_DIR" 2>&1 | tee "$PIE_EVALS_CACHE/logs/build-${{ github.run_id }}.log"; exit ${PIPESTATUS[0]}
-      - name: checkpoints and miniatures onto the volume
-        # only worth doing onto the shared volume; a cold pod's disk is thrown away (and 80 GB
-        # of everything filled it) — cold bench pods fetch their own shard's models instead
-        if: env.PIE_EVALS_VOLUME == '1'
-        run: |
-          ARGS=""
-          for p in $(echo "${{ inputs.platforms }}" | tr ',' ' '); do ARGS="$ARGS --platform $p"; done
-          for e in $(echo "${{ inputs.engines }}" | tr ',' ' '); do ARGS="$ARGS --engine $e"; done
-          for g in $(echo "${{ inputs.programs }}" | tr ',' ' '); do ARGS="$ARGS --program $g"; done
-          .venv/bin/pie-evals-node prepare --tier "${{ inputs.tier }}" --pie-root "$PIE_ROOT" --pie-commit "${{ inputs.pie_commit }}" $ARGS 2>&1 | tee "$PIE_EVALS_CACHE/logs/prepare-${{ github.run_id }}.log" || echo "::warning::some checkpoints/baselines could not be prepared (their cells will be load_fail)"
-        env: { HF_TOKEN: "${{ secrets.HF_TOKEN }}" }
-  build-teardown:
-    needs: [build-launch, build]
-    if: always() && needs.build-launch.result != 'skipped'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
-      - run: uv venv && uv pip install -e ".[orchestrate]"
-      - run: .venv/bin/pie-evals terminate-pod "${{ needs.build-launch.outputs.pod_id }}" || true
-        env: { RUNPOD_API_KEY: "${{ secrets.RUNPOD_API_KEY }}" }
-
-  # RunPod platforms: launch a pod that registers itself as an ephemeral runner,
-  # then a second job lands on it. Macs are resident runners and skip the launch.
-  launch:
-    needs: [expand, build]
-    if: ${{ always() && needs.expand.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') && fromJson(needs.expand.outputs.matrix).include[0] != null }}
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.expand.outputs.matrix) }}
-    outputs:
-      pods: ${{ steps.pod.outputs.pod_id }}
+      matrix: ${{ fromJson(needs.expand.outputs.pods) }}
     steps:
       - uses: actions/checkout@v4
-        if: matrix.runpod
       - uses: astral-sh/setup-uv@v3
-        if: matrix.runpod
       - run: uv venv && uv pip install -e ".[orchestrate]"
-        if: matrix.runpod
       - name: launch pod
-        if: matrix.runpod
         id: pod
-        run: .venv/bin/pie-evals launch-pod --platform "${{ matrix.platform }}" --repo "${{ github.repository }}" --image "${{ vars.RUNPOD_IMAGE || 'pieproject/runpod-ci-runner:latest' }}" --kill-minutes "${{ needs.expand.outputs.kill_minutes }}" --wait-runner 480
+        run: .venv/bin/pie-evals launch-pod --platform "${{ matrix.pod }}" --labels "${{ join(matrix.labels, ',') }}" --repo "${{ github.repository }}" --image "${{ vars.RUNPOD_IMAGE || 'pieproject/runpod-ci-runner:latest' }}" --kill-minutes "${{ matrix.kill_minutes }}" --wait-runner 480
         env:
           RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
           GH_RUNNER_PAT: ${{ secrets.GH_RUNNER_PAT }}
           RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
-      # a launched marker per job: the gate builds the bench matrix from these, so a
-      # job whose pod could not be created is skipped instead of queued for a runner
-      # that never comes (which held the concurrency group for an hour)
       - name: launched marker
         run: |
           mkdir -p launched
-          printf '%s' '${{ toJson(matrix) }}' > "launched/${{ matrix.job_id }}.json"
-          [ -n "${{ steps.pod.outputs.pod_id }}" ] && echo "${{ steps.pod.outputs.pod_id }}" > "launched/pod-${{ matrix.job_id }}.txt" || true
+          printf '%s' '${{ toJson(matrix) }}' > "launched/${{ matrix.pod }}.json"
+          echo "${{ steps.pod.outputs.pod_id }}" > "launched/pod-${{ matrix.pod }}.txt"
       - uses: actions/upload-artifact@v4
-        with: { name: "launched-${{ matrix.job_id }}", path: launched/ }
+        with: { name: "launched-${{ matrix.pod }}", path: launched/ }
 
+  # shards whose pod is up (or that need none: resident runners) go to bench
   gate:
     needs: [expand, launch]
-    if: always() && fromJson(needs.expand.outputs.matrix).include[0] != null
+    if: always() && needs.expand.result == 'success' && fromJson(needs.expand.outputs.matrix).include[0] != null
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.gate.outputs.matrix }}
@@ -156,14 +98,16 @@ jobs:
       - uses: actions/download-artifact@v4
         with: { pattern: "launched-*", path: launched, merge-multiple: true }
       - id: gate
+        env: { MATRIX: "${{ needs.expand.outputs.matrix }}" }
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json, glob, os
-          launched = [json.load(open(f)) for f in glob.glob("launched/*.json")]
-          print("matrix=" + json.dumps({"include": launched}))
-          print("count=" + str(len(launched)))
+          pods = {json.load(open(f))["pod"] for f in glob.glob("launched/*.json")}
+          shards = [e for e in json.loads(os.environ["MATRIX"])["include"] if not e["runpod"] or e["pod"] in pods]
+          print("matrix=" + json.dumps({"include": shards}))
+          print("count=" + str(len(shards)))
           PY
-          echo "launched: $(ls launched 2>/dev/null | tr '\n' ' ')"
+          echo "pods up: $(ls launched 2>/dev/null | tr '\n' ' ')"
 
   bench:
     needs: [expand, gate]
@@ -191,7 +135,7 @@ jobs:
           # the node clones from the mirror and restores the cached build. Macs: a resident checkout under $HOME.
           echo "PIE_ROOT=${PIE_ROOT:-$HOME/pie}" >> "$GITHUB_ENV"
       - name: run
-        run: .venv/bin/pie-evals-node run --job "jobs/${{ matrix.job_id }}.json" --pie-root "$PIE_ROOT" --out "out/${{ matrix.job_id }}" ${{ runner.os == 'macOS' && '--download' || '' }}
+        run: .venv/bin/pie-evals-node run --job "jobs/${{ matrix.job_id }}.json" --pie-root "$PIE_ROOT" --out "out/${{ matrix.job_id }}" --download
         env: { HF_TOKEN: "${{ secrets.HF_TOKEN }}" }  # a pod without the volume fetches checkpoints itself; anonymous pulls hit 429
         # on RunPod every cache path comes from the runner's .env (written by the startup script)
       - uses: actions/upload-artifact@v4

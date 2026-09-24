@@ -15,6 +15,7 @@ platforms:
     memory_gib: 46
     interconnect: pcie
     runner_labels: [self-hosted, linux, l40s-x1]
+    pod: l40s-x2   # its jobs run on the l40s-x2 pod, one GPU masked
     runpod_gpu_type: "NVIDIA L40S"
     tiers: [smoke, nightly, weekly]
   - id: l40s-x2
@@ -188,4 +189,28 @@ platforms:
     memory_gib: 48
     interconnect: uma
     runner_labels: [self-hosted, macos, m5-max-48g]
+    tiers: [smoke, nightly, weekly]
+  - id: a100-pcie-x2
+    os: linux
+    backend: cuda
+    accelerator: NVIDIA A100 80GB PCIe
+    arch: ampere
+    count: 2
+    memory_gib: 160
+    interconnect: pcie
+    runner_labels: [self-hosted, linux, a100-pcie-x2]
+    runpod_gpu_type: "NVIDIA A100 80GB PCIe"
+    tp_capable: true
+    tiers: [nightly, weekly]
+  - id: pro6000-x2
+    os: linux
+    backend: cuda
+    accelerator: NVIDIA RTX PRO 6000 Blackwell Server Edition
+    arch: blackwell
+    count: 2
+    memory_gib: 192
+    interconnect: pcie
+    runner_labels: [self-hosted, linux, pro6000-x2]
+    runpod_gpu_type: "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+    tp_capable: true
     tiers: [smoke, nightly, weekly]

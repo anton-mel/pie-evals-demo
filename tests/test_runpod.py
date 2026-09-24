@@ -10,8 +10,10 @@ def test_startup_script_matches_runner_image_layout():
     s = runpod.startup_script(["self-hosted", "linux", "l40s-x1"], repo="pie-project/pie-evals", kill_minutes=90)
     # three-layer kill: self-destruct timer, then terminate after the single job
     assert "sleep $(( 90 * 60 ))" in s and s.count("terminate") >= 3 and "DELETE" in s
-    # one ephemeral job, labels carry the platform
-    assert "--ephemeral" in s and "--labels \"self-hosted,linux,l40s-x1,img-latest\"" in s
+    # a resident runner (one pod hosts every shard of its configuration), labels carry the platforms
+    assert "--ephemeral" not in s and "--labels \"self-hosted,linux,l40s-x1,img-latest\"" in s
+    # ... and ends itself when idle, dropping its registration
+    assert "Runner.Worker" in s and "20 * 60" in s and "config.sh remove" in s
     assert "/opt/actions-runner" in s  # the image's runner, not a fresh download
     # env layout of the image's runner.sh, plus what pie-evals adds
     for k in ("RUSTUP_HOME=$V/.rustup", "CARGO_HOME=$V/.cargo", "PIE_HOME=$V/.pie", "HF_HOME=$V/.hf", "HF_HUB_CACHE=$V/.hf/hub", "PIE_EVALS_CACHE=$V/pie-evals-cache"):
@@ -43,7 +45,7 @@ def test_create_pod_rest_body(monkeypatch):
     assert body["networkVolumeId"] == "vol1" and body["volumeMountPath"] == "/workspace" and body["dataCenterIds"] == ["EU-RO-1"]
     assert body["imageName"] == runpod.DEFAULT_IMAGE and body["allowedCudaVersions"] == ["13.0"]
     assert body["env"]["GH_RUNNER_PAT"] == "PAT" and body["env"]["PIE_EVALS_PLATFORM"] == "l40s-x2"
-    assert body["dockerStartCmd"][:2] == ["bash", "-lc"] and "--ephemeral" in body["dockerStartCmd"][2]
+    assert body["dockerStartCmd"][:2] == ["bash", "-lc"] and "./run.sh" in body["dockerStartCmd"][2]
 
 
 def test_create_pod_unpins_a_data_center_the_rest_schema_rejects(monkeypatch):

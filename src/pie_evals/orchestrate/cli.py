@@ -80,7 +80,7 @@ def check(obj):
 @click.pass_obj
 def jobs(obj, tier, pie_commit, platforms, engines, programs, artifacts, max_jobs, max_jobs_per_platform, out, label, skip_unavailable, repo, skip_recorded):
     """Write one JobSpec JSON per platform shard, plus a GitHub Actions matrix file."""
-    from .jobs import available_platforms, recorded_cell_keys
+    from .jobs import available_platforms, plan_pods, recorded_cell_keys
 
     m: Matrix = obj["matrix"]
     st: Store = obj["store"]
@@ -119,13 +119,18 @@ def jobs(obj, tier, pie_commit, platforms, engines, programs, artifacts, max_job
     for j in js:
         (outp / f"{j.job_id}.json").write_text(j.model_dump_json(indent=1))
         plat = m.platforms[j.platform_id]
-        gh.append({"job_id": j.job_id, "platform": j.platform_id, "shard": j.shard, "labels": plat.runner_labels, "os": plat.os, "runpod": bool(plat.runpod_gpu_type), "cells": len(j.cells), "est_minutes": round(j.est_minutes, 1)})
+        gh.append({"job_id": j.job_id, "platform": j.platform_id, "pod": plat.pod or plat.id, "shard": j.shard, "labels": plat.runner_labels, "os": plat.os, "runpod": bool(plat.runpod_gpu_type), "cells": len(j.cells), "est_minutes": round(j.est_minutes, 1)})
+    pods = plan_pods(m, js)
     (outp / "gh-matrix.json").write_text(json.dumps({"include": gh}))
+    (outp / "pods.json").write_text(json.dumps({"include": pods}))
     (outp / "policy.json").write_text(json.dumps({"job_budget_minutes": m.job_budget_minutes, "kill_minutes": m.kill_minutes}))
     click.echo(json.dumps(gh, indent=1))
+    for p in pods:
+        click.echo(f"pod {p['pod']}: {len(p['jobs'])} jobs, {p['est_minutes']} est min, kill {p['kill_minutes']} min, labels {','.join(p['labels'])}", err=True)
     if os.environ.get("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
             f.write(f"kill_minutes={m.kill_minutes}\nbench_timeout_minutes={int(m.kill_minutes) + 15}\njobs={len(js)}\n")  # workflow expressions cannot add
+            f.write(f"pods={json.dumps({'include': pods})}\n")
 
 
 @main.command("collect")
@@ -236,8 +241,10 @@ def watch_baselines(obj, lock):
 @click.option("--debug", is_flag=True, help="serve the start log on the pod's :8080 proxy and hold a failed pod 10 min")
 @click.option("--exec", "exec_script", default=None, help="run this bash script on the pod (same env as a job) instead of a runner, then terminate; volume maintenance")
 @click.option("--wait-runner", type=int, default=0, help="seconds to wait for the pod's runner to register (needs GH_RUNNER_PAT); a pod that never registers is terminated and the next platform tried")
+@click.option("--labels", default=None, help="comma-separated runner labels (default: the platform's); a pod hosting several platforms carries all of theirs")
+@click.option("--idle-minutes", type=int, default=20, show_default=True, help="the pod terminates itself after this long without a job")
 @click.pass_obj
-def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_version, network_volume_id, kill_minutes, cuda_versions, debug, exec_script, wait_runner):
+def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_version, network_volume_id, kill_minutes, cuda_versions, debug, exec_script, wait_runner, labels, idle_minutes):
     from . import runpod
 
     m: Matrix = obj["matrix"]
@@ -255,7 +262,8 @@ def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_versi
                                   volumes=rp.get("volumes") or None, preferred_data_centers=rp.get("preferred_data_centers"),
                                   container_disk_gb=int(rp.get("container_disk_gb", 40)), cloud_type=str(rp.get("cloud_type", "SECURE")),
                                   allowed_cuda_versions=list(cuda_versions) or None, debug=debug, exec_script=exec_script,
-                                  community_fallback=bool(rp.get("community_fallback", True)), log=lambda m_: click.echo(m_, err=True))
+                                  community_fallback=bool(rp.get("community_fallback", True)), log=lambda m_: click.echo(m_, err=True),
+                                  labels=[x.strip() for x in labels.split(",") if x.strip()] if labels else None, idle_minutes=idle_minutes)
             click.echo(f"launched on {pid}", err=True)
             if wait_runner and runner_pat and not exec_script:
                 if not runpod.wait_for_runner(h.id, repo, runner_pat, wait_runner, log=lambda m_: click.echo(m_, err=True)):

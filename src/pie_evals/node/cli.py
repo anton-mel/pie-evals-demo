@@ -17,6 +17,29 @@ def main():
     pass
 
 
+def mask_gpus(job: JobSpec, env: dict | None = None) -> str | None:
+    """A pod hosts every platform of its GPU type, so an x1 job on an x2 pod sees
+    both cards: mask CUDA to the platform's count (the first devices). Set once,
+    before any engine starts, so every subprocess inherits it; an explicit
+    CUDA_VISIBLE_DEVICES from the runner is left alone."""
+    import shutil
+    import subprocess
+
+    env = os.environ if env is None else env
+    if env.get("CUDA_VISIBLE_DEVICES") or not job.cells or not shutil.which("nvidia-smi"):
+        return None
+    count = job.cells[0].platform.count
+    try:
+        visible = len([ln for ln in subprocess.run(["nvidia-smi", "-L"], capture_output=True, text=True, timeout=20).stdout.splitlines() if ln.startswith("GPU ")])
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if visible <= count:
+        return None
+    env["CUDA_VISIBLE_DEVICES"] = ",".join(str(i) for i in range(count))
+    click.echo(f"{visible} GPUs visible, platform {job.platform_id} uses {count}: CUDA_VISIBLE_DEVICES={env['CUDA_VISIBLE_DEVICES']}", err=True)
+    return env["CUDA_VISIBLE_DEVICES"]
+
+
 @main.command("run")
 @click.option("--job", "job_path", type=click.Path(exists=True), required=True)
 @click.option("--pie-root", type=click.Path(exists=True), default=os.environ.get("PIE_ROOT", "/root/pie"))
@@ -30,6 +53,7 @@ def run(job_path, pie_root, out, hf_cache, no_build, only, download):
     from .runner import NodeRunner
 
     job = JobSpec.model_validate_json(Path(job_path).read_text())
+    mask_gpus(job)
     if only:
         job = job.model_copy(update={"cells": [c for c in job.cells if any(s in c.cell_key for s in only)]})
     runner = NodeRunner(job, pie_root=Path(pie_root), out_dir=Path(out), hf_cache=Path(hf_cache) if hf_cache else None, build=not no_build, download=download)
