@@ -5,14 +5,17 @@
 | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | kv-oversub | text-completion-bench | tp1 | sglang 0.5.20 | output_tok_s | 7194 | 1.964e+04 | 2.729× **pie trails** | **NO** | competitive |
 | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | kv-oversub | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 4320 | 1.179e+04 | 2.729× **pie trails** | **NO** | competitive |
 | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | kv-oversub | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 4999 | 1.196e+04 | 2.393× **pie trails** | **NO** | competitive |
+| pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | kv-oversub | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 8940 | 1.875e+04 | 2.098× **pie trails** | **NO** | competitive |
 | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c256 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 1.254e+04 | 2.564e+04 | 2.044× **pie trails** | **NO** | competitive |
 | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | prefix-1k-x64 | text-completion-bench | tp1 | sglang 0.5.20 | output_tok_s | 2571 | 4927 | 1.916× **pie trails** | **NO** | competitive |
 | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | c256 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 1.485e+04 | 2.527e+04 | 1.701× **pie trails** | **NO** | competitive |
 | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | mixed-256 | text-completion-bench | tp1 | sglang 0.5.20 | output_tok_s | 5585 | 8966 | 1.605× **pie trails** | **NO** | competitive |
+| pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | c256 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 2.274e+04 | 3.632e+04 | 1.597× **pie trails** | **NO** | competitive |
 | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | prefix-1k-x64 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 1872 | 2664 | 1.423× **pie trails** | **NO** | competitive |
 | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | mixed-256 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 3583 | 5047 | 1.409× **pie trails** | **NO** | competitive |
 | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | mixed-256 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 4271 | 5679 | 1.330× **pie trails** | **NO** | competitive |
 | rtx4090-x1 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 5356 | 7044 | 1.315× **pie trails** | **NO** | competitive |
+| pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | mixed-256 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 6551 | 8203 | 1.252× **pie trails** | **NO** | competitive |
 | l40s-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 479.1 | 586.6 | 1.224× **pie trails** | **NO** | competitive |
 | rtx4090-x1 | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp1 | sglang 0.5.20 | output_tok_s | 367.9 | 433.6 | 1.179× **pie trails** | **NO** | competitive |
 | l40s-x1 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp1 | sglang 0.5.20 | output_tok_s | 4610 | 5429 | 1.178× **pie trails** | **NO** | competitive |
@@ -37,16 +40,21 @@
 | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 343.9 | 359.1 | 1.044× **pie trails** | **NO** | competitive |
 | rtx4090-x1 | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 367.9 | 383.2 | 1.042× **pie trails** | **NO** | competitive |
 | l40s-x1 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 4610 | 4776 | 1.036× **pie trails** | **NO** | competitive |
+| pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | c64 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 2.268e+04 | 2.347e+04 | 1.035× **pie trails** | **NO** | competitive |
 | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | c64 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 1.568e+04 | 1.62e+04 | 1.033× **pie trails** | **NO** | competitive |
 | l40s-x1 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | sglang 0.5.20 | output_tok_s | 3878 | 4006 | 1.033× **pie trails** | **NO** | competitive |
+| pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | lc-2k-128 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 554.7 | 569.2 | 1.026× **pie trails** | **NO** | competitive |
+| pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 587.4 | 594.3 | 1.012× **pie trails** | **NO** | competitive |
 | l40s-x1 | gpt-oss-20b-mxfp4 | mixed-256 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 1126 | 1137 | 1.010× **pie trails** | **NO** | competitive |
 | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | ss-512-256 | text-completion-bench | tp1 | sglang 0.5.20 | output_tok_s | 653.7 | 658.3 | 1.007× **pie trails** | **NO** | competitive |
 | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | text-completion-bench | tp1 | sglang 0.5.20 | output_tok_s | 642 | 642.9 | 1.001× **pie trails** | **NO** | competitive |
 | rtx4090-x1 | gemma-4-e4b-bf16 | lc-2k-128 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 75.17 | 75.18 | 1.000× **pie trails** | **NO** | competitive |
+| pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | ss-512-256 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 627.8 | 627.5 | 0.999× | **NO** | competitive |
 | l40s-x1 | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp1 | sglang 0.5.20 | output_tok_s | 1.042e+04 | 1.033e+04 | 0.991× | **NO** | competitive |
 | rtx4090-x1 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | sglang 0.5.20 | output_tok_s | 4573 | 4527 | 0.990× | **NO** | competitive |
 | rtx4090-x1 | qwen3.5-0.8b-bf16 | lc-1k-128 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 401 | 394.5 | 0.984× | **NO** | competitive |
 | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | sglang 0.5.20 | output_tok_s | 341.3 | 335.6 | 0.983× | **NO** | competitive |
+| pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 607.1 | 593.6 | 0.978× | **NO** | competitive |
 | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | sglang 0.5.20 | output_tok_s | 422.1 | 411.6 | 0.975× | **NO** | competitive |
 | l40s-x1 | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 1.042e+04 | 1.016e+04 | 0.975× | **NO** | competitive |
 | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c64 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 1.416e+04 | 1.368e+04 | 0.966× | **NO** | competitive |
@@ -54,7 +62,9 @@
 | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c256 | text-completion-bench | tp1 | sglang 0.5.20 | output_tok_s | 1.254e+04 | 1.196e+04 | 0.953× | **NO** | competitive |
 | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 429.2 | 407.8 | 0.950× | **NO** | competitive |
 | rtx4090-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 2427 | 2299 | 0.947× | **NO** | competitive |
+| pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | text-completion-bench | tp1 | sglang 0.5.20 | output_tok_s | 587.4 | 548.4 | 0.934× | **NO** | competitive |
 | l40s-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | sglang 0.5.20 | output_tok_s | 2216 | 2068 | 0.933× | **NO** | competitive |
+| pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | text-completion-bench | tp1 | sglang 0.5.20 | output_tok_s | 607.1 | 552.3 | 0.910× | **NO** | competitive |
 | l40s-x1 | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 308.8 | 276.5 | 0.896× | **NO** | competitive |
 | l40s-x1 | gpt-oss-20b-mxfp4 | c64 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 3849 | 3431 | 0.892× | **NO** | competitive |
 | rtx4090-x1 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 4573 | 3993 | 0.873× | **NO** | competitive |
@@ -72,6 +82,7 @@
 | l40s-x1 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 3878 | 2511 | 0.647× | **NO** | competitive |
 | l40s-x1 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 1.16e+04 | 7291 | 0.628× | **NO** | competitive |
 | l40s-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 2216 | 1361 | 0.614× | **NO** | competitive |
+| pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | c32 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 2.116e+04 | 1.266e+04 | 0.598× | **NO** | competitive |
 | rtx4090-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 1.208e+04 | 6846 | 0.567× | **NO** | competitive |
 | l40s-x1 | gpt-oss-20b-mxfp4 | c8 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 1441 | 687.8 | 0.477× | **NO** | competitive |
 | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-2k-128 | text-completion-bench | tp1 | vllm 0.30.0 | output_tok_s | 359 | 166.4 | 0.463× | **NO** | competitive |

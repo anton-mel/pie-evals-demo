@@ -2,10 +2,10 @@
 
 | status | cells |
 |---|---|
-| pass | 518 |
+| pass | 524 |
 | fail | 557 |
 | declared_unsupported | 7537 |
-| not_run | 3721 |
+| not_run | 3715 |
 | noisy | 157 |
 
 ## Gaps (expected supported, but not passing)
@@ -667,10 +667,10 @@
 | pie | l40s-x2 | qwen3.6-35b-a3b-mini5 | c8 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x2 | qwen3.6-35b-a3b-mini5 | lc-2k-128 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | pro6000-x1 | gemma-4-e4b-bf16 | c8 | text-completion-bench | tp1 | noisy |  |  |
-| pie | pro6000-x1 | glm-5.3-flash-mini8 | ss-128-64 | text-completion-bench | tp1 | noisy |  |  |
-| pie | pro6000-x1 | glm-5.3-flash-mini8 | c8 | text-completion-bench | tp1 | noisy |  |  |
-| pie | pro6000-x1 | glm-5.3-flash-mini8 | c32 | text-completion-bench | tp1 | noisy |  |  |
+| pie | pro6000-x1 | glm-5.3-flash-mini8 | c256 | text-completion-bench | tp1 | noisy |  |  |
 | pie | pro6000-x1 | gpt-oss-20b-mlx-mxfp4 | c32 | text-completion-bench | tp1 | noisy |  |  |
+| pie | pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | c8 | text-completion-bench | tp1 | noisy |  |  |
+| pie | pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | prefix-1k-x64 | text-completion-bench | tp1 | noisy |  |  |
 | sglang | pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | c8 | text-completion-bench | tp1 | noisy |  |  |
 | sglang | pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | lc-2k-128 | text-completion-bench | tp1 | noisy |  |  |
 | vllm | pro6000-x1 | kimi-k3-mini8 | prefix-1k-x64 | text-completion-bench | tp1 | noisy |  |  |
@@ -3715,12 +3715,6 @@
 | sglang | pro6000-x1 | gpt-oss-20b-mxfp4 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | sglang | pro6000-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | sglang | pro6000-x1 | gpt-oss-20b-mxfp4 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| pie | pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
-| pie | pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | c32 | text-completion-bench | tp1 | not_run |  |  |
-| pie | pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | c64 | text-completion-bench | tp1 | not_run |  |  |
-| pie | pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | c256 | text-completion-bench | tp1 | not_run |  |  |
-| pie | pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
-| pie | pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
 | pie | pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | snapkv-eviction | tp1 | not_run |  |  |
 | pie | pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | tova-attention | tp1 | not_run |  |  |
 | pie | pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | attention-sink | tp1 | not_run |  |  |
@@ -4485,8 +4479,8 @@
 | deepseek_v41 | · | · | · | · | · | 0/23 | 0/23 | 0/23 | · | · | · | · | · |
 | gemma4 | 0/40 | 0/40 | 0/40 | 0/40 | 3/40 | 0/48 | 0/48 | 0/48 | 0/40 | 6/40 | 0/40 | 5/40 | 0/40 |
 | gemma4_moe | 0/21 | 0/21 | 0/21 | 0/21 | 0/21 | 0/25 | 0/25 | 0/25 | 0/21 | 0/21 | 0/21 | 1/21 | 0/21 |
-| glm5_next | 0/14 | 0/14 | 0/14 | 0/14 | 4/14 | 0/18 | 0/18 | 0/18 | 6/14 | 9/14 | 0/14 | 0/14 | 0/14 |
-| gpt_oss | 0/59 | 0/59 | 0/59 | 33/59 | 10/59 | 0/71 | 0/71 | 0/71 | 0/59 | 17/59 | 0/59 | 24/59 | 23/59 |
+| glm5_next | 0/14 | 0/14 | 0/14 | 0/14 | 4/14 | 0/18 | 0/18 | 0/18 | 6/14 | 11/14 | 0/14 | 0/14 | 0/14 |
+| gpt_oss | 0/59 | 0/59 | 0/59 | 33/59 | 10/59 | 0/71 | 0/71 | 0/71 | 0/59 | 21/59 | 0/59 | 24/59 | 23/59 |
 | kimi_k3 | 0/14 | 0/14 | 0/14 | 12/14 | 0/14 | 0/18 | 0/18 | 0/18 | 6/14 | 6/14 | 0/14 | · | 0/14 |
 | qwen3_5 | 0/14 | 0/14 | 0/14 | 12/14 | 4/14 | 0/18 | 0/18 | 0/18 | 8/14 | 7/14 | 0/14 | 12/14 | 0/14 |
 | qwen3_6 | 0/32 | 0/32 | 0/32 | 1/32 | 0/32 | 0/40 | 0/40 | 0/40 | 0/32 | 0/32 | 0/32 | 2/32 | 0/32 |
