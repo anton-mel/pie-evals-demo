@@ -73,6 +73,7 @@ class NodeRunner:
         self.t_start = time.monotonic()
         self._killed = threading.Event()
         self._done: set[str] = set()
+        self._last_state: dict = {}
         self._start_watchdog()
 
     # ------------------------------------------------------------------ time policy
@@ -209,6 +210,7 @@ class NodeRunner:
             job = job.model_copy(update={"cells": [c for c in job.cells if str(c.engine) != "pie"]})
         pre = pf.Preflight()
         machine_before = pre.before_job(self.platform)
+        self._last_state = machine_before  # failure records carry the state the card was in
         fingerprint = prov.hardware_fingerprint()
         records: list[Record] = []
         groups = job.cells_by_process()
@@ -300,6 +302,7 @@ class NodeRunner:
             order.sort(key=lambda c: 0 if c.workload.kind.value == "control_aa" else 1)
             control_ok = True
             model_state = pre.before_model(self.platform) if hasattr(pre, "before_model") else machine_before
+            self._last_state = model_state
             for cell in order:
                 if cell.cell_id in self._done:
                     continue
@@ -446,6 +449,7 @@ class NodeRunner:
     def _failed(self, cell: Cell, cls: ErrorClass, msg: str, fingerprint: dict | None, duration: float | None = None) -> Record:
         self._done.add(cell.cell_id)
         p = prov.Provenance(hardware_fingerprint=fingerprint or {}, runner=self.runner_name, pie_commit=self.job.pie_commit, harness_commit=prov.git_commit(Path(__file__).resolve().parents[3]))
+        p.machine_state = self._last_state  # a boot refusal on a card someone else holds 5 GiB of (nightly 35963868578) reads differently
         return Record(run_id=self.run_id, job_id=self.job.job_id, tier=self.job.tier, cell_id=cell.cell_id, cell_key=cell.cell_key, cell=cell,
                       status=CellStatus.FAIL, error_class=cls, error_message=msg[:1000], provenance=p, duration_s=duration)
 
