@@ -2,11 +2,11 @@
 
 | status | cells |
 |---|---|
-| pass | 478 |
-| fail | 549 |
+| pass | 500 |
+| fail | 539 |
 | declared_unsupported | 7537 |
 | not_run | 3775 |
-| noisy | 151 |
+| noisy | 139 |
 
 ## Gaps (expected supported, but not passing)
 
@@ -507,18 +507,8 @@
 | pie | rtx5090-x1 | gpt-oss-20b-mlx-mxfp4 | lc-1k-128 | attention-sink | tp1 | fail | crash | all 4 requests failed: first_token take: channel is poisoned: pipeline: forward failed: direct launch rejected: invalid  |
 | pie | rtx5090-x1 | gpt-oss-20b-mlx-mxfp4 | lc-1k-128 | sliding-window-attention | tp1 | fail | crash | all 4 requests failed: first_token take: channel is poisoned: pipeline: forward failed: direct launch rejected: invalid  |
 | pie | rtx5090-x1 | gpt-oss-20b-mlx-mxfp4 | ss-128-64 | classifier-free-guidance | tp1 | fail | crash | all 8 requests failed: uncond_prefill_logits take: channel is poisoned: pipeline: forward failed: direct launch rejected |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | control-aa | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | ss-512-256 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | c8 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | c32 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | c64 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | mixed-256 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
+| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | c64 | text-completion-bench | tp1 | fail | crash | all 256 requests failed: out take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admissio |
+| pie | rtx5090-x1 | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | fail | crash | all 1024 requests failed: out take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admissi |
 | vllm | rtx5090-x1 | kimi-k3-mini8 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | fail | crash | vllm.v1.engine.exceptions.EngineDeadError: EngineCore encountered an issue. See stack trace (above) for the root cause. |
 | vllm | rtx5090-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
 | vllm | rtx5090-x1 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
@@ -695,18 +685,6 @@
 | pie | rtx5090-x1 | gemma-4-31b-mlx4 | lc-1k-128 | attention-sink | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | rtx5090-x1 | gemma-4-31b-mlx4 | lc-1k-128 | sliding-window-attention | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | rtx5090-x1 | gemma-4-31b-mlx4 | ss-128-64 | classifier-free-guidance | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | control-aa | text-completion-bench | tp1 | noisy |  |  |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | text-completion-bench | tp1 | noisy |  |  |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | ss-512-256 | text-completion-bench | tp1 | noisy |  |  |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | c8 | text-completion-bench | tp1 | noisy |  |  |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | c32 | text-completion-bench | tp1 | noisy |  |  |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | c64 | text-completion-bench | tp1 | noisy |  |  |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | c256 | text-completion-bench | tp1 | noisy |  |  |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | text-completion-bench | tp1 | noisy |  |  |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | lc-2k-128 | text-completion-bench | tp1 | noisy |  |  |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | prefix-1k-x64 | text-completion-bench | tp1 | noisy |  |  |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | mixed-256 | text-completion-bench | tp1 | noisy |  |  |
-| pie | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | kv-oversub | text-completion-bench | tp1 | noisy |  |  |
 | sglang | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | c8 | text-completion-bench | tp1 | noisy |  |  |
 | sglang | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | c32 | text-completion-bench | tp1 | noisy |  |  |
 | sglang | rtx5090-x1 | gpt-oss-20b-mxfp4-mini5 | c256 | text-completion-bench | tp1 | noisy |  |  |
@@ -4526,7 +4504,7 @@
 | gemma4 | 0/40 | 0/40 | 0/40 | 0/40 | 3/40 | 0/48 | 0/48 | 0/48 | 0/40 | 6/40 | 0/40 | 5/40 | 0/40 |
 | gemma4_moe | 0/21 | 0/21 | 0/21 | 0/21 | 0/21 | 0/25 | 0/25 | 0/25 | 0/21 | 0/21 | 0/21 | 0/21 | 0/21 |
 | glm5_next | 0/14 | 0/14 | 0/14 | 0/14 | 4/14 | 0/18 | 0/18 | 0/18 | 6/14 | 9/14 | 0/14 | 0/14 | 0/14 |
-| gpt_oss | 0/59 | 0/59 | 0/59 | 33/59 | 10/59 | 0/71 | 0/71 | 0/71 | 0/59 | 17/59 | 0/59 | 15/59 | 1/59 |
+| gpt_oss | 0/59 | 0/59 | 0/59 | 33/59 | 10/59 | 0/71 | 0/71 | 0/71 | 0/59 | 17/59 | 0/59 | 15/59 | 23/59 |
 | kimi_k3 | 0/14 | 0/14 | 0/14 | 12/14 | 0/14 | 0/18 | 0/18 | 0/18 | 6/14 | 6/14 | 0/14 | · | 0/14 |
 | qwen3_5 | 0/14 | 0/14 | 0/14 | 12/14 | 4/14 | 0/18 | 0/18 | 0/18 | 8/14 | 7/14 | 0/14 | 12/14 | 0/14 |
 | qwen3_6 | 0/32 | 0/32 | 0/32 | 0/32 | 0/32 | 0/40 | 0/40 | 0/40 | 0/32 | 0/32 | 0/32 | 0/32 | 0/32 |
