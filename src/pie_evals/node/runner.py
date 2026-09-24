@@ -47,6 +47,7 @@ from . import provenance as prov
 from .engines import EngineLaunchError, get_engine
 from .engines.recipes import load_recipe
 from .metrics.stats import cov, decide_repetition, median
+from .engines.shape import serve_envelope
 from .workloads import common_args_for
 
 
@@ -264,7 +265,7 @@ class NodeRunner:
                 # one boot per model: the bench then attaches to this server for every
                 # cell and round instead of reloading the weights each time (gemma-4 E4B
                 # spent ~7 min per round loading; the measurement itself takes seconds)
-                widest = max(cells, key=lambda c: int(c.workload.params.get("concurrency", 1)) * (int(c.workload.params.get("prefill", 0)) + int(c.workload.params.get("decode", 0)))).workload
+                widest = serve_envelope([c.workload for c in cells])
                 serve_log = self.out / "serve" / f"{artifact_key.replace('/', '_')}-{mode_key}.log"
                 try:
                     engine.serve(widest, serve_log, int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
