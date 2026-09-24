@@ -43,3 +43,16 @@ def test_mask_gpus_keeps_the_platform_count(monkeypatch):
     assert mask_gpus(js[0], env) == "0" and env["CUDA_VISIBLE_DEVICES"] == "0"
     env = {"CUDA_VISIBLE_DEVICES": "1"}
     assert mask_gpus(js[0], env) is None and env["CUDA_VISIBLE_DEVICES"] == "1"
+
+
+def test_run_label_isolates_a_runs_pods(tmp_path):
+    import json
+    import subprocess
+    import sys
+
+    out = tmp_path / "jobs"
+    subprocess.run([sys.executable, "-m", "pie_evals.orchestrate.cli", "jobs", "--tier", "nightly", "--pie-commit", "c" * 40, "--platform", "l40s-x1", "--engine", "pie", "--artifact", "qwen3.5-0.8b-bf16", "--run-label", "run-42", "--out", str(out)], check=True, cwd=ROOT, capture_output=True)
+    shards = json.loads((out / "gh-matrix.json").read_text())["include"]
+    pods = json.loads((out / "pods.json").read_text())["include"]
+    assert shards and all("run-42" in s["labels"] for s in shards)
+    assert pods and all("run-42" in p["labels"] for p in pods)

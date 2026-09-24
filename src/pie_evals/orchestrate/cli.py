@@ -77,8 +77,9 @@ def check(obj):
 @click.option("--skip-unavailable", is_flag=True, help="drop platforms with no RunPod type and no online runner (needs gh + a token with actions:read)")
 @click.option("--repo", default=None, help="owner/name for --skip-unavailable (default: $GITHUB_REPOSITORY)")
 @click.option("--skip-recorded", is_flag=True, help="drop cells the store already holds at this pie commit (a re-dispatch after lost launches)")
+@click.option("--run-label", default=None, help="extra runner label on every pod shard and its pod, so a run's pods take only its own jobs")
 @click.pass_obj
-def jobs(obj, tier, pie_commit, platforms, engines, programs, artifacts, max_jobs, max_jobs_per_platform, out, label, skip_unavailable, repo, skip_recorded):
+def jobs(obj, tier, pie_commit, platforms, engines, programs, artifacts, max_jobs, max_jobs_per_platform, out, label, skip_unavailable, repo, skip_recorded, run_label):
     """Write one JobSpec JSON per platform shard, plus a GitHub Actions matrix file."""
     from .jobs import available_platforms, plan_pods, recorded_cell_keys
 
@@ -119,8 +120,13 @@ def jobs(obj, tier, pie_commit, platforms, engines, programs, artifacts, max_job
     for j in js:
         (outp / f"{j.job_id}.json").write_text(j.model_dump_json(indent=1))
         plat = m.platforms[j.platform_id]
-        gh.append({"job_id": j.job_id, "platform": j.platform_id, "pod": plat.pod or plat.id, "shard": j.shard, "labels": plat.runner_labels, "os": plat.os, "runpod": bool(plat.runpod_gpu_type), "cells": len(j.cells), "est_minutes": round(j.est_minutes, 1)})
+        # a pod's runner carries the run's label too, so two runs on one GPU type never trade shards
+        extra = [run_label] if run_label and plat.runpod_gpu_type else []
+        gh.append({"job_id": j.job_id, "platform": j.platform_id, "pod": plat.pod or plat.id, "shard": j.shard, "labels": plat.runner_labels + extra, "os": plat.os, "runpod": bool(plat.runpod_gpu_type), "cells": len(j.cells), "est_minutes": round(j.est_minutes, 1)})
     pods = plan_pods(m, js)
+    if run_label:
+        for p in pods:
+            p["labels"] = sorted(set(p["labels"]) | {run_label})
     (outp / "gh-matrix.json").write_text(json.dumps({"include": gh}))
     (outp / "pods.json").write_text(json.dumps({"include": pods}))
     (outp / "policy.json").write_text(json.dumps({"job_budget_minutes": m.job_budget_minutes, "kill_minutes": m.kill_minutes}))
