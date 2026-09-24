@@ -61,6 +61,7 @@ programs:
     category: speculative
     accuracy_gate: acceptance_rate
     spec_dec: rs
+    families: [qwen3_5, qwen3_6, qwen3_6_moe, glm5_next, kimi_k3, nemotron_h]   # pie: "this model folds no recurrent state; use mtp-/cacheback-speculative-decoding" on gemma/gpt-oss (nightly 35935510089)
     workloads: [ss-128-64]
     tiers: [nightly, weekly]
 

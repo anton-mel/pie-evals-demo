@@ -28,7 +28,7 @@ def process_key(c: Cell) -> tuple:
 #: L40S; nightly 35926457671 lost 33 of 78 vLLM cells to the soft budget
 #: because shards were packed on workload time alone); pie serves one
 #: process per model, so its per-cell overhead is a few seconds
-ENGINE_CELL_MINUTES = {"vllm": 2.5, "sglang": 2.5}
+ENGINE_CELL_MINUTES = {"vllm": 4.0, "sglang": 3.5}  # measured: 12 vLLM Qwen3.5-0.8B cells took 3860 s on an L40S (nightly 35935510089)
 
 
 def cell_minutes(c: Cell) -> float:
