@@ -358,15 +358,25 @@ function openSignIn() {
   document.getElementById("go").onclick = async () => {
     try { localStorage.setItem("pie-evals-token", document.getElementById("tok").value.trim()); } catch {}
     await signIn();
-    if (me) { closeSheet(); draw(); } else document.getElementById("err").textContent = "That token did not work.";
+    if (me) { closeSheet(); draw(); } else document.getElementById("err").textContent = denied || "That token did not work.";
   };
 }
 function closeMenu() { document.querySelector(".menu")?.remove(); }
 document.addEventListener("click", e => { if (!e.target.closest("#who")) closeMenu(); });
+let denied = "";
 async function signIn() {
-  me = null; mine = null;
+  me = null; mine = null; denied = "";
   if (token()) {
-    try { me = await gh("user"); } catch { me = null; }
+    try { me = await gh("user"); } catch { me = null; denied = "That token did not work."; }
+    if (me) {
+      let repo = null;
+      try { repo = await gh(`repos/${DATA.repo}`); } catch { repo = null; }
+      if (!repo?.permissions?.push) {
+        denied = `${me.login} does not have write access to ${DATA.repo}. Ask an admin to add you.`;
+        me = null;
+        try { localStorage.removeItem("pie-evals-token"); } catch {}
+      }
+    }
     if (me) {
       try {
         const path = `repos/${DATA.repo}/contents/users/${me.login}.json`, f = await gh(path);
