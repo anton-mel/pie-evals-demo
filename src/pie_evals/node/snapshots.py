@@ -28,7 +28,10 @@ def snapshot_dir_if_present(artifact: ArtifactSpec, hf_cache: Path) -> Path | No
     marker = artifact.gguf_file or "config.json"  # a GGUF repo carries no config.json
     if artifact.revision and (base / artifact.revision / marker).exists():
         return base / artifact.revision
-    snaps = sorted(d for d in base.glob("*") if (d / marker).exists()) if base.exists() else []
+    # a miniature is built beside its source's snapshots (`mini-l0-4-e16`, miniature.py) and
+    # sorts after a hex revision: a full row must never pick it up (pie #680 was that —
+    # "full" numbers on cards that had built the mini were the mini's)
+    snaps = sorted(d for d in base.glob("*") if (d / marker).exists() and not d.name.startswith("mini-")) if base.exists() else []
     return snaps[-1] if snaps else None
 
 

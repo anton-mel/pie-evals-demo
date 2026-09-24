@@ -175,11 +175,15 @@ def recorded_cell_keys(store: Store, tier: Tier, pie_commit: str, baseline_pins:
     statuses = t.column("status").to_pylist()
     engines = t.column("engine").to_pylist()
     versions = t.column("engine_version").to_pylist()
+    revisions = t.column("checkpoint_revision").to_pylist()
+    kinds = t.column("artifact_kind").to_pylist()
     pins = baseline_pins or {}
     done = set()
-    for k, c, s, e, v in zip(keys, commits, statuses, engines, versions, strict=True):
+    for k, c, s, e, v, rev, kind in zip(keys, commits, statuses, engines, versions, revisions, kinds, strict=True):
         if s == "not_run":  # the budget never reached it: exactly what a re-dispatch is for
             continue
+        if str(rev or "").startswith("mini") and str(kind or "") != "miniature":
+            continue  # a full row that served the miniature built beside it (pie #680): not a result
         if (e == "pie" and c == pie_commit) or (e != "pie" and v and v == pins.get(str(e))):
             done.add(k)
     return done
