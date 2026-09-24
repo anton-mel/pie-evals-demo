@@ -45,9 +45,14 @@ PAGE = """<!doctype html>
   .big { font-size: 26px; font-weight: 600; }
   .up { color: #1a7f37; } .down { color: #cf222e; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
-  .chart { position: relative; height: 200px; min-width: 0; }
-  @media (max-width: 700px) { .charts { grid-template-columns: 1fr; } }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 800px) { .tiles { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .tiles { grid-template-columns: 1fr; } }
+  .tile { background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 10px 12px; min-width: 0; }
+  .tile .name { font-weight: 600; font-size: 14px; }
+  .tile .now { font-size: 13px; color: #424a53; margin: 2px 0 6px; }
+  .chart { position: relative; height: 120px; }
+  .phase { font-size: 13px; font-weight: 600; color: #656d76; text-transform: uppercase; letter-spacing: .04em; margin: 16px 0 8px; }
   @media (max-width: 700px) { .row { grid-template-columns: 1fr; } }
   table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eaeef2; vertical-align: top; }
@@ -107,26 +112,37 @@ function phaseChange(mac, phase, from, to) {
 const macs = () => Object.keys(DATA.results).filter(m => DATA.results[m].models[modelSel.value]);
 
 function overview() {
-  let html = "";
-  for (const mac of macs()) {
-    const shas = DATA.commits.filter(c => DATA.metrics.some((_, i) => series(mac, i).some(p => p.sha === c.sha))).map(c => c.sha);
-    html += `<div class="card"><h2>${DATA.results[mac].name}</h2><div class="muted">${shas.length} pushes · ${unitName()} per push</div>` +
-      `<div class="charts"><div class="chart"><canvas data-mac="${mac}" data-phase="Prefill"></canvas></div>` +
-      `<div class="chart"><canvas data-mac="${mac}" data-phase="Decode"></canvas></div></div></div>`;
+  const list = macs(), key = unitSel.value;
+  if (!list.length) { document.getElementById("main").innerHTML = `<div class="card muted">No results for this model yet.</div>`; return; }
+  const fmt = v => key === "v" ? Math.round(v).toLocaleString() : v.toFixed(2);
+  let html = `<div class="muted">${unitName()} on each push · one line per Mac</div>`;
+  for (const phase of ["Prefill", "Decode"]) {
+    html += `<div class="phase">${phase}</div><div class="tiles">`;
+    DATA.metrics.forEach((m, i) => {
+      if (m.phase !== phase) return;
+      const now = list.map((mac, k) => {
+        const s = series(mac, i).filter(p => p[key] != null), last = s[s.length - 1];
+        return last ? `<span style="color:${COLORS[k % COLORS.length]}">${fmt(last[key])}</span>` : "";
+      }).filter(Boolean).join(" · ");
+      html += `<div class="tile"><div class="name">${m.name}</div><div class="now">${now || "–"} ${now ? unitName() : ""}</div>` +
+              `<div class="chart"><canvas data-metric="${i}"></canvas></div></div>`;
+    });
+    html += `</div>`;
   }
-  document.getElementById("main").innerHTML = html || `<div class="card muted">No results for this model yet.</div>`;
-  const key = unitSel.value;
+  document.getElementById("main").innerHTML = html;
   document.querySelectorAll("canvas").forEach(cv => {
-    const rows = DATA.metrics.map((m, i) => [m, i]).filter(([m]) => m.phase === cv.dataset.phase);
-    const labels = DATA.commits.map(c => c.sha).filter(sha => rows.some(([, i]) => series(cv.dataset.mac, i).some(p => p.sha === sha)));
+    const i = +cv.dataset.metric;
+    const labels = DATA.commits.map(c => c.sha).filter(sha => list.some(mac => series(mac, i).some(p => p.sha === sha && p[key] != null)));
     charts.push(new Chart(cv, { type: "line",
-      data: { labels: labels.map(s => s.slice(0, 7)), datasets: rows.map(([m, i], k) => {
-        const by = Object.fromEntries(series(cv.dataset.mac, i).map(p => [p.sha, p[key]]));
-        return { label: m.name, data: labels.map(l => by[l] ?? null), borderColor: COLORS[k], backgroundColor: COLORS[k], pointRadius: 3, spanGaps: true };
+      data: { labels: labels.map(s => s.slice(0, 7)), datasets: list.map((mac, k) => {
+        const by = Object.fromEntries(series(mac, i).map(p => [p.sha, p[key]]));
+        return { label: DATA.results[mac].name, data: labels.map(l => by[l] ?? null), borderColor: COLORS[k % COLORS.length],
+                 backgroundColor: COLORS[k % COLORS.length], pointRadius: 2, borderWidth: 2, spanGaps: true };
       }) },
       options: { responsive: true, maintainAspectRatio: false,
-                 plugins: { title: { display: true, text: `${cv.dataset.phase} · ${unitName()}` }, legend: { position: "bottom", labels: { boxWidth: 10 } } },
-                 scales: { y: { beginAtZero: false } } } }));
+                 plugins: { legend: { display: list.length > 1, position: "bottom", labels: { boxWidth: 8, font: { size: 11 } } } },
+                 scales: { x: { ticks: { font: { size: 10 }, maxRotation: 0, autoSkip: true } }, y: { ticks: { font: { size: 10 } } } },
+                 onClick: (e, el) => { if (el.length) window.open(`https://github.com/${DATA.pie_repo}/commit/` + labels[el[0].index]); } } }));
   });
 }
 
