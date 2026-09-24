@@ -26,7 +26,7 @@ PAGE = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Stats</title>
+<title>Pie Stats</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   * { box-sizing: border-box; }
@@ -73,7 +73,7 @@ PAGE = """<!doctype html>
 </head>
 <body>
 <header><div class="bar">
-  <span class="brand">Stats</span>
+  <span class="brand">Pie Stats</span>
   <nav id="tabs"></nav>
   <span class="grow"></span>
   <select id="unit"><option value="v">tok/s</option><option value="tflops">TFLOP/s</option></select>
