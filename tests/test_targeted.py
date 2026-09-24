@@ -92,9 +92,7 @@ def test_site_has_pushes_pool_and_people(tmp_path, matrix, monkeypatch):
     assert "openCommit" in (tmp_path / "site" / "index.html").read_text()
 
 
-def test_people_machine_time_today_month_total(tmp_path, monkeypatch):
-    from datetime import datetime, timezone
-    now = datetime(2026, 9, 21, 12, 0, tzinfo=timezone.utc)
+def test_people_machine_time_total(tmp_path, monkeypatch):
     runs = [{"workflow_runs": [
         {"display_title": "pie eval " + "a" * 40, "event": "repository_dispatch", "triggering_actor": {"login": "bot"}, "status": "completed",
          "run_started_at": "2026-09-21T10:00:00Z", "updated_at": "2026-09-21T10:06:00Z", "created_at": "2026-09-21T10:00:00Z"},
@@ -105,8 +103,8 @@ def test_people_machine_time_today_month_total(tmp_path, monkeypatch):
     ]}]
     collaborators = [[{"login": "author", "role_name": "write"}, {"login": "friend", "role_name": "admin"}, {"login": "idle", "role_name": "write"}]]
     monkeypatch.setattr(dashboard, "_paginate", lambda path: runs if "runs" in path else collaborators)
-    used = dashboard.usage("o/evals", {"a" * 40: "author"}, now=now)
-    assert {k: (round(v["today"]), round(v["month"]), round(v["total"])) for k, v in used.items()} == {"author": (6, 6, 6), "friend": (0, 30, 90)}
+    used = dashboard.usage("o/evals", {"a" * 40: "author"})
+    assert {k: round(v["total"]) for k, v in used.items()} == {"author": 6, "friend": 90}
     users = tmp_path / "users"
     users.mkdir()
     (users / "friend.json").write_text('{"enabled": true}')
