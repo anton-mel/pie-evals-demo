@@ -24,6 +24,20 @@ unsupported:
     reason: "vLLM 0.30.0 has no deepseek_v41 (CSA2/Engram) model; revisit at the next pin"
   - when: {family: deepseek_v41, engine: sglang}
     reason: "SGLang 0.5.20 has no deepseek_v41 (CSA2/Engram) model; revisit at the next pin"
+  # pie refuses the attention-only KV-policy inferlets on hybrid (recurrent-state) models:
+  # nightly 35935510089, Qwen3.5-0.8B and the Qwen3.6-35B-A3B mini on the 4090
+  - when: {program_category: kv_policy, family: qwen3_5}
+    reason: "attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the qwen3_5 forward pass is hybrid"
+  - when: {program_category: kv_policy, family: qwen3_6}
+    reason: "attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the qwen3_6 forward pass is hybrid"
+  - when: {program_category: kv_policy, family: qwen3_6_moe}
+    reason: "attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the qwen3_6_moe forward pass is hybrid"
+  - when: {program_category: kv_policy, family: glm5_next}
+    reason: "attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the glm5_next forward pass is hybrid"
+  - when: {program_category: kv_policy, family: kimi_k3}
+    reason: "attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the kimi_k3 forward pass is hybrid"
+  - when: {program_category: kv_policy, family: nemotron_h}
+    reason: "attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the nemotron_h forward pass is hybrid"
   - when: {engine: pie, backend: cuda, spec_dec: dflash2}
     reason: "CUDA engine exposes no draft head (Metal only) — wiki speculative-decoding/"
   - when: {scheme: fp8, arch: apple7}

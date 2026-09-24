@@ -60,4 +60,12 @@ def ensure_snapshot(artifact: ArtifactSpec, hf_cache: Path, *, pie_root: Path | 
     else:
         kw["allow_patterns"] = WEIGHT_PATTERNS
     path = snapshot_download(artifact.base_model, cache_dir=str(hf_cache), token=os.environ.get("HF_TOKEN") or None, **kw)  # an empty secret must not become "Bearer "
+    if artifact.gguf_config_from and not (Path(path) / "config.json").exists():
+        from huggingface_hub import hf_hub_download
+
+        # pie reads a snapshot's encoding from config.json ("a snapshot must carry the
+        # config.json its encoding is read from"); a GGUF repo ships none, the base model does
+        log(f"download: config.json of {artifact.gguf_config_from} -> {path}")
+        src = hf_hub_download(artifact.gguf_config_from, "config.json", token=os.environ.get("HF_TOKEN") or None)
+        (Path(path) / "config.json").write_bytes(Path(src).read_bytes())
     return Path(path)
