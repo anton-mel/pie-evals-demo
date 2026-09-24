@@ -77,9 +77,11 @@ PAGE = """<!doctype html>
   .signin { display: inline-flex; align-items: center; gap: 8px; background: #1f2328; color: #fff; border-radius: 6px; padding: 6px 12px; font-size: 14px; font-weight: 600; }
   .signin:hover { background: #32383f; }
   .signin svg { fill: currentColor; }
-  .pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #d0d7de; border-radius: 999px; padding: 3px 10px 3px 3px; color: #1f2328; font-size: 14px; }
+  #who { display: flex; align-items: center; gap: 8px; }
+  .pill, .signout { box-sizing: border-box; height: 32px; display: inline-flex; align-items: center; border: 1px solid #d0d7de; border-radius: 999px; font-size: 14px; line-height: 1; }
+  .pill { gap: 6px; padding: 0 12px 0 4px; color: #1f2328; }
   .pill .avatar { margin: 0; }
-  .signout { display: inline-flex; align-items: center; border: 1px solid #d0d7de; border-radius: 999px; padding: 4px 12px; color: #424a53; font-size: 14px; margin-left: 8px; }
+  .signout { padding: 0 12px; color: #424a53; }
   .signout:hover, .pill:hover { background: #f6f8fa; }
   .modal { position: fixed; inset: 0; background: rgba(31, 35, 40, .45); display: flex; align-items: flex-start; justify-content: center; padding: 8vh 16px; z-index: 10; }
   .modal[hidden] { display: none; }
