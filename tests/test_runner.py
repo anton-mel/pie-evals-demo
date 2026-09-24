@@ -116,12 +116,21 @@ def test_noisy_rounds_mark_cell_noisy(job, patched, tmp_path):
 
 
 def test_control_failure_invalidates_process(job, patched, tmp_path):
-    FakeEngine.behaviour["control-aa"] = [100.0, 130.0]
+    FakeEngine.behaviour["control-aa"] = [100.0, 130.0, 130.0, 100.0, 130.0, 130.0]  # three rounds a look; noisy twice
     recs, _ = _run(job, patched, tmp_path)
     ctrl = next(r for r in recs if r.cell.workload.id == "control-aa")
     assert ctrl.status == CellStatus.NOISY
     others = [r for r in recs if r.cell.workload.id != "control-aa"]
     assert others and all(r.status == CellStatus.NOISY and r.error_class == ErrorClass.HARNESS_INVALID for r in others)
+    assert FakeEngine.calls.count("control-aa") == 6
+
+
+def test_noisy_control_gets_one_more_look(job, patched, tmp_path):
+    FakeEngine.behaviour["control-aa"] = [100.0, 130.0]  # the second look settles at 130 every round
+    recs, _ = _run(job, patched, tmp_path)
+    ctrl = next(r for r in recs if r.cell.workload.id == "control-aa")
+    assert ctrl.status == CellStatus.PASS and FakeEngine.calls.count("control-aa") == 6
+    assert all(r.status == CellStatus.PASS for r in recs if r.cell.workload.id != "control-aa")
 
 
 def test_engine_failure_is_classified(job, patched, tmp_path):

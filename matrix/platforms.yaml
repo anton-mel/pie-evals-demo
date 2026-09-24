@@ -62,6 +62,7 @@ platforms:
     memory_gib: 96
     interconnect: pcie
     runner_labels: [self-hosted, linux, pro6000-x1]
+    pod: pro6000-x2   # its jobs run on the pro6000-x2 pod, one GPU masked
     runpod_gpu_type: "NVIDIA RTX PRO 6000 Blackwell Server Edition"
     tiers: [smoke, nightly, weekly]
   - id: pro6000-x4
@@ -95,6 +96,7 @@ platforms:
     memory_gib: 80
     interconnect: pcie
     runner_labels: [self-hosted, linux, a100-pcie-x1]
+    pod: a100-pcie-x2   # its jobs run on the a100-pcie-x2 pod, one GPU masked
     runpod_gpu_type: "NVIDIA A100 80GB PCIe"
     tiers: [nightly, weekly]
   - id: a100-x2
