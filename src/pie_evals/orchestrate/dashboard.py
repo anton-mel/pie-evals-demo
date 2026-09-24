@@ -84,6 +84,13 @@ PAGE = """<!doctype html>
   .modal[hidden] { display: none; }
   .sheet { position: relative; background: #fff; border-radius: 10px; width: min(640px, 100%); max-height: 84vh; overflow: auto; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
   .sheet .card { border: 0; margin: 0; }
+  .subtabs { display: flex; gap: 4px; margin: -4px 32px 12px 0; border-bottom: 1px solid #eaeef2; padding-bottom: 8px; }
+  .subtabs button { font: inherit; border: 0; background: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; color: #424a53; }
+  .subtabs button.on { background: #eaeef2; color: #1f2328; font-weight: 600; }
+  .picklist { max-height: 220px; overflow: auto; border: 1px solid #eaeef2; border-radius: 6px; padding: 4px 8px; margin-bottom: 12px; }
+  label.clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tag.new { background: #fff8c5; }
+  pre.cmd { background: #f6f8fa; border: 1px solid #d8dee4; border-radius: 6px; padding: 10px; white-space: pre-wrap; word-break: break-all; font-size: 12px; }
   .x { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 22px; line-height: 1; cursor: pointer; color: #656d76; }
 </style>
 </head>
@@ -194,10 +201,17 @@ function closeSheet() { document.getElementById("modal").hidden = true; }
 document.getElementById("close").onclick = closeSheet;
 document.getElementById("modal").onclick = e => { if (e.target.id === "modal") closeSheet(); };
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
+let section = "My commits";
+const pickList = (name, items, checked) => items.map(x => `<label class="check"><input type="checkbox" name="${name}" value="${x.id}" ${checked.includes(x.id) ? "checked" : ""}> ${x.name}${x.hint ? ` <span class="muted">${x.hint}</span>` : ""}</label>`).join("");
+const picked = name => [...document.querySelectorAll(`#sheet input[name=${name}]:checked`)].map(x => x.value);
+const macItems = () => DATA.pool.map(m => ({ id: m.id, name: m.name, hint: m.id }));
+function macChoice(cur) {
+  return `<label class="check"><input type="checkbox" name="all" ${cur.length ? "" : "checked"}> every connected Mac</label>${pickList("mac", macItems(), cur)}`;
+}
 async function setup() {
   const main = document.getElementById("sheet");
   if (!me) {
-    main.innerHTML = `<div class="card"><h2>Sign in</h2><p class="muted">Paste a GitHub token that can write to <b>${DATA.repo}</b> (fine-grained: Contents read & write). It stays in this browser.</p>` +
+    main.innerHTML = `<div class="card"><h2>Sign in with GitHub</h2><p class="muted">Paste a fine-grained GitHub token for <b>${DATA.repo}</b> with <b>Contents</b> and <b>Actions</b> read & write. It stays in this browser.</p>` +
       `<input id="tok" type="password" placeholder="github_pat_…" size="40"> <button class="act" id="go">Sign in</button> <span id="err" class="down"></span></div>`;
     document.getElementById("go").onclick = async () => {
       try { localStorage.setItem("pie-evals-token", document.getElementById("tok").value.trim()); } catch {}
@@ -205,24 +219,65 @@ async function setup() {
     };
     return;
   }
+  const sections = ["My commits", "Run now", "Add a Mac"];
+  main.innerHTML = `<div class="card"><nav class="subtabs">${sections.map(x => `<button class="${x === section ? "on" : ""}">${x}</button>`).join("")}</nav><div id="body"></div></div>`;
+  main.querySelectorAll(".subtabs button").forEach(b => b.onclick = () => { section = b.textContent; setup(); });
+  const body = document.getElementById("body");
+  if (section === "My commits") return myCommits(body);
+  if (section === "Run now") return runNow(body);
+  return addMac(body);
+}
+async function myCommits(body) {
   const file = await gh(`repos/${DATA.repo}/contents/users/${me.login}.json`);
-  const cur = file ? JSON.parse(atob(file.content)) : { models: [DATA.default_model], macs: [] };
-  main.innerHTML = `<div class="card"><h2>What runs on my pushes</h2><p class="muted">When a commit by <b>${me.login}</b> lands on pie main, these models run on these Macs.</p>` +
-    `<div class="row"><div><h2>Models</h2>${DATA.models.map(m => `<label class="check"><input type="checkbox" name="model" value="${m.id}" ${cur.models.includes(m.id) ? "checked" : ""}> ${m.name}</label>`).join("")}</div>` +
-    `<div><h2>Macs</h2><label class="check"><input type="checkbox" name="all" ${cur.macs.length ? "" : "checked"}> every connected Mac</label>` +
-    DATA.pool.map(m => `<label class="check"><input type="checkbox" name="mac" value="${m.id}" ${cur.macs.includes(m.id) ? "checked" : ""}> ${m.name} <span class="muted">${m.id}</span></label>`).join("") +
-    `</div></div><button class="act" id="save">Save</button> <span id="msg" class="muted"></span></div>`;
+  const cur = file ? JSON.parse(atob(file.content)) : { models: [DATA.default_model], macs: [], enabled: true };
+  body.innerHTML = `<p class="muted">What runs when a commit by <b>${me.login}</b> lands on pie main.</p>` +
+    `<label class="check"><input type="checkbox" name="enabled" ${cur.enabled === false ? "" : "checked"}> benchmark my commits</label>` +
+    `<div class="row"><div><h2>Models</h2>${pickList("model", DATA.models, cur.models || [])}</div><div><h2>Macs</h2>${macChoice(cur.macs || [])}</div></div>` +
+    `<button class="act" id="save">Save</button> <span id="msg" class="muted"></span>`;
   document.getElementById("save").onclick = async () => {
-    const pick = n => [...document.querySelectorAll(`input[name=${n}]:checked`)].map(x => x.value);
-    const body = { models: pick("model"), macs: document.querySelector("input[name=all]").checked ? [] : pick("mac") };
+    const data = { models: picked("model"), macs: picked("all").length ? [] : picked("mac"), enabled: picked("enabled").length > 0 };
     const msg = document.getElementById("msg"); msg.textContent = "Saving…";
     try {
       const now = await gh(`repos/${DATA.repo}/contents/users/${me.login}.json`);
       await gh(`repos/${DATA.repo}/contents/users/${me.login}.json`, { method: "PUT", body: JSON.stringify({
-        message: `users: ${me.login} runs ${body.models.join(", ") || "the default"}`,
-        content: btoa(JSON.stringify(body, null, 2) + "\\n"), ...(now ? { sha: now.sha } : {}) }) });
-      msg.textContent = "Saved. Your next push to main runs this.";
+        message: `users: ${me.login} ${data.enabled ? "runs " + (data.models.join(", ") || "the default") : "skips benchmarks"}`,
+        content: btoa(JSON.stringify(data, null, 2) + "\\n"), ...(now ? { sha: now.sha } : {}) }) });
+      msg.textContent = data.enabled ? "Saved. Your next push to main runs this." : "Saved. Your pushes are not benchmarked.";
     } catch (e) { msg.textContent = "Could not save: " + e.message; }
+  };
+}
+async function runNow(body) {
+  body.innerHTML = `<p class="muted">Loading recent pie commits…</p>`;
+  let recent = [];
+  try { recent = await gh(`repos/${DATA.pie_repo}/commits?sha=main&per_page=30`) || []; } catch (e) { body.innerHTML = `<p class="down">${e.message}</p>`; return; }
+  const measured = new Set(DATA.commits.map(c => c.sha));
+  body.innerHTML = `<p class="muted">Benchmark chosen pie commits now: catch up on ones that were skipped, or add models and Macs to ones already measured.</p>` +
+    `<h2>Commits</h2><div class="picklist">${recent.map(c => `<label class="check clip"><input type="checkbox" name="commit" value="${c.sha}"> ` +
+      `<code>${c.sha.slice(0, 7)}</code> ${c.commit.message.split("\\n")[0]} ${measured.has(c.sha) ? `<span class="tag">measured</span>` : `<span class="tag new">not measured</span>`}</label>`).join("")}</div>` +
+    `<div class="row"><div><h2>Models</h2>${pickList("model", DATA.models, [DATA.default_model])}</div><div><h2>Macs</h2>${macChoice([])}</div></div>` +
+    `<button class="act" id="run">Run</button> <span id="msg" class="muted"></span>`;
+  document.getElementById("run").onclick = async () => {
+    const commits = picked("commit"), models = picked("model"), macs = picked("all").length ? [] : picked("mac");
+    const msg = document.getElementById("msg");
+    if (!commits.length || !models.length) { msg.textContent = "Pick at least one commit and one model."; return; }
+    msg.textContent = "Starting…";
+    try {
+      for (const sha of commits) {
+        await gh(`repos/${DATA.repo}/actions/workflows/pie-eval.yml/dispatches`, { method: "POST",
+          body: JSON.stringify({ ref: "main", inputs: { pie_commit: sha, models: models.join(","), macs: macs.join(",") } }) });
+      }
+      msg.innerHTML = `Started ${commits.length} run${commits.length > 1 ? "s" : ""}. <a href="https://github.com/${DATA.repo}/actions/workflows/pie-eval.yml" target="_blank">Follow them</a>`;
+    } catch (e) { msg.textContent = "Could not start: " + e.message; }
+  };
+}
+function addMac(body) {
+  const cmd = `PLATFORM_ID=<id> ./infra/mac/setup-runner.sh "$(gh api -X POST repos/${DATA.repo}/actions/runners/registration-token -q .token)"`;
+  body.innerHTML = `<p class="muted">Connect a Mac so it can take benchmark runs. On that Mac, in a checkout of <b>${DATA.repo}</b>, run:</p>` +
+    `<pre class="cmd">${cmd.replace(/</g, "&lt;")}</pre><button class="act" id="copy">Copy</button> <span id="msg" class="muted"></span>` +
+    `<p class="muted"><code>&lt;id&gt;</code> is the Mac's entry in <code>matrix/platforms.yaml</code>, for example <code>m5-max-48g</code>. ` +
+    `Creating the registration token needs admin on ${DATA.repo}; without it, ask an admin for a token. The Mac shows up under Macs once it is connected.</p>`;
+  document.getElementById("copy").onclick = async () => {
+    try { await navigator.clipboard.writeText(cmd); document.getElementById("msg").textContent = "Copied."; } catch { document.getElementById("msg").textContent = "Select and copy the command."; }
   };
 }
 async function signIn() {

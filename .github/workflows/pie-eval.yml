@@ -23,6 +23,7 @@ jobs:
       commit: ${{ steps.p.outputs.commit }}
       models: ${{ steps.p.outputs.models }}
       macs: ${{ steps.p.outputs.macs }}
+      skip: ${{ steps.p.outputs.skip }}
     steps:
       - uses: actions/checkout@v4
       - id: p
@@ -36,23 +37,26 @@ jobs:
           info=$(gh api "repos/$PIE_REPO/commits/$COMMIT" 2>/dev/null || echo '{}')
           author=$(jq -r '.author.login // empty' <<<"$info")
           line=$(jq -r '.commit.message // ""' <<<"$info" | grep -iE '^evals:' | tail -1 || true)
-          models=""; macs=""; source=default
+          models=""; macs=""; source=default; skip=false
           if [ -n "$author" ] && [ -f "users/$author.json" ]; then
             models=$(jq -r '.models // [] | join(",")' "users/$author.json"); macs=$(jq -r '.macs // [] | join(",")' "users/$author.json"); source="users/$author.json"
+            [ "$(jq -r '.enabled == false' "users/$author.json")" = true ] && skip=true
           fi
           if [ -n "$line" ]; then
             m=$(grep -oE 'models=[^ ]+' <<<"$line" | cut -d= -f2 || true); k=$(grep -oE 'macs=[^ ]+' <<<"$line" | cut -d= -f2 || true)
-            [ -n "$m" ] && models=$m; [ -n "$k" ] && macs=$k; source="commit message"
+            [ -n "$m" ] && models=$m; [ -n "$k" ] && macs=$k; source="commit message"; skip=false
           fi
           [ -n "$IN_MODELS" ] && { models=$IN_MODELS; source=manual; }
           [ -n "$IN_MACS" ] && { macs=$IN_MACS; source=manual; }
+          [ "${{ github.event_name }}" = workflow_dispatch ] && skip=false
           [ -n "$models" ] || models=$DEFAULT_MODELS
           [[ "$models$macs" =~ ^[a-z0-9.,-]*$ ]] || { echo "::error::bad models '$models' or macs '$macs'"; exit 1; }
-          echo "author=${author:-unknown} setup=$source models=$models macs=${macs:-every connected Mac}" | tee -a "$GITHUB_STEP_SUMMARY"
-          { echo "commit=$COMMIT"; echo "models=$models"; echo "macs=$macs"; } >> "$GITHUB_OUTPUT"
+          echo "author=${author:-unknown} setup=$source models=$models macs=${macs:-every connected Mac} skip=$skip" | tee -a "$GITHUB_STEP_SUMMARY"
+          { echo "commit=$COMMIT"; echo "models=$models"; echo "macs=$macs"; echo "skip=$skip"; } >> "$GITHUB_OUTPUT"
 
   run:
     needs: start
+    if: needs.start.outputs.skip != 'true'
     uses: ./.github/workflows/tier.yml
     with:
       tier: targeted
