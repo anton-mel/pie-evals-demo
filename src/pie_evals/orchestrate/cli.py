@@ -101,7 +101,7 @@ def jobs(obj, tier, pie_commit, platforms, engines, programs, artifacts, max_job
     if artifacts:
         cells = [c for c in cells if c.artifact.id in artifacts]
     if skip_recorded and pie_commit:
-        done = recorded_cell_keys(st, Tier(tier), pie_commit)
+        done = recorded_cell_keys(st, Tier(tier), pie_commit, {e.id: e.pin for e in m.engines.values() if getattr(e, "pin", None)})
         before = len(cells)
         cells = [c for c in cells if c.cell_key not in done]
         click.echo(f"skip {before - len(cells)} cells already recorded at {pie_commit[:8]}", err=True)

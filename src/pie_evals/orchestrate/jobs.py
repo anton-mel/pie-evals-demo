@@ -162,17 +162,27 @@ def _feature_for(backend: str) -> str:
     return {"cuda": "cuda", "metal": "metal", "vulkan": "vulkan", "wgpu": "wgpu"}[backend]
 
 
-def recorded_cell_keys(store: Store, tier: Tier, pie_commit: str) -> set[str]:
-    """Cells the store already holds at this pie commit, so a re-dispatch after lost
-    launches (RunPod stock, a host that died) repeats only what never ran."""
+def recorded_cell_keys(store: Store, tier: Tier, pie_commit: str, baseline_pins: dict[str, str] | None = None) -> set[str]:
+    """Cells the store already holds: pie cells at this pie commit, and baseline
+    cells at the engine version the matrix pins (a vLLM number does not change
+    with pie's commit). A re-dispatch after lost launches, or a new pie commit,
+    then repeats only what never ran."""
     t = store.table(tier)
     if t.num_rows == 0:
         return set()
     keys = t.column("cell_key").to_pylist()
     commits = t.column("pie_commit").to_pylist()
     statuses = t.column("status").to_pylist()
-    # a cell the budget never reached was not run; it is exactly what a re-dispatch is for
-    return {k for k, c, s in zip(keys, commits, statuses, strict=True) if c == pie_commit and s != "not_run"}
+    engines = t.column("engine").to_pylist()
+    versions = t.column("engine_version").to_pylist()
+    pins = baseline_pins or {}
+    done = set()
+    for k, c, s, e, v in zip(keys, commits, statuses, engines, versions, strict=True):
+        if s == "not_run":  # the budget never reached it: exactly what a re-dispatch is for
+            continue
+        if (e == "pie" and c == pie_commit) or (e != "pie" and v and v == pins.get(str(e))):
+            done.add(k)
+    return done
 
 
 def plan_pods(matrix: Matrix, jobs: list[JobSpec]) -> list[dict]:
