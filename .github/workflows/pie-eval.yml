@@ -1,4 +1,5 @@
 name: pie eval
+run-name: pie eval ${{ github.event.client_payload.pie_commit || inputs.pie_commit }}
 permissions: { contents: write, actions: read }
 concurrency:
   group: pie-eval-${{ github.event.client_payload.pie_commit || github.event.inputs.pie_commit }}

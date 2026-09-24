@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from pie_evals.schema import CellStatus, Tier
@@ -107,6 +108,7 @@ PAGE = """<!doctype html>
   .auto .tag { padding: 0 12px; }
   .auto .tag.off { background: #fff8c5; border-color: #eac54f; }
   .on-word { color: #656d76; }
+  .kicker { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: #656d76; margin-right: 4px; }
   .pill.small { padding: 0 12px; gap: 6px; margin-left: 4px; }
   .filter select { padding: 0 30px 0 12px; }
   .filter { font-size: 14px; color: #424a53; display: inline-flex; align-items: center; gap: 6px; }
@@ -221,7 +223,7 @@ const ALL = [...DATA.commits, ...DATA.history].sort((a, b) => (b.date || "").loc
 const allCommits = () => ALL;
 function pushes() {
   const head = me
-    ? `<div class="auto"><span>Your pushes run</span>${summary()}<button class="pill small" id="edit">` +
+    ? `<div class="auto"><span class="kicker">CI/CD</span><span>Your pushes run</span>${summary()}<button class="pill small" id="edit">` +
       `<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>Change</button></div>`
     : `<div class="auto muted"><a href="#" id="sig">Sign in</a> to choose what runs on your pushes and to add runs to any commit.</div>`;
   const commits = allCommits(), authors = [...new Set(commits.map(c => c.author).filter(Boolean))].sort((a, b) => a.localeCompare(b));
@@ -323,13 +325,15 @@ function pool() {
   document.getElementById("main").innerHTML = html + `</table></div>`;
 }
 function people() {
-  let html = `<div class="card"><table class="compact"><tr><th>who</th><th>machines connected</th></tr>`;
+  const ago = d => { if (!d) return "–"; const h = (Date.now() - new Date(d)) / 36e5; return h < 1 ? "just now" : h < 24 ? `${Math.round(h)}h ago` : `${Math.round(h / 24)}d ago`; };
+  const time = m => m >= 60 ? `${(m / 60).toFixed(1)} h` : `${Math.round(m)} min`;
+  let html = `<div class="card"><table class="compact"><tr><th>who</th><th>access</th><th>push runs</th><th class="num">runs · 30d</th><th class="num">machine time · 30d</th><th class="num">last active</th></tr>`;
   for (const p of DATA.people) {
-    const own = p.machines.map(id => DATA.pool.find(m => m.id === id)).filter(Boolean);
-    html += `<tr class="person" data-login="${esc(p.login)}"><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}${p.enabled === false ? ` <span class="tag">pushes off</span>` : ""}</td>` +
-      `<td>${own.map(m => `<span class="tag"><span class="dot ${m.status}"></span>${esc(m.name)}</span>`).join("") || `<span class="muted">none</span>`}</td></tr>`;
+    html += `<tr class="person" data-login="${esc(p.login)}"><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}</td>` +
+      `<td class="muted">${esc(p.role || "–")}</td><td>${p.auto ? "on" : `<span class="tag new">off</span>`}</td>` +
+      `<td class="num">${p.runs || "–"}</td><td class="num">${p.minutes ? time(p.minutes) : "–"}</td><td class="num muted">${ago(p.last)}</td></tr>`;
   }
-  if (!DATA.people.length) html += `<tr><td colspan="2" class="muted">Nobody yet.</td></tr>`;
+  if (!DATA.people.length) html += `<tr><td colspan="6" class="muted">Nobody yet.</td></tr>`;
   document.getElementById("main").innerHTML = html + `</table></div>`;
   document.querySelectorAll("tr.person").forEach(tr => tr.onclick = () => { author = tr.dataset.login; tab = "Pushes"; draw(); });
 }
@@ -439,11 +443,9 @@ def _pool(live: list[dict] | None, matrix: Matrix, last: dict[str, str]) -> list
             continue
         pid = next((lab for lab in labels if lab in matrix.platforms), None)
         spec = matrix.platforms.get(pid) if pid else None
-        owner = next((lab[len("owner-"):] for lab in labels if lab.startswith("owner-")), "")
         pool.append({
             "name": spec.accelerator if spec else r["name"],
             "id": pid or "",
-            "owner": owner,
             "memory_gib": int(spec.memory_gib) if spec else None,
             "status": "busy" if r["status"] == "online" and r.get("busy") else "idle" if r["status"] == "online" else "offline",
             "last": last.get(pid, ""),
@@ -465,18 +467,50 @@ def mac_models(matrix: Matrix) -> list[dict]:
     return sorted(seen.values(), key=lambda m: m["name"])
 
 
-def people(users_dir: Path, pool: list[dict]) -> list[dict]:
+def _paginate(path: str) -> list:
+    try:
+        out = subprocess.run(["gh", "api", "--paginate", "--slurp", path], capture_output=True, text=True, check=True).stdout
+        return json.loads(out)
+    except (OSError, subprocess.CalledProcessError, json.JSONDecodeError):
+        return []
+
+
+def _when(ts: str | None) -> datetime | None:
+    return datetime.fromisoformat(ts.replace("Z", "+00:00")) if ts else None
+
+
+def usage(repo: str, authors: dict[str, str], *, days: int = 30, now: datetime | None = None) -> dict[str, dict]:
+    now = now or datetime.now(timezone.utc)
+    since = (now - timedelta(days=days)).strftime("%Y-%m-%d")
+    pages = _paginate(f"repos/{repo}/actions/workflows/pie-eval.yml/runs?per_page=100&created=>={since}")
     out: dict[str, dict] = {}
+    for run in (r for page in pages for r in page.get("workflow_runs", [])):
+        sha = (run.get("display_title") or "").split()[-1] if run.get("display_title") else ""
+        who = (run.get("triggering_actor") or {}).get("login") if run.get("event") == "workflow_dispatch" else authors.get(sha)
+        if not who:
+            continue
+        start, end = _when(run.get("run_started_at")), _when(run.get("updated_at"))
+        u = out.setdefault(who, {"runs": 0, "minutes": 0.0, "last": ""})
+        u["runs"] += 1
+        if start and end and run.get("status") == "completed":
+            u["minutes"] += max(0.0, (end - start).total_seconds() / 60)
+        u["last"] = max(u["last"], run.get("created_at") or "")
+    return out
+
+
+def people(repo: str, users_dir: Path, authors: dict[str, str]) -> list[dict]:
+    roles = {c["login"]: c.get("role_name", "") for page in _paginate(f"repos/{repo}/collaborators?affiliation=all&per_page=100") for c in page}
+    auto: dict[str, bool] = {}
     for f in sorted(users_dir.glob("*.json")) if users_dir.is_dir() else []:
         try:
-            d = json.loads(f.read_text())
+            auto[f.stem] = json.loads(f.read_text()).get("enabled") is not False
         except json.JSONDecodeError:
             continue
-        out[f.stem] = {"login": f.stem, "enabled": d.get("enabled") is not False, "machines": []}
-    for m in pool:
-        if m.get("owner"):
-            out.setdefault(m["owner"], {"login": m["owner"], "enabled": True, "machines": []})["machines"].append(m["id"])
-    return sorted(out.values(), key=lambda p: p["login"].lower())
+    used = usage(repo, authors)
+    logins = set(roles) | set(auto) | set(used)
+    rows = [{"login": who, "role": roles.get(who, ""), "auto": auto.get(who, True), **used.get(who, {"runs": 0, "minutes": 0.0, "last": ""})}
+            for who in logins]
+    return sorted(rows, key=lambda p: (-p["minutes"], -p["runs"], p["login"].lower()))
 
 
 def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, pie_repo: str,
@@ -528,7 +562,8 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
         "repo": repo, "pie_repo": pie_repo, "default_model": DEFAULT_MODEL,
         "metrics": [{"phase": p, "name": n} for p, n, *_ in METRICS],
         "commits": commits, "history": all_commits, "results": results, "models": models,
-        "pool": (pool := _pool(live, matrix, last)), "people": people(users_dir, pool),
+        "pool": _pool(live, matrix, last),
+        "people": people(repo, users_dir, {c["sha"]: c["author"] for c in [*known.values(), *commits]}) if lookup_commits else [],
     }
 
 
