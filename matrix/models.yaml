@@ -177,6 +177,7 @@ artifacts:
     source_format: gguf
     gguf_file: Qwen3.6-27B-Q4_K_M.gguf
     gguf_config_from: Qwen/Qwen3.6-27B
+    pie_sku: qwen36-27b-u4g64-kv-bf16   # the import otherwise lands the dflash twin, which no boot loads (nightly 35998010528)
     expected_gib: 15.6
     tiers: [nightly, weekly]
 

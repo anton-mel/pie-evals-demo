@@ -259,7 +259,7 @@ class NodeRunner:
                         model_path = ensure_artifact(first.artifact, snapshot, self.pie_root / "target/release/pie", self.job.pie_commit, log=self.log)
                     except Exception as e:
                         for c in cells:
-                            self.emit(self._failed(c, ErrorClass.LOAD_FAIL, f"artifact import: {str(e).strip().splitlines()[-1][:300]}", fingerprint))
+                            self.emit(self._failed(c, ErrorClass.LOAD_FAIL, f"artifact import: {str(e).strip().splitlines()[-1][:900]}", fingerprint))
                         continue
             recipe_name = "competitive" if str(first.engine) != "pie" else "default"
             try:
