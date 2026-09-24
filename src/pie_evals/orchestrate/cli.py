@@ -264,20 +264,24 @@ def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_versi
     want = [x.strip() for x in labels.split(",") if x.strip()] if labels else None
     lab = None
     if reuse and runner_pat and not exec_script:
-        first = m.platforms[platform.split(",")[0].strip()]
         try:
-            found = runpod.reusable_pod(want or first.runner_labels, runpod.list_runners(repo, runner_pat))
+            runners = runpod.list_runners(repo, runner_pat)
         except Exception as e:
-            found = None
+            runners = []
             click.echo(f"runner list unavailable ({str(e)[:80]}); launching", err=True)
-        if found:
-            pod_id, have = found
-            click.echo(f"reusing pod {pod_id} ({','.join(have)}): its runner carries every label this run needs", err=True)
-            click.echo(pod_id)
-            if os.environ.get("GITHUB_OUTPUT"):
-                with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-                    f.write(f"pod_id={pod_id}\nplatform={first.id}\nlabels={','.join(have)}\nreused=true\n")
-            return
+        # the pod as planned first, then what a fallback pod would have seated
+        for pid in [x.strip() for x in platform.split(",") if x.strip()]:
+            p = m.platforms[pid]
+            lab = [x for x in want if x not in m.platforms or m.platforms[x].count <= p.count] if want else p.runner_labels
+            found = runpod.reusable_pod(lab, runners)
+            if found:
+                pod_id, have = found
+                click.echo(f"reusing pod {pod_id} ({','.join(have)}): its runner carries every label {pid} needs", err=True)
+                click.echo(pod_id)
+                if os.environ.get("GITHUB_OUTPUT"):
+                    with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                        f.write(f"pod_id={pod_id}\nplatform={pid}\nlabels={','.join(lab)}\nreused=true\n")
+                return
     for pid in [x.strip() for x in platform.split(",") if x.strip()]:
         plat = m.platforms[pid]
         # a fallback pod seats only the hosted platforms that fit on it
