@@ -50,7 +50,7 @@ jobs:
           [ -n "${{ inputs.max_jobs }}" ] && PLAT_ARGS="$PLAT_ARGS --max-jobs ${{ inputs.max_jobs }}"
           [ -n "${{ inputs.max_jobs_per_platform }}" ] && PLAT_ARGS="$PLAT_ARGS --max-jobs-per-platform ${{ inputs.max_jobs_per_platform }}"
           [ "${{ inputs.skip_recorded }}" = "true" ] && PLAT_ARGS="$PLAT_ARGS --skip-recorded"
-          .venv/bin/pie-evals jobs --tier "${{ inputs.tier }}" --pie-commit "${{ inputs.pie_commit }}" --out jobs --skip-unavailable --run-label "run-${{ github.run_id }}" $PLAT_ARGS
+          .venv/bin/pie-evals jobs --tier "${{ inputs.tier }}" --pie-commit "${{ inputs.pie_commit }}" --out jobs --skip-unavailable $PLAT_ARGS
           echo "matrix=$(cat jobs/gh-matrix.json)" >> "$GITHUB_OUTPUT"
           echo "needs_pods=$(jq -r '[.include[] | select(.runpod)] | length > 0' jobs/gh-matrix.json)" >> "$GITHUB_OUTPUT"
           echo "platforms=$(jq -r '[.include[].platform] | unique | join(",")' jobs/gh-matrix.json)" >> "$GITHUB_OUTPUT"
@@ -74,7 +74,7 @@ jobs:
       - run: uv venv && uv pip install -e ".[orchestrate]"
       - name: launch pod
         id: pod
-        run: .venv/bin/pie-evals launch-pod --platform "${{ join(matrix.fallback, ',') }}" --labels "${{ join(matrix.labels, ',') }}" --repo "${{ github.repository }}" --image "${{ vars.RUNPOD_IMAGE || 'pieproject/runpod-ci-runner:latest' }}" --kill-minutes "${{ matrix.kill_minutes }}" --wait-runner 480
+        run: .venv/bin/pie-evals launch-pod --platform "${{ join(matrix.fallback, ',') }}" --labels "${{ join(matrix.labels, ',') }}" --repo "${{ github.repository }}" --image "${{ vars.RUNPOD_IMAGE || 'pieproject/runpod-ci-runner:latest' }}" --kill-minutes 1440 --reuse --wait-runner 480
         env:
           RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
           GH_RUNNER_PAT: ${{ secrets.GH_RUNNER_PAT }}
@@ -148,14 +148,13 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
-      - run: uv venv && uv pip install -e ".[orchestrate]"
       - uses: actions/download-artifact@v4
         with: { pattern: "launched-*", path: launched, merge-multiple: true }
-      - name: terminate pods
-        run: for f in launched/pod-*.txt; do [ -f "$f" ] && .venv/bin/pie-evals terminate-pod "$(cat "$f")" || true; done
-        env: { RUNPOD_API_KEY: "${{ secrets.RUNPOD_API_KEY }}" }
+      # pods are shared across runs and end themselves when idle (reap is the last net);
+      # a run must not terminate a pod another run may still be queued on
+      - name: pods this run used
+        run: |
+          for f in launched/pod-*.txt; do [ -f "$f" ] && echo "$f -> $(cat "$f")"; done; true
 
   # Bookkeeping. Inline rather than a nested `uses:` of collect.yml: the nested
   # form failed at startup because this job's `permissions` exceeded what the

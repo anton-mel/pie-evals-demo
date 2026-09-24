@@ -249,8 +249,9 @@ def watch_baselines(obj, lock):
 @click.option("--wait-runner", type=int, default=0, help="seconds to wait for the pod's runner to register (needs GH_RUNNER_PAT); a pod that never registers is terminated and the next platform tried")
 @click.option("--labels", default=None, help="comma-separated runner labels (default: the platform's); a pod hosting several platforms carries all of theirs")
 @click.option("--idle-minutes", type=int, default=20, show_default=True, help="the pod terminates itself after this long without a job")
+@click.option("--reuse", is_flag=True, help="if a live pod already carries every label, queue on it instead of renting another (needs GH_RUNNER_PAT)")
 @click.pass_obj
-def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_version, network_volume_id, kill_minutes, cuda_versions, debug, exec_script, wait_runner, labels, idle_minutes):
+def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_version, network_volume_id, kill_minutes, cuda_versions, debug, exec_script, wait_runner, labels, idle_minutes, reuse):
     from . import runpod
 
     m: Matrix = obj["matrix"]
@@ -262,6 +263,21 @@ def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_versi
     errors = []
     want = [x.strip() for x in labels.split(",") if x.strip()] if labels else None
     lab = None
+    if reuse and runner_pat and not exec_script:
+        first = m.platforms[platform.split(",")[0].strip()]
+        try:
+            found = runpod.reusable_pod(want or first.runner_labels, runpod.list_runners(repo, runner_pat))
+        except Exception as e:
+            found = None
+            click.echo(f"runner list unavailable ({str(e)[:80]}); launching", err=True)
+        if found:
+            pod_id, have = found
+            click.echo(f"reusing pod {pod_id} ({','.join(have)}): its runner carries every label this run needs", err=True)
+            click.echo(pod_id)
+            if os.environ.get("GITHUB_OUTPUT"):
+                with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                    f.write(f"pod_id={pod_id}\nplatform={first.id}\nlabels={','.join(have)}\nreused=true\n")
+            return
     for pid in [x.strip() for x in platform.split(",") if x.strip()]:
         plat = m.platforms[pid]
         # a fallback pod seats only the hosted platforms that fit on it
@@ -362,12 +378,19 @@ def terminate_pod(pod_id):
 
 
 @main.command("reap-pods")
-@click.option("--max-age-hours", type=float, default=2.0, help="anything past kill_minutes is an orphan; 2h covers the largest budget with slack")
+@click.option("--max-age-hours", type=float, default=2.0, help="a pod this old whose runner is not busy is an orphan")
+@click.option("--hard-max-age-hours", type=float, default=30.0, help="even a busy pod ends here: a configuration's whole queue fits well inside")
+@click.option("--repo", default=None, help="owner/name whose runners say which pods are busy (needs GH_TOKEN); default: $GITHUB_REPOSITORY")
 @click.option("--dry-run", is_flag=True)
-def reap_pods(max_age_hours, dry_run):
+def reap_pods(max_age_hours, hard_max_age_hours, repo, dry_run):
     from . import runpod
 
-    click.echo(json.dumps(runpod.reap(int(max_age_hours * 3600), dry_run=dry_run)))
+    keep: set[str] = set()
+    try:
+        keep = runpod.busy_pods(runpod.list_runners(repo or os.environ.get("GITHUB_REPOSITORY", "pie-project/pie-evals")))
+    except Exception as e:  # no token: age alone decides, as before
+        click.echo(f"runner list unavailable ({str(e)[:80]}); busy pods are not spared", err=True)
+    click.echo(json.dumps(runpod.reap(int(max_age_hours * 3600), dry_run=dry_run, keep=keep, hard_max_age_s=int(hard_max_age_hours * 3600))))
 
 
 if __name__ == "__main__":

@@ -382,8 +382,10 @@ def list_pods(api_key: str | None = None) -> list[dict]:
     return list(_req("GET", "/pods", api_key=api_key))
 
 
-def reap(max_age_s: int, api_key: str | None = None, dry_run: bool = False) -> list[str]:
-    """Terminate pie-evals pods older than ``max_age_s`` (orphans from failed workflows)."""
+def reap(max_age_s: int, api_key: str | None = None, dry_run: bool = False, keep: set[str] | None = None, hard_max_age_s: int | None = None) -> list[str]:
+    """Terminate pie-evals pods older than ``max_age_s`` (orphans from failed
+    workflows). A pod in ``keep`` (its runner is busy with a job) is spared until
+    ``hard_max_age_s``: one pod works through a whole configuration's queue."""
     killed = []
     now = time.time()
     for p in list_pods(api_key):
@@ -394,7 +396,10 @@ def reap(max_age_s: int, api_key: str | None = None, dry_run: bool = False) -> l
             created = int(name.rsplit("-", 1)[-1])
         except ValueError:
             continue
-        if now - created > max_age_s:
+        age = now - created
+        if keep and p.get("id") in keep and not (hard_max_age_s and age > hard_max_age_s):
+            continue
+        if age > max_age_s:
             if not dry_run:
                 terminate_pod(p["id"], api_key)
             killed.append(p["id"])
@@ -403,3 +408,37 @@ def reap(max_age_s: int, api_key: str | None = None, dry_run: bool = False) -> l
 
 def to_json(x) -> str:
     return json.dumps(x, indent=1)
+
+
+# ---- runners ---------------------------------------------------------------------
+
+def list_runners(repo: str, token: str | None = None) -> list[dict]:
+    """The repo's self-hosted runners (needs a token with actions:read / administration)."""
+    import subprocess
+
+    env = {**os.environ, **({"GH_TOKEN": token} if token else {})}
+    out = subprocess.run(["gh", "api", f"repos/{repo}/actions/runners?per_page=100"], capture_output=True, text=True, env=env, check=True).stdout
+    return list(json.loads(out).get("runners", []))
+
+
+def runner_pod_id(runner: dict) -> str | None:
+    """Pods register as ``runpod-<pod id>``."""
+    name = str(runner.get("name", ""))
+    return name[len("runpod-"):] if name.startswith("runpod-") else None
+
+
+def reusable_pod(labels: list[str], runners: list[dict]) -> tuple[str, list[str]] | None:
+    """A live pod whose runner carries every wanted label: its pod id and labels.
+    One pod per hardware configuration is the point — a second run on the same
+    GPU type queues on it instead of renting a twin."""
+    want = {x.lower() for x in labels}
+    for r in runners:
+        pid = runner_pod_id(r)
+        have = {str(lab["name"]).lower() for lab in r.get("labels", [])}
+        if pid and r.get("status") == "online" and want <= have:
+            return pid, sorted(x for x in have if x not in {"self-hosted", "linux", "x64"} and not x.startswith("img-"))
+    return None
+
+
+def busy_pods(runners: list[dict]) -> set[str]:
+    return {pid for r in runners if r.get("status") == "online" and r.get("busy") and (pid := runner_pod_id(r))}
