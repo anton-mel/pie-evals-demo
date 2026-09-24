@@ -59,6 +59,9 @@ PAGE = """<!doctype html>
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eaeef2; vertical-align: top; }
   th { font-size: 13px; color: #424a53; font-weight: 600; }
   td.num, th.num { text-align: right; }
+  table.compact { table-layout: fixed; font-size: 13px; }
+  table.compact th, table.compact td { padding: 3px 8px; line-height: 1.4; }
+  td.clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
   .idle { background: #1a7f37; } .busy { background: #bf8700; } .offline { background: #cf222e; }
   .tag { display: inline-block; background: #eaeef2; border-radius: 10px; padding: 0 8px; margin: 0 4px 4px 0; font-size: 13px; }
@@ -137,13 +140,11 @@ function overview() {
 }
 
 function pushes() {
-  let html = `<div class="card"><h2>Recent pushes</h2><table><tr><th>commit</th><th>author</th><th>date</th><th>ran</th></tr>`;
+  let html = `<div class="card"><h2>Recent pushes</h2><table class="compact"><colgroup><col><col style="width:140px"><col style="width:96px"></colgroup>` +
+             `<tr><th>commit</th><th>author</th><th>date</th></tr>`;
   [...DATA.commits].reverse().forEach(c => {
-    const ran = Object.keys(DATA.results).flatMap(mac => Object.keys(DATA.results[mac].models)
-      .filter(model => Object.values(DATA.results[mac].models[model]).some(byCommit => byCommit[c.sha]))
-      .map(model => `<span class="tag">${DATA.results[mac].name} · ${modelName(model)}</span>`)).join("");
-    html += `<tr><td><a href="https://github.com/${DATA.pie_repo}/commit/${c.sha}" target="_blank">${c.sha.slice(0, 7)}</a> ${c.message}</td>` +
-            `<td>${c.author}</td><td>${c.date}</td><td>${ran}</td></tr>`;
+    html += `<tr><td class="clip" title="${c.message.replace(/"/g, "&quot;")}"><a href="https://github.com/${DATA.pie_repo}/commit/${c.sha}" target="_blank">${c.sha.slice(0, 7)}</a> ${c.message}</td>` +
+            `<td class="clip">${c.author}</td><td>${c.date}</td></tr>`;
   });
   document.getElementById("main").innerHTML = html + `</table></div>`;
 }
