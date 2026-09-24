@@ -34,8 +34,8 @@ PAGE = """<!doctype html>
   body { font: 15px/1.5 -apple-system, system-ui, sans-serif; margin: 0; color: #1f2328; background: #f6f8fa; }
   header { background: #fff; border-bottom: 1px solid #d8dee4; }
   .bar { max-width: 1000px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-  .brand { font-weight: 700; font-size: 17px; display: inline-flex; align-items: center; gap: 6px; }
-  .logo { width: 16px; height: 16px; }
+  .brand { font-weight: 700; font-size: 17px; display: inline-flex; align-items: center; gap: 3px; }
+  .logo { width: 22px; height: 22px; }
   nav { display: flex; gap: 8px; flex-wrap: wrap; }
   nav button, .pill, .signout, .signin, select, button.act {
     box-sizing: border-box; height: 32px; display: inline-flex; align-items: center; gap: 6px;
