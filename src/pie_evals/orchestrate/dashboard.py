@@ -283,7 +283,7 @@ function openCommit(sha) {
 function cicd() {
   const main = document.getElementById("main");
   if (!me) {
-    main.innerHTML = `<div class="card"><h2>What runs on your pushes</h2><p class="muted">Sign in to choose which models run on which machines when your commits land on pie main.</p>` +
+    main.innerHTML = `<div class="card"><h2>What runs on your pushes</h2><p class="muted">Sign in to choose what runs on your pushes.</p>` +
       `<button class="act" id="sig">Sign in</button></div>`;
     document.getElementById("sig").onclick = openSignIn;
     return;
