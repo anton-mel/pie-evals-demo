@@ -1,5 +1,23 @@
 [
  {
+  "cell_id": "8acd7ef06e162858",
+  "cell_key": "pie|m5-max-48g|Qwen/Qwen3.5-0.8B@bf16/hf_safetensors|lc-1k-128|text-completion-bench|tp1",
+  "engine": "pie",
+  "platform": "m5-max-48g",
+  "artifact": "qwen3.5-0.8b-bf16",
+  "workload": "lc-1k-128",
+  "program": "text-completion-bench",
+  "mode": "tp1",
+  "metric": "decode_tok_s",
+  "value": 265.39170000945927,
+  "delta_rel": 0.016896369948453165,
+  "threshold_rel": 0.016009256132510852,
+  "kind": "improvement",
+  "pie_commit": "cb95a9dadf786b9e72b8d99a8ae05fa1fb921dd1",
+  "engine_version": "cb95a9da",
+  "family": "qwen3_5"
+ },
+ {
   "cell_id": "117aa352ddab4a77",
   "cell_key": "pie|m5-max-48g|Qwen/Qwen3.5-0.8B@bf16/hf_safetensors|ss-128-64|text-completion-bench|tp1",
   "engine": "pie",
@@ -9,12 +27,12 @@
   "program": "text-completion-bench",
   "mode": "tp1",
   "metric": "decode_tok_s",
-  "value": 275.7267207646655,
-  "delta_rel": -0.01053852405567579,
-  "threshold_rel": 0.01,
-  "kind": "regression",
-  "pie_commit": "37e2a05aa854288f35f8e2c2d4dba152ecf2b91d",
-  "engine_version": "37e2a05a",
+  "value": 283.99139976436356,
+  "delta_rel": 0.021694181619766245,
+  "threshold_rel": 0.01612940387045494,
+  "kind": "improvement",
+  "pie_commit": "cb95a9dadf786b9e72b8d99a8ae05fa1fb921dd1",
+  "engine_version": "cb95a9da",
   "family": "qwen3_5"
  }
 ]
