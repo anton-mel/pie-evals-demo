@@ -1,7 +1,7 @@
 # One pie commit, sent by pie's CI (repository_dispatch `pie-eval`) or by hand.
 # mode targeted: the `targeted` tier (pie alone, one small model, six shapes,
-# ~5 min per platform); mode full: the `smoke` tier. A PR commit gets a comment
-# and a commit status on pie and is never written to the store; a main commit
+# ~5 min per platform); mode full: the `smoke` tier. A PR commit's report lands
+# in this run's summary and is never written to the store; a main commit
 # is written to the store, which the history page is built from.
 name: pie eval
 permissions: { contents: write, actions: read }
@@ -14,12 +14,11 @@ on:
   workflow_dispatch:
     inputs:
       pie_commit: { description: "pie commit", required: true }
-      pr: { description: "pie PR number to comment on (empty: a main commit)", required: false, default: "" }
+      pr: { description: "pie PR number this run is for (empty: a main commit)", required: false, default: "" }
       mode: { description: "targeted | full", required: false, default: "targeted" }
       platforms: { description: "comma-separated platform ids, or mac / gpu (empty: every platform of the mode)", required: false, default: "" }
 
 env:
-  PIE_REPO: ${{ vars.PIE_REPO || 'pie-project/pie' }}
   DASHBOARD: ${{ vars.PIE_EVALS_DASHBOARD || 'https://pie-project.github.io/pie-evals/' }}
 
 jobs:
@@ -49,14 +48,6 @@ jobs:
           esac
           [[ "$PLATFORMS" =~ ^[a-z0-9.,-]*$ ]] || { echo "::error::bad platforms '$PLATFORMS'"; exit 1; }
           { echo "commit=$COMMIT"; echo "pr=$PR"; echo "mode=$MODE"; echo "tier=$tier"; echo "platforms=$PLATFORMS"; } >> "$GITHUB_OUTPUT"
-      - name: pending status on the pie commit
-        if: steps.p.outputs.pr != ''
-        env: { GH_TOKEN: "${{ secrets.PIE_REPO_TOKEN }}" }
-        run: |
-          [ -n "$GH_TOKEN" ] || { echo "::warning::PIE_REPO_TOKEN is not set; nothing is posted to pie"; exit 0; }
-          gh api -X POST "repos/$PIE_REPO/statuses/${{ steps.p.outputs.commit }}" -f state=pending \
-            -f context="pie-evals/${{ steps.p.outputs.mode }}" -f description="running" \
-            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
 
   run:
     needs: start
@@ -87,22 +78,12 @@ jobs:
             --expect "${{ needs.run.outputs.platforms }}" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
             --dashboard "$DASHBOARD" --out pr-report.md
           cat pr-report.md >> "$GITHUB_STEP_SUMMARY"
-      - name: comment and status on the pie PR
-        if: needs.start.outputs.pr != ''
-        env: { GH_TOKEN: "${{ secrets.PIE_REPO_TOKEN }}" }
+      - name: fail on regression or missing platform
+        if: >-
+          needs.start.outputs.pr != '' &&
+          (steps.report.outputs.regressions != '0' || steps.report.outputs.broken != '0' || steps.report.outputs.missing != '0')
         run: |
-          [ -n "$GH_TOKEN" ] || { echo "::warning::PIE_REPO_TOKEN is not set; nothing is posted to pie"; exit 0; }
-          pr="${{ needs.start.outputs.pr }}"
-          existing=$(gh api "repos/$PIE_REPO/issues/$pr/comments" --paginate \
-                       -q '.[] | select(.body | startswith("<!-- pie-evals -->")) | .id' | head -1)
-          if [ -n "$existing" ]; then
-            gh api -X PATCH "repos/$PIE_REPO/issues/comments/$existing" -F body=@pr-report.md >/dev/null
-          else
-            gh api -X POST "repos/$PIE_REPO/issues/$pr/comments" -F body=@pr-report.md >/dev/null
-          fi
-          state=success; desc="within noise of main"
-          if [ "${{ steps.report.outputs.regressions }}" != "0" ]; then state=failure; desc="${{ steps.report.outputs.regressions }} slower than main"; fi
-          if [ "${{ steps.report.outputs.broken }}" != "0" ] || [ "${{ steps.report.outputs.missing }}" != "0" ]; then state=error; desc="not every platform ran"; fi
-          gh api -X POST "repos/$PIE_REPO/statuses/${{ needs.start.outputs.commit }}" -f state="$state" \
-            -f context="pie-evals/${{ needs.start.outputs.mode }}" -f description="$desc" \
-            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
+          [ "${{ steps.report.outputs.regressions }}" = "0" ] || echo "::error::${{ steps.report.outputs.regressions }} slower than main — see the run summary"
+          [ "${{ steps.report.outputs.broken }}" = "0" ] || echo "::error::${{ steps.report.outputs.broken }} broken — see the run summary"
+          [ "${{ steps.report.outputs.missing }}" = "0" ] || echo "::error::${{ steps.report.outputs.missing }} platform(s) did not run — see the run summary"
+          exit 1

@@ -232,7 +232,7 @@ stratified seeded subsets. Dataset hashes go into provenance.
 | tier | trigger | what | fan-out cap |
 |---|---|---|---|
 | smoke | every pie commit | pie only, vs its own history; small real models + miniatures; ~10 shapes; every program once; tp2 on the 2-GPU platform | ≤ 2 jobs per platform |
-| targeted | every pie PR commit and main commit (`pie-eval.yml`, sent by pie's `evals.yml`) | pie only, vs main's history; Qwen3.5-0.8B × six shapes on the Macs and one GPU; PR results are commented on the PR and never stored | 1 job per platform |
+| targeted | every pie PR commit and main commit (`pie-eval.yml`, sent by pie's `evals.yml`) | pie only, vs main's history; Qwen3.5-0.8B × six shapes on the Macs and one GPU; PR results land in the run's Actions summary and are never stored | 1 job per platform |
 | nightly | cron | subset of full; baselines at competitive + default recipes; all schemes; tp1/2/4 | ≤ 48 jobs per platform |
 | weekly | cron | everything: big models, NVLink TP, replay traces, full T2 | ≤ 120 jobs per platform |
 
