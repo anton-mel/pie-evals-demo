@@ -12,6 +12,7 @@ checked against the build that reads it.
 from __future__ import annotations
 
 import os
+import uuid
 import subprocess
 from pathlib import Path
 
@@ -44,7 +45,7 @@ def ensure_artifact(artifact: ArtifactSpec, snapshot: Path, pie_bin: Path, commi
     have = find_zt(d)
     if have:
         return have
-    tmp = d.parent / f".tmp-{d.name}-{os.getpid()}"
+    tmp = d.parent / f".tmp-{d.name}-{os.uname().nodename}-{os.getpid()}-{uuid.uuid4().hex[:6]}"  # pods on one volume share pids (pie #650: a shared spool zeroes the loser)
     tmp.mkdir(parents=True, exist_ok=True)
     argv = [str(pie_bin), "model", "import", str(snapshot), "--out", str(tmp), "--keep-source"]
     if artifact.pie_sku:
