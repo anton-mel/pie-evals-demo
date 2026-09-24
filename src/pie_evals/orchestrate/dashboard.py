@@ -45,6 +45,9 @@ PAGE = """<!doctype html>
   .big { font-size: 26px; font-weight: 600; }
   .up { color: #1a7f37; } .down { color: #cf222e; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+  .chart { position: relative; height: 200px; min-width: 0; }
+  @media (max-width: 700px) { .charts { grid-template-columns: 1fr; } }
   @media (max-width: 700px) { .row { grid-template-columns: 1fr; } }
   table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eaeef2; vertical-align: top; }
@@ -67,6 +70,7 @@ PAGE = """<!doctype html>
   <span class="brand">pie evals</span>
   <nav id="tabs"></nav>
   <span class="grow"></span>
+  <select id="unit"><option value="v">tok/s</option><option value="tflops">TFLOP/s</option></select>
   <select id="model"></select>
   <span id="who"></span>
 </div></header>
@@ -86,6 +90,8 @@ const token = () => { try { return localStorage.getItem("pie-evals-token"); } ca
 const modelSel = document.getElementById("model");
 modelSel.innerHTML = DATA.models.filter(m => m.has_results).map(m => `<option value="${m.id}">${m.name}</option>`).join("");
 modelSel.value = DATA.default_model; modelSel.onchange = draw;
+const unitSel = document.getElementById("unit"); unitSel.onchange = draw;
+const unitName = () => unitSel.value === "v" ? "tok/s" : "TFLOP/s";
 
 function series(mac, metric) {
   const byCommit = (DATA.results[mac]?.models[modelSel.value] || {})[metric] || {};
@@ -104,26 +110,23 @@ function overview() {
   let html = "";
   for (const mac of macs()) {
     const shas = DATA.commits.filter(c => DATA.metrics.some((_, i) => series(mac, i).some(p => p.sha === c.sha))).map(c => c.sha);
-    const first = shas[0], last = shas[shas.length - 1];
-    const pre = phaseChange(mac, "Prefill", first, last), dec = phaseChange(mac, "Decode", first, last);
-    html += `<div class="card"><h2>${DATA.results[mac].name}</h2><div class="row">` +
-      `<div><div class="muted">Prefill since first push</div><div class="big">${pre == null ? "–" : signed(pre)}</div></div>` +
-      `<div><div class="muted">Decode since first push</div><div class="big">${dec == null ? "–" : signed(dec)}</div></div></div>` +
-      `<div class="row" style="margin-top:12px"><canvas data-mac="${mac}" data-phase="Prefill" height="190"></canvas>` +
-      `<canvas data-mac="${mac}" data-phase="Decode" height="190"></canvas></div>` +
-      `<div class="muted">${shas.length} pushes · % change of each test since the first push</div></div>`;
+    html += `<div class="card"><h2>${DATA.results[mac].name}</h2><div class="muted">${shas.length} pushes · ${unitName()} per push</div>` +
+      `<div class="charts"><div class="chart"><canvas data-mac="${mac}" data-phase="Prefill"></canvas></div>` +
+      `<div class="chart"><canvas data-mac="${mac}" data-phase="Decode"></canvas></div></div></div>`;
   }
   document.getElementById("main").innerHTML = html || `<div class="card muted">No results for this model yet.</div>`;
+  const key = unitSel.value;
   document.querySelectorAll("canvas").forEach(cv => {
     const rows = DATA.metrics.map((m, i) => [m, i]).filter(([m]) => m.phase === cv.dataset.phase);
     const labels = DATA.commits.map(c => c.sha).filter(sha => rows.some(([, i]) => series(cv.dataset.mac, i).some(p => p.sha === sha)));
     charts.push(new Chart(cv, { type: "line",
       data: { labels: labels.map(s => s.slice(0, 7)), datasets: rows.map(([m, i], k) => {
-        const s = series(cv.dataset.mac, i), base = s[0]?.v, by = Object.fromEntries(s.map(p => [p.sha, pct(p.v, base)]));
+        const by = Object.fromEntries(series(cv.dataset.mac, i).map(p => [p.sha, p[key]]));
         return { label: m.name, data: labels.map(l => by[l] ?? null), borderColor: COLORS[k], backgroundColor: COLORS[k], pointRadius: 3, spanGaps: true };
       }) },
-      options: { plugins: { title: { display: true, text: cv.dataset.phase }, legend: { position: "bottom", labels: { boxWidth: 10 } } },
-                 scales: { y: { ticks: { callback: v => `${v > 0 ? "+" : ""}${v}%` } } } } }));
+      options: { responsive: true, maintainAspectRatio: false,
+                 plugins: { title: { display: true, text: `${cv.dataset.phase} · ${unitName()}` }, legend: { position: "bottom", labels: { boxWidth: 10 } } },
+                 scales: { y: { beginAtZero: false } } } }));
   });
 }
 
@@ -237,6 +240,7 @@ function draw() {
   document.getElementById("tabs").innerHTML = TABS.map(t => `<button class="${t === tab ? "on" : ""}">${t}</button>`).join("");
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { tab = b.textContent; draw(); });
   modelSel.style.visibility = tab === "Overview" || tab === "Pushes" ? "visible" : "hidden";
+  unitSel.style.visibility = tab === "Overview" ? "visible" : "hidden";
   ({ "Overview": overview, "Pushes": pushes, "Macs": pool, "People": people, "My setup": setup })[tab]();
 }
 signIn().then(draw);
