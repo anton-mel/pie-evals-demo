@@ -211,6 +211,9 @@ function summary() {
   const where = (mine?.macs || []).length ? mine.macs.map(macName) : ["every connected Mac"];
   return `${models.map(tag).join("")}<span class="on-word">on</span>${where.map(tag).join("")}`;
 }
+const when = d => d ? new Date(d) : null;
+const fmtDate = d => { const t = when(d); return t && !isNaN(t) ? `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}` : ""; };
+const fmtTime = d => { const t = when(d); return t && !isNaN(t) && d.length > 10 ? `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}` : ""; };
 const ALL = [...DATA.commits, ...DATA.history].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 const allCommits = () => ALL;
 function pushes() {
@@ -222,17 +225,17 @@ function pushes() {
   if (author && !authors.includes(author)) authors.push(author);
   const filter = `<label class="filter">author <select id="author"><option value="">everyone</option>` +
     authors.map(a => `<option value="${esc(a)}" ${a === author ? "selected" : ""}>${esc(a)}</option>`).join("") + `</select></label>`;
-  let html = `<div class="toolbar">${head}${filter}</div><div class="card"><table class="compact"><colgroup><col><col style="width:140px"><col style="width:96px"><col style="width:120px"></colgroup>` +
-             `<tr><th>commit</th><th>author</th><th>date</th><th>benchmarks</th></tr>`;
+  let html = `<div class="toolbar">${head}${filter}</div><div class="card"><table class="compact"><colgroup><col><col style="width:140px"><col style="width:96px"><col style="width:60px"><col style="width:120px"></colgroup>` +
+             `<tr><th>commit</th><th>author</th><th>date</th><th>time</th><th>benchmarks</th></tr>`;
   const matching = commits.filter(c => !author || c.author === author);
   const pages = Math.max(1, Math.ceil(matching.length / PER_PAGE));
   page = Math.min(page, pages - 1);
   const shown = matching.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
-  if (!shown.length) html += `<tr><td colspan="4" class="muted">No pushes by ${esc(author)} yet.</td></tr>`;
+  if (!shown.length) html += `<tr><td colspan="5" class="muted">No pushes by ${esc(author)} yet.</td></tr>`;
   for (const c of shown) {
     const n = ran(c.sha).size;
     html += `<tr class="push" data-sha="${c.sha}"><td class="clip" title="${esc(c.message)}"><code>${c.sha.slice(0, 7)}</code> ${esc(c.message)}</td>` +
-            `<td class="clip">${esc(c.author)}</td><td>${c.date}</td>` +
+            `<td class="clip">${esc(c.author)}</td><td>${fmtDate(c.date)}</td><td class="muted">${fmtTime(c.date)}</td>` +
             `<td>${n ? `<span class="tag">${n} run${n > 1 ? "s" : ""}</span>` : `<span class="tag new">not measured</span>`}</td></tr>`;
   }
   document.getElementById("main").innerHTML = html + `</table>${pager(pages)}</div>`;
@@ -267,7 +270,7 @@ function openCommit(sha) {
   }
   grid += `</table>`;
   sheet(`<h2><a href="https://github.com/${DATA.pie_repo}/commit/${sha}" target="_blank"><code>${sha.slice(0, 7)}</code></a> ${esc(c.message)}</h2>` +
-    `<div class="muted">${esc(c.author)} · ${c.date} · ✓ already measured</div><div class="gridwrap">${grid}</div>` +
+    `<div class="muted">${esc(c.author)} · ${fmtDate(c.date)} ${fmtTime(c.date)} · ✓ already measured</div><div class="gridwrap">${grid}</div>` +
     (me ? `<button class="act" id="run">Run selected</button> <span id="msg" class="muted"></span>`
         : `<div class="muted"><a href="#" id="sig2">Sign in</a> to add runs to this commit.</div>`));
   const s2 = document.getElementById("sig2");
@@ -507,10 +510,8 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
             "date": (commit.get("committer") or {}).get("date", ""),
         })
     commits.sort(key=lambda c: c["date"] or "~")
-    for c in commits:
-        c["date"] = c["date"][:10]
     measured = {c["sha"] for c in commits}
-    all_commits = [{**c, "date": c["date"][:10]} for c in known.values() if c["sha"] not in measured]
+    all_commits = [c for c in known.values() if c["sha"] not in measured]
 
     models = mac_models(matrix)
     for m in models:
