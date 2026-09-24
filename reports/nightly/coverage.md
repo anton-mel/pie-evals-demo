@@ -2,11 +2,11 @@
 
 | status | cells |
 |---|---|
-| pass | 608 |
-| fail | 589 |
+| pass | 605 |
+| fail | 573 |
 | declared_unsupported | 8828 |
-| not_run | 5146 |
-| noisy | 149 |
+| not_run | 5141 |
+| noisy | 173 |
 
 ## Gaps (expected supported, but not passing)
 
@@ -245,6 +245,7 @@
 | vllm | l40s-x1 | kimi-k3-mini8 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
 | sglang | l40s-x1 | kimi-k3-mini8 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | fail | crash | ValueError: The repository /workspace/.hf/hub/models--moonshotai--Kimi-K3/snapshots/mini-l0-7-e32-b4 contains custom cod |
 | sglang | l40s-x1 | kimi-k3-mini8 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | crash | ValueError: The repository /workspace/.hf/hub/models--moonshotai--Kimi-K3/snapshots/mini-l0-7-e32-b4 contains custom cod |
+| pie | l40s-x1 | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp1 | fail |  |  |
 | pie | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | classifier-free-guidance | tp1 | fail | crash | all 8 requests failed: JSONDecodeError: Expecting value: line 1 column 1 (char 0) |
 | vllm | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
 | vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
@@ -262,14 +263,6 @@
 | pie | l40s-x1 | qwen3.6-27b-gguf-q4km | mixed-256 | text-completion-bench | tp1 | fail | crash | all 256 requests failed: g0 take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admission |
 | pie | l40s-x1 | qwen3.6-27b-gguf-q4km | kv-oversub | text-completion-bench | tp1 | fail | crash | all 256 requests failed: drain prefill chunk @0: drop_tok_c take: channel is poisoned: pipeline: forward failed: direct  |
 | pie | l40s-x1 | qwen3.6-35b-a3b-mini5 | ss-128-64 | rs-speculative-decoding | tp1,rs | fail | crash | all 8 requests failed: KeyError: 'num_output_tokens' |
-| pie | l40s-x2 | gemma-4-e4b-bf16 | c256 | text-completion-bench | tp2 | fail | crash | all 1024 requests failed: TimeoutError:  |
-| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | trackb-h2o | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | trackb-snapkv | tp2 | fail | crash | all 4 requests failed: TimeoutError:  |
-| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | snapkv-eviction | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | tova-attention | tp2 | fail | crash | all 4 requests failed: TimeoutError:  |
-| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | attention-sink | tp2 | fail | crash | all 4 requests failed: JSONDecodeError: Expecting value: line 1 column 1 (char 0) |
-| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | sliding-window-attention | tp2 | fail | crash | all 4 requests failed: JSONDecodeError: Expecting value: line 1 column 1 (char 0) |
-| pie | l40s-x2 | gemma-4-e4b-bf16 | ss-128-64 | classifier-free-guidance | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
 | pie | l40s-x2 | glm-5.3-flash-mini8 | ss-512-256 | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
 | pie | l40s-x2 | glm-5.3-flash-mini8 | c32 | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
 | pie | l40s-x2 | glm-5.3-flash-mini8 | c64 | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
@@ -310,15 +303,6 @@
 | pie | l40s-x2 | kimi-k3-mini8 | mixed-256 | text-completion-bench | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
 | pie | l40s-x2 | kimi-k3-mini8 | kv-oversub | text-completion-bench | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
 | pie | l40s-x2 | kimi-k3-mini8 | ss-128-64 | classifier-free-guidance | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | qwen3.5-0.8b-bf16 | lc-1k-128 | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | qwen3.5-0.8b-bf16 | ss-128-64 | classifier-free-guidance | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
 | pie | l40s-x2 | qwen3.6-27b-gguf-q4km | control-aa | text-completion-bench | tp2 | fail | load_fail | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
 | pie | l40s-x2 | qwen3.6-27b-gguf-q4km | ss-128-64 | text-completion-bench | tp2 | fail | load_fail | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
 | pie | l40s-x2 | qwen3.6-27b-gguf-q4km | ss-512-256 | text-completion-bench | tp2 | fail | load_fail | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
@@ -647,35 +631,59 @@
 | pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | lc-1k-128 | trackb-snapkv | tp1 | noisy |  |  |
 | pie | l40s-x1 | gemma-4-e4b-bf16 | c8 | text-completion-bench | tp1 | noisy |  |  |
 | pie | l40s-x1 | gemma-4-e4b-bf16 | mixed-256 | text-completion-bench | tp1 | noisy |  |  |
-| pie | l40s-x1 | gemma-4-e4b-bf16 | kv-oversub | text-completion-bench | tp1 | noisy |  |  |
-| pie | l40s-x1 | gemma-4-e4b-bf16 | lc-1k-128 | snapkv-eviction | tp1 | noisy |  |  |
-| pie | l40s-x1 | gemma-4-e4b-bf16 | lc-1k-128 | attention-sink | tp1 | noisy |  |  |
 | vllm | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | prefix-1k-x64 | text-completion-bench | tp1 | noisy |  |  |
 | sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c32 | text-completion-bench | tp1 | noisy |  |  |
 | sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | kv-oversub | text-completion-bench | tp1 | noisy |  |  |
 | sglang | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | c8 | cacheback-speculative-decoding | tp1,ngram | noisy |  |  |
 | pie | l40s-x1 | kimi-k3-mini8 | ss-128-64 | classifier-free-guidance | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
-| pie | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | rs-speculative-decoding | tp1,rs | noisy |  |  |
 | sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | noisy |  |  |
 | sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | noisy |  |  |
 | pie | l40s-x1 | qwen3.6-27b-gguf-q4km | ss-128-64 | text-completion-bench | tp1 | noisy |  |  |
 | pie | l40s-x1 | qwen3.6-27b-gguf-q4km | ss-512-256 | text-completion-bench | tp1 | noisy |  |  |
 | pie | l40s-x1 | qwen3.6-27b-gguf-q4km | c8 | text-completion-bench | tp1 | noisy |  |  |
 | pie | l40s-x1 | qwen3.6-27b-gguf-q4km | lc-2k-128 | text-completion-bench | tp1 | noisy |  |  |
+| pie | l40s-x2 | gemma-4-e4b-bf16 | control-aa | text-completion-bench | tp2 | noisy |  |  |
+| pie | l40s-x2 | gemma-4-e4b-bf16 | ss-128-64 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x2 | gemma-4-e4b-bf16 | ss-512-256 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x2 | gemma-4-e4b-bf16 | c8 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x2 | gemma-4-e4b-bf16 | c32 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
-| pie | l40s-x2 | gemma-4-e4b-bf16 | c64 | text-completion-bench | tp2 | noisy |  |  |
+| pie | l40s-x2 | gemma-4-e4b-bf16 | c64 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | gemma-4-e4b-bf16 | c256 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x2 | gemma-4-e4b-bf16 | lc-2k-128 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-8k-128 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-32k-128 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x2 | gemma-4-e4b-bf16 | prefix-1k-x64 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x2 | gemma-4-e4b-bf16 | mixed-256 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x2 | gemma-4-e4b-bf16 | kv-oversub | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | trackb-h2o | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | trackb-snapkv | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | snapkv-eviction | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | tova-attention | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | attention-sink | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | sliding-window-attention | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | gemma-4-e4b-bf16 | ss-128-64 | classifier-free-guidance | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x2 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | text-completion-bench | tp2 | noisy |  |  |
 | pie | l40s-x2 | gpt-oss-20b-mxfp4-mini5 | kv-oversub | text-completion-bench | tp2 | noisy |  |  |
 | pie | l40s-x2 | kimi-k3-mini8 | ss-128-64 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x2 | kimi-k3-mini8 | c8 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x2 | kimi-k3-mini8 | lc-2k-128 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | sglang | l40s-x2 | kimi-k3-mini8 | c8 | cacheback-speculative-decoding | tp2,ngram | noisy |  |  |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | control-aa | text-completion-bench | tp2 | noisy |  |  |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | lc-1k-128 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | lc-8k-128 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | lc-32k-128 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | ss-128-64 | classifier-free-guidance | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | sglang | l40s-x2 | qwen3.5-0.8b-bf16 | c8 | cacheback-speculative-decoding | tp2,ngram | noisy |  |  |
 | pie | l40s-x2 | qwen3.6-35b-a3b-mini5 | control-aa | text-completion-bench | tp2 | noisy |  |  |
 | pie | l40s-x2 | qwen3.6-35b-a3b-mini5 | ss-128-64 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
@@ -2149,8 +2157,6 @@
 | pie | l40s-x2 | gemma-4-31b-mlx4 | lc-1k-128 | attention-sink | tp2 | not_run |  |  |
 | pie | l40s-x2 | gemma-4-31b-mlx4 | lc-1k-128 | sliding-window-attention | tp2 | not_run |  |  |
 | pie | l40s-x2 | gemma-4-31b-mlx4 | ss-128-64 | classifier-free-guidance | tp2 | not_run |  |  |
-| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-8k-128 | text-completion-bench | tp2 | not_run |  |  |
-| pie | l40s-x2 | gemma-4-e4b-bf16 | lc-32k-128 | text-completion-bench | tp2 | not_run |  |  |
 | vllm | l40s-x2 | gemma-4-e4b-bf16 | ss-128-64 | text-completion-bench | tp2 | not_run |  |  |
 | vllm | l40s-x2 | gemma-4-e4b-bf16 | ss-512-256 | text-completion-bench | tp2 | not_run |  |  |
 | vllm | l40s-x2 | gemma-4-e4b-bf16 | c8 | text-completion-bench | tp2 | not_run |  |  |
@@ -2285,9 +2291,6 @@
 | sglang | l40s-x2 | kimi-k3-mini8 | kv-oversub | text-completion-bench | tp2 | not_run |  |  |
 | sglang | l40s-x2 | kimi-k3-mini8 | prefix-1k-x64 | prefix-tree-kv-cache | tp2 | not_run |  |  |
 | sglang | l40s-x2 | kimi-k3-mini8 | mixed-256 | prefix-tree-kv-cache | tp2 | not_run |  |  |
-| pie | l40s-x2 | qwen3.5-0.8b-bf16 | lc-8k-128 | text-completion-bench | tp2 | not_run |  |  |
-| pie | l40s-x2 | qwen3.5-0.8b-bf16 | lc-32k-128 | text-completion-bench | tp2 | not_run |  |  |
-| pie | l40s-x2 | qwen3.5-0.8b-bf16 | ss-128-64 | rs-speculative-decoding | tp2,rs | not_run |  |  |
 | vllm | l40s-x2 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp2 | not_run |  |  |
 | vllm | l40s-x2 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp2 | not_run |  |  |
 | vllm | l40s-x2 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp2 | not_run |  |  |
@@ -5932,11 +5935,11 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | deepseek_v4 | · | · | · | · | · | · | 0/25 | 0/25 | 0/25 | 0/25 | · | · | · | · | · | · |
 | deepseek_v41 | · | · | · | · | · | · | 0/23 | 0/23 | 0/23 | 0/23 | · | · | · | · | · | · |
-| gemma4 | 0/42 | 0/42 | 0/42 | 0/42 | 16/42 | 3/42 | 0/50 | 0/50 | 0/50 | 0/50 | 0/42 | 6/42 | 0/42 | 0/42 | 5/42 | 0/42 |
+| gemma4 | 0/42 | 0/42 | 0/42 | 0/42 | 19/42 | 0/42 | 0/50 | 0/50 | 0/50 | 0/50 | 0/42 | 6/42 | 0/42 | 0/42 | 5/42 | 0/42 |
 | gemma4_moe | 0/21 | 0/21 | 0/21 | 0/21 | 15/21 | 0/21 | 0/25 | 0/25 | 0/25 | 0/25 | 0/21 | 0/21 | 0/21 | 0/21 | 1/21 | 0/21 |
 | glm5_next | 0/14 | 0/14 | 0/14 | 0/14 | 0/14 | 4/14 | 0/18 | 0/18 | 0/18 | 0/18 | 6/14 | 11/14 | 0/14 | 0/14 | 0/14 | 0/14 |
 | gpt_oss | 0/63 | 0/63 | 0/63 | 0/63 | 43/63 | 10/63 | 0/75 | 0/75 | 0/75 | 0/75 | 0/63 | 21/63 | 0/63 | 0/63 | 24/63 | 34/63 |
 | kimi_k3 | 0/14 | 0/14 | 0/14 | 0/14 | 12/14 | 0/14 | 0/18 | 0/18 | 0/18 | 0/18 | 6/14 | 6/14 | 0/14 | 0/14 | · | 0/14 |
-| qwen3_5 | 11/16 | 0/16 | 0/16 | 0/16 | 14/16 | 4/16 | 0/20 | 0/20 | 0/20 | 0/20 | 8/16 | 7/16 | 0/16 | 0/16 | 12/16 | 13/16 |
+| qwen3_5 | 11/16 | 0/16 | 0/16 | 0/16 | 14/16 | 1/16 | 0/20 | 0/20 | 0/20 | 0/20 | 8/16 | 7/16 | 0/16 | 0/16 | 12/16 | 13/16 |
 | qwen3_6 | 5/32 | 0/32 | 0/32 | 0/32 | 1/32 | 0/32 | 0/40 | 0/40 | 0/40 | 0/40 | 0/32 | 0/32 | 0/32 | 0/32 | 2/32 | 0/32 |
 | qwen3_6_moe | 0/32 | 0/32 | 0/32 | 0/32 | 0/32 | 0/32 | 0/40 | 0/40 | 0/40 | 0/40 | 0/32 | 8/32 | 0/32 | 0/32 | 12/32 | 0/32 |

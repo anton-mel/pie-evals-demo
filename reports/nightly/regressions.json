@@ -1,1 +1,56 @@
-[]
+[
+ {
+  "cell_id": "b3c1af7ad251f6f8",
+  "cell_key": "pie|l40s-x1|Qwen/Qwen3.5-0.8B@bf16/hf_safetensors|mixed-256|text-completion-bench|tp1",
+  "engine": "pie",
+  "platform": "l40s-x1",
+  "artifact": "qwen3.5-0.8b-bf16",
+  "workload": "mixed-256",
+  "program": "text-completion-bench",
+  "mode": "tp1",
+  "metric": "output_tok_s",
+  "value": 3693.8014880780083,
+  "delta_rel": -0.04135729735471129,
+  "threshold_rel": 0.02283951398561665,
+  "kind": "regression",
+  "pie_commit": "07206435344c91da3a7db0073dfda0612a056405",
+  "engine_version": "0720643",
+  "family": "qwen3_5"
+ },
+ {
+  "cell_id": "77ff25279fe8d6b9",
+  "cell_key": "pie|l40s-x1|Qwen/Qwen3.5-0.8B@bf16/hf_safetensors|kv-oversub|text-completion-bench|tp1",
+  "engine": "pie",
+  "platform": "l40s-x1",
+  "artifact": "qwen3.5-0.8b-bf16",
+  "workload": "kv-oversub",
+  "program": "text-completion-bench",
+  "mode": "tp1",
+  "metric": "output_tok_s",
+  "value": 4370.589912937626,
+  "delta_rel": -0.04127831975375923,
+  "threshold_rel": 0.020501105625103398,
+  "kind": "regression",
+  "pie_commit": "07206435344c91da3a7db0073dfda0612a056405",
+  "engine_version": "0720643",
+  "family": "qwen3_5"
+ },
+ {
+  "cell_id": "a42e6dce53431264",
+  "cell_key": "pie|l40s-x1|Qwen/Qwen3.5-0.8B@bf16/hf_safetensors|c8|text-completion-bench|tp1",
+  "engine": "pie",
+  "platform": "l40s-x1",
+  "artifact": "qwen3.5-0.8b-bf16",
+  "workload": "c8",
+  "program": "text-completion-bench",
+  "mode": "tp1",
+  "metric": "output_tok_s",
+  "value": 5490.798307267956,
+  "delta_rel": -0.023206095511693652,
+  "threshold_rel": 0.01,
+  "kind": "regression",
+  "pie_commit": "07206435344c91da3a7db0073dfda0612a056405",
+  "engine_version": "0720643",
+  "family": "qwen3_5"
+ }
+]
