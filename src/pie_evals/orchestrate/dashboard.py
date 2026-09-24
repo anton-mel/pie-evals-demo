@@ -67,7 +67,10 @@ PAGE = """<!doctype html>
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eaeef2; vertical-align: top; }
   th { font-size: 13px; color: #424a53; font-weight: 600; }
   td.num, th.num { text-align: right; }
-  table.compact { table-layout: fixed; font-size: 13px; }
+  table.compact { font-size: 13px; }
+  table.fixed { table-layout: fixed; }
+  table.compact .avatar { width: 18px; height: 18px; }
+  table.compact .tag { margin: 0 4px 0 0; }
   table.compact th, table.compact td { padding: 3px 8px; line-height: 1.4; }
   td.clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
@@ -225,7 +228,7 @@ function pushes() {
   if (author && !authors.includes(author)) authors.push(author);
   const filter = `<label class="filter">author <select id="author"><option value="">everyone</option>` +
     authors.map(a => `<option value="${esc(a)}" ${a === author ? "selected" : ""}>${esc(a)}</option>`).join("") + `</select></label>`;
-  let html = `<div class="toolbar">${head}${filter}</div><div class="card"><table class="compact"><colgroup><col><col style="width:140px"><col style="width:96px"><col style="width:60px"><col style="width:120px"></colgroup>` +
+  let html = `<div class="toolbar">${head}${filter}</div><div class="card"><table class="compact fixed"><colgroup><col><col style="width:140px"><col style="width:96px"><col style="width:60px"><col style="width:120px"></colgroup>` +
              `<tr><th>commit</th><th>author</th><th>date</th><th>time</th><th>benchmarks</th></tr>`;
   const matching = commits.filter(c => !author || c.author === author);
   const pages = Math.max(1, Math.ceil(matching.length / PER_PAGE));
@@ -314,13 +317,13 @@ async function editMine() {
 }
 
 function pool() {
-  let html = `<div class="card"><table><tr><th>Mac</th><th>memory</th><th>status</th><th>last run</th></tr>`;
+  let html = `<div class="card"><table class="compact"><tr><th>Mac</th><th>memory</th><th>status</th><th>last run</th></tr>`;
   for (const m of DATA.pool) html += `<tr><td>${esc(m.name)} <span class="muted">${m.id}</span></td><td>${m.memory_gib ? m.memory_gib + " GB" : ""}</td><td><span class="dot ${m.status}"></span>${m.status}</td><td>${m.last}</td></tr>`;
   if (!DATA.pool.length) html += `<tr><td colspan="4" class="muted">No Mac is connected.</td></tr>`;
   document.getElementById("main").innerHTML = html + `</table></div>`;
 }
 function people() {
-  let html = `<div class="card"><table><tr><th>who</th><th>models</th><th>Macs</th></tr>`;
+  let html = `<div class="card"><table class="compact"><tr><th>who</th><th>models</th><th>Macs</th></tr>`;
   for (const p of DATA.people) {
     html += `<tr class="person" data-login="${esc(p.login)}"><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}${p.enabled === false ? ` <span class="tag">off</span>` : ""}</td>` +
       `<td>${p.models.map(m => `<span class="tag">${esc(modelName(m))}</span>`).join("") || `<span class="muted">default</span>`}</td>` +
