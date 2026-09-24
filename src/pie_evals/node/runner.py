@@ -46,8 +46,8 @@ from . import preflight as pf
 from . import provenance as prov
 from .engines import EngineLaunchError, get_engine
 from .engines.recipes import load_recipe
-from .metrics.stats import cov, decide_repetition, median
 from .engines.shape import serve_envelope
+from .metrics.stats import cov, decide_repetition, median
 from .workloads import common_args_for
 
 
