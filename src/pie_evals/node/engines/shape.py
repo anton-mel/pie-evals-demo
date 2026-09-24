@@ -152,4 +152,8 @@ def serve_envelope(workloads: list[WorkloadSpec]) -> WorkloadSpec:
     reqs = max(workload_num_requests(w) for w in workloads)
     if workload_concurrency(by_ctx) >= conc:
         return by_ctx
-    return by_ctx.model_copy(update={"kind": "concurrency", "params": {**by_ctx.params, "concurrency": conc, "num_requests": max(reqs, conc * 2)}})
+    # keep the kind: a long_context shape passes its prompt as a shared prefix,
+    # and recast as `concurrency` it would put 8k-32k words on the argv (E2BIG,
+    # nightly 35971360265); only the latency kinds ignore a concurrency param
+    kind = "concurrency" if str(by_ctx.kind) in ("single_stream", "control_aa") else by_ctx.kind
+    return by_ctx.model_copy(update={"kind": kind, "params": {**by_ctx.params, "concurrency": conc, "num_requests": max(reqs, conc * 2)}})
