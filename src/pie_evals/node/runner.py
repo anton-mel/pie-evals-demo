@@ -211,6 +211,13 @@ class NodeRunner:
         pre = pf.Preflight()
         machine_before = pre.before_job(self.platform)
         self._last_state = machine_before  # failure records carry the state the card was in
+        if machine_before.get("gpu_drain_error"):
+            # a card that already holds someone else's memory (nightly 35963868578: 5.7 GiB,
+            # no process) invalidates every number and refuses the big loads; give the shard back
+            self.log(f"GPU not clean at job start: {machine_before['gpu_drain_error']}; no cell is attempted on this pod")
+            for c in job.cells:
+                self.emit(self._failed(c, ErrorClass.HARNESS_INVALID, f"GPU not clean at job start: {machine_before['gpu_drain_error']}", None))
+            return []
         fingerprint = prov.hardware_fingerprint()
         records: list[Record] = []
         groups = job.cells_by_process()
