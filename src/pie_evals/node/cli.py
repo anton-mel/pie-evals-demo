@@ -64,7 +64,7 @@ def build_cmd(pie_commit, features, pie_root, mirror, target_dir, force):
 
 
 @main.command("prepare")
-@click.option("--tier", type=click.Choice(["smoke", "nightly", "weekly"]), required=True)
+@click.option("--tier", type=click.Choice(["smoke", "nightly", "weekly", "targeted"]), required=True)
 @click.option("--matrix", "matrix_dir", default="matrix")
 @click.option("--platform", "platforms", multiple=True, help="restrict to artifacts these platforms run (default: all of the tier)")
 @click.option("--engine", "engines_f", multiple=True)
