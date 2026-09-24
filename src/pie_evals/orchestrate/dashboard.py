@@ -348,14 +348,14 @@ function pool() {
 function people() {
   const ago = d => { if (!d) return "–"; const h = (Date.now() - new Date(d)) / 36e5; return h < 1 ? "just now" : h < 24 ? `${Math.round(h)}h ago` : `${Math.round(h / 24)}d ago`; };
   const time = m => !m ? "–" : m >= 60 ? `${(m / 60).toFixed(1)} h` : `${Math.round(m)} min`;
-  let html = `<div class="card"><table class="compact"><tr><th>who</th><th>access</th><th>CI</th><th class="num">today</th><th class="num">last 30 days</th><th class="num">total</th><th class="num">last active</th></tr>`;
+  let html = `<div class="card"><table class="compact"><tr><th>who</th><th>access</th><th>benchmark ci</th><th class="num">today</th><th class="num">last 30 days</th><th class="num">total</th><th class="num">last active</th></tr>`;
   for (const p of DATA.people) {
     html += `<tr class="person" data-login="${esc(p.login)}"><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}</td>` +
       `<td class="muted">${esc(p.role || "–")}</td><td><span class="dot ${p.ci ? "on" : "off"}"></span>${p.ci ? "on" : "off"}</td><td class="num">${time(p.today)}</td><td class="num">${time(p.month)}</td><td class="num">${time(p.total)}</td>` +
       `<td class="num muted">${ago(p.last)}</td></tr>`;
   }
   if (!DATA.people.length) html += `<tr><td colspan="7" class="muted">Nobody yet.</td></tr>`;
-  document.getElementById("main").innerHTML = html + `</table><div class="muted" style="margin-top:8px">CI: whether their pushes to pie main are benchmarked. Time: machine time their benchmarks used.</div></div>`;
+  document.getElementById("main").innerHTML = html + `</table><div class="muted" style="margin-top:8px">Benchmark ci: whether their pushes to pie main are benchmarked. Time: machine time their benchmarks used.</div></div>`;
   document.querySelectorAll("tr.person").forEach(tr => tr.onclick = () => { author = tr.dataset.login; tab = "Pushes"; draw(); });
 }
 
