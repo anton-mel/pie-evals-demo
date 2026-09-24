@@ -114,8 +114,10 @@ PAGE = """<!doctype html>
   .pager .gap { color: #656d76; padding: 0 2px; }
   button.link { border: 0; background: none; color: #0969da; font: inherit; cursor: pointer; padding: 0 0 0 6px; }
   #who { position: relative; }
-  .menu { position: absolute; right: 0; top: 40px; background: #fff; border: 1px solid #d0d7de; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 6px; z-index: 20; min-width: 160px; display: flex; flex-direction: column; }
-  .menu button { display: flex; align-items: center; gap: 8px; border: 0; background: none; font: inherit; font-size: 14px; text-align: left; padding: 8px 12px; border-radius: 8px; cursor: pointer; color: #1f2328; }
+  .menu { position: absolute; right: 0; top: 40px; z-index: 20; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .menu button { box-sizing: border-box; height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px 0 12px;
+    border: 1px solid #d0d7de; border-radius: 999px; background: #fff; color: #1f2328; font: inherit; font-size: 14px; line-height: 1;
+    cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.06); }
   .menu button:hover { background: #f6f8fa; }
   .menu button svg { color: #656d76; flex: none; width: 13px; height: 13px; }
   .gridwrap { overflow-x: auto; margin: 12px 0; }
