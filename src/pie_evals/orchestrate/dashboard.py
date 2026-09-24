@@ -157,15 +157,13 @@ function pool() {
 }
 
 function people() {
-  let html = `<div class="card"><h2>People</h2><table><tr><th>who</th><th>models</th><th>Macs</th><th>last measured push</th></tr>`;
+  let html = `<div class="card"><h2>People</h2><table><tr><th>who</th><th>models</th><th>Macs</th></tr>`;
   for (const p of DATA.people) {
-    const last = [...DATA.commits].reverse().find(c => c.author === p.login);
     html += `<tr><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${p.login}</td>` +
       `<td>${p.models.map(m => `<span class="tag">${modelName(m)}</span>`).join("") || `<span class="muted">default</span>`}</td>` +
-      `<td>${p.macs.map(m => `<span class="tag">${macName(m)}</span>`).join("") || `<span class="muted">every connected Mac</span>`}</td>` +
-      `<td>${last ? `<a href="https://github.com/${DATA.pie_repo}/commit/${last.sha}" target="_blank">${last.sha.slice(0, 7)}</a> ${last.date}` : `<span class="muted">none yet</span>`}</td></tr>`;
+      `<td>${p.macs.map(m => `<span class="tag">${macName(m)}</span>`).join("") || `<span class="muted">every connected Mac</span>`}</td></tr>`;
   }
-  if (!DATA.people.length) html += `<tr><td colspan="4" class="muted">Nobody has a setup yet: everyone gets ${modelName(DATA.default_model)} on every connected Mac.</td></tr>`;
+  if (!DATA.people.length) html += `<tr><td colspan="3" class="muted">Nobody has a setup yet: everyone gets ${modelName(DATA.default_model)} on every connected Mac.</td></tr>`;
   document.getElementById("main").innerHTML = html + `</table></div>`;
 }
 
