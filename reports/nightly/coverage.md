@@ -2,8 +2,8 @@
 
 | status | cells |
 |---|---|
-| pass | 412 |
-| fail | 518 |
+| pass | 415 |
+| fail | 515 |
 | declared_unsupported | 7537 |
 | not_run | 3883 |
 | noisy | 140 |
@@ -418,11 +418,8 @@
 | sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | mixed-256 | text-completion-bench | tp1 | fail | crash | RuntimeError: No accelerator (CUDA, XPU, HPU, NPU, MUSA, MPS) or platform plugin is available. |
 | sglang | rtx4090-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | fail | crash | RuntimeError: No accelerator (CUDA, XPU, HPU, NPU, MUSA, MPS) or platform plugin is available. |
 | pie | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | trackb-h2o | tp1 | fail | crash | all 4 requests failed: bind failed: intrinsic attn_score is not advertised by the engine serving this model (`ModelProfi |
-| pie | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | trackb-snapkv | tp1 | fail | crash | all 4 requests failed: prefill submit @0: bind failed: intrinsic attn_score is not advertised by the engine serving this |
-| pie | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | snapkv-eviction | tp1 | fail | crash | all 4 requests failed: prefill submit @0: bind failed: intrinsic attn_score is not advertised by the engine serving this |
-| pie | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | tova-attention | tp1 | fail | crash | all 4 requests failed: bind failed: intrinsic attn_score is not advertised by the engine serving this model (`ModelProfi |
-| pie | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | attention-sink | tp1 | fail | crash | all 4 requests failed: first_token take: channel is poisoned: pipeline: forward failed: direct launch rejected: invalid  |
-| pie | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | sliding-window-attention | tp1 | fail | crash | all 4 requests failed: first_token take: channel is poisoned: pipeline: forward failed: direct launch rejected: invalid  |
+| pie | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | attention-sink | tp1 | fail | crash | all 4 requests failed: JSONDecodeError: Expecting value: line 1 column 1 (char 0) |
+| pie | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | sliding-window-attention | tp1 | fail | crash | all 4 requests failed: JSONDecodeError: Expecting value: line 1 column 1 (char 0) |
 | pie | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | classifier-free-guidance | tp1 | fail | crash | all 8 requests failed: JSONDecodeError: Expecting value: line 1 column 1 (char 0) |
 | vllm | rtx4090-x1 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {'EngineCore': 1} |
 | pie | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | rs-speculative-decoding | tp1,rs | fail | crash | all 8 requests failed: truth take: channel is poisoned: pipeline: forward failed: direct launch rejected: invalid submis |
@@ -4592,7 +4589,7 @@
 | gemma4 | 0/40 | 0/40 | 0/40 | 0/40 | 3/40 | 0/48 | 0/48 | 0/48 | 0/40 | 6/40 | 0/40 | 5/40 | 0/40 |
 | gemma4_moe | 0/21 | 0/21 | 0/21 | 0/21 | 0/21 | 0/25 | 0/25 | 0/25 | 0/21 | 0/21 | 0/21 | 0/21 | 0/21 |
 | glm5_next | 0/14 | 0/14 | 0/14 | 0/14 | 4/14 | 0/18 | 0/18 | 0/18 | 6/14 | 6/14 | 0/14 | 0/14 | 0/14 |
-| gpt_oss | 0/59 | 0/59 | 0/59 | 33/59 | 10/59 | 0/71 | 0/71 | 0/71 | 0/59 | 6/59 | 0/59 | 12/59 | 1/59 |
+| gpt_oss | 0/59 | 0/59 | 0/59 | 33/59 | 10/59 | 0/71 | 0/71 | 0/71 | 0/59 | 6/59 | 0/59 | 15/59 | 1/59 |
 | kimi_k3 | 0/14 | 0/14 | 0/14 | 0/14 | 0/14 | 0/18 | 0/18 | 0/18 | 6/14 | 6/14 | 0/14 | · | 0/14 |
 | qwen3_5 | 0/14 | 0/14 | 0/14 | 12/14 | 4/14 | 0/18 | 0/18 | 0/18 | 8/14 | 7/14 | 0/14 | 12/14 | 0/14 |
 | qwen3_6 | 0/32 | 0/32 | 0/32 | 0/32 | 0/32 | 0/40 | 0/40 | 0/40 | 0/32 | 0/32 | 0/32 | 0/32 | 0/32 |
