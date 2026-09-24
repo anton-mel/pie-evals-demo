@@ -231,7 +231,7 @@ class NodeRunner:
             if str(first.engine) == "pie" and self.job.pie_commit:
                 from .importer import ensure_artifact, needs_import
 
-                if needs_import(first.artifact):
+                if needs_import(first.artifact) or int(first.mode.tp) > 1:  # tp>1: the ranks band a stamped artifact at load (pie #633)
                     try:
                         model_path = ensure_artifact(first.artifact, snapshot, self.pie_root / "target/release/pie", self.job.pie_commit, log=self.log)
                     except Exception as e:
