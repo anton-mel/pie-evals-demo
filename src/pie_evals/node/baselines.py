@@ -83,7 +83,29 @@ def cuda_toolkit_version(py: Path | None = None) -> tuple[str, str] | None:
         major, minor = v.split(".")[:2]
         return major, minor
     except (OSError, KeyError, ValueError):
-        return None
+        pass
+    # the runtime image ships no version.json (smoke 35940094146 could not
+    # tell); /usr/local/cuda is a link to /usr/local/cuda-X.Y there
+    import re
+
+    try:
+        m = re.search(r"cuda-(\d+)\.(\d+)", str(Path("/usr/local/cuda").resolve()))
+        if m:
+            return m.group(1), m.group(2)
+    except OSError:
+        pass
+    for d in sorted(Path("/usr/local").glob("cuda-*.*"), reverse=True):
+        m = re.fullmatch(r"cuda-(\d+)\.(\d+)", d.name)
+        if m:
+            return m.group(1), m.group(2)
+    try:  # last resort: the cudart package the image installed
+        out = subprocess.run(["dpkg-query", "-W", "-f", "${Package}\n", "cuda-cudart-*"], capture_output=True, text=True, check=False, timeout=30).stdout
+        m = re.search(r"cuda-cudart-(\d+)-(\d+)", out)
+        if m:
+            return m.group(1), m.group(2)
+    except OSError:
+        pass
+    return None
 
 
 def ensure_cuda_devkit(py: Path | None = None, log=print) -> bool:
