@@ -135,10 +135,12 @@ terminate() {{
   curl -fsS -X DELETE -H "Authorization: Bearer ${{RUNPOD_API_KEY:-}}" "https://rest.runpod.io/v1/pods/${{RUNPOD_POD_ID:-}}" >/dev/null 2>&1 || true
 }}
 ( sleep $(( {kill_minutes} * 60 )); echo "== self-destruct: {kill_minutes} min"; terminate ) &
-# idle watchdog: a job is running while Runner.Worker exists; {idle_minutes} min without one ends the pod
+# idle watchdog: a job is running while Runner.Worker exists; {idle_minutes} min without one stops the
+# listener (our own process on this pod), run.sh returns, and the tail of this script removes the
+# registration and terminates the pod
 ( last=$(date +%s); while sleep 60; do
     if pgrep -f Runner.Worker >/dev/null 2>&1; then last=$(date +%s)
-    elif [ $(( $(date +%s) - last )) -ge $(( {idle_minutes} * 60 )) ]; then echo "== idle {idle_minutes} min: no job"; terminate; fi
+    elif [ $(( $(date +%s) - last )) -ge $(( {idle_minutes} * 60 )) ]; then echo "== idle {idle_minutes} min: no job"; pkill -INT -f Runner.Listener; sleep 30; terminate; fi
   done ) &
 if [ ! -x "$V/.cargo/bin/rustup" ]; then
   echo "== installing rustup on $V"; mkdir -p "$V"
