@@ -27,13 +27,15 @@ PAGE = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pie Stats</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2067.89%2067.89'%3E%3Cpath%20d='M52.96,11.53l-43.52,6.4c-3.85.57-5.64,5.08-3.22,8.13l27.3,34.49c2.41,3.05,7.22,2.34,8.65-1.27l16.21-40.89c1.43-3.61-1.58-7.42-5.43-6.86Z'%20fill='none'%20stroke='%23000'%20stroke-miterlimit='10'%20stroke-width='8'/%3E%3C/svg%3E">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   * { box-sizing: border-box; }
   body { font: 15px/1.5 -apple-system, system-ui, sans-serif; margin: 0; color: #1f2328; background: #f6f8fa; }
   header { background: #fff; border-bottom: 1px solid #d8dee4; }
   .bar { max-width: 1000px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-  .brand { font-weight: 700; font-size: 17px; }
+  .brand { font-weight: 700; font-size: 17px; display: inline-flex; align-items: center; gap: 8px; }
+  .logo { width: 22px; height: 22px; }
   nav { display: flex; gap: 8px; flex-wrap: wrap; }
   nav button, .pill, .signout, .signin, select, button.act {
     box-sizing: border-box; height: 32px; display: inline-flex; align-items: center; gap: 6px;
@@ -103,7 +105,7 @@ PAGE = """<!doctype html>
 </head>
 <body>
 <header><div class="bar">
-  <span class="brand">Pie Stats</span>
+  <span class="brand"><svg class="logo" viewBox="0 0 67.89 67.89" aria-hidden="true"><path d="M52.96,11.53l-43.52,6.4c-3.85.57-5.64,5.08-3.22,8.13l27.3,34.49c2.41,3.05,7.22,2.34,8.65-1.27l16.21-40.89c1.43-3.61-1.58-7.42-5.43-6.86Z" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="8"/></svg>Pie Stats</span>
   <nav id="tabs"></nav>
   <span class="grow"></span>
   <span id="who"></span>
