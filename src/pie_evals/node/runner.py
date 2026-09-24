@@ -324,6 +324,13 @@ class NodeRunner:
                     r.status = CellStatus.NOISY
                     r.invalid_reason = "; ".join(invalid)
                     self.emit(r)
+                # a GPU that was not ours to begin with (5.7 GB held by a foreign process on a
+                # fresh 5090 pod, nightly 35942190398) fails the engine at boot: that is the
+                # pod's fault, not the engine's, so the crash is recorded as harness-invalid
+                for r in [r for r in records if r.cell.artifact.artifact_key == artifact_key and r.status == CellStatus.FAIL]:
+                    r.error_class = ErrorClass.HARNESS_INVALID
+                    r.invalid_reason = "; ".join(invalid)
+                    self.emit(r)
         self._emit_unreached(f"job budget ({job.budget_s}s) exhausted before this cell was reached" if self.over_budget() else "not reached (earlier failure)")
         self._watchdog.cancel()
         self.log(f"done in {self.elapsed_s():.0f}s (budget {job.budget_s}s, kill {job.kill_s}s)")
