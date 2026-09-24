@@ -107,7 +107,9 @@ PAGE = """<!doctype html>
     font-size: 13px; line-height: 1; border: 1px solid #d0d7de; border-radius: 999px; background-color: #fff; color: #1f2328; }
   .auto .tag { padding: 0 12px; }
   .auto .tag.off { background: #fff8c5; border-color: #eac54f; }
-  .tag.on { background: #dafbe1; color: #1a7f37; }
+  .tag.on, .tag.offline-ci { color: #fff; font-weight: 600; font-size: 12px; padding: 1px 10px; }
+  .tag.on { background: #1f883d; }
+  .tag.offline-ci { background: #8c959f; }
   .on-word { color: #656d76; }
   h2.group { font-size: 15px; font-weight: 600; color: #1f2328; margin: 0 0 8px 2px; }
   h2.group .muted { font-weight: 400; margin-left: 4px; }
@@ -351,7 +353,7 @@ function people() {
   let html = `<div class="card"><table class="compact"><tr><th>who</th><th>access</th><th>CI</th><th class="num">today</th><th class="num">last 30 days</th><th class="num">total</th><th class="num">last active</th></tr>`;
   for (const p of DATA.people) {
     html += `<tr class="person" data-login="${esc(p.login)}"><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}</td>` +
-      `<td class="muted">${esc(p.role || "–")}</td><td>${p.ci ? `<span class="tag on">on</span>` : `<span class="muted">off</span>`}</td><td class="num">${time(p.today)}</td><td class="num">${time(p.month)}</td><td class="num">${time(p.total)}</td>` +
+      `<td class="muted">${esc(p.role || "–")}</td><td>${p.ci ? `<span class="tag on">on</span>` : `<span class="tag offline-ci">off</span>`}</td><td class="num">${time(p.today)}</td><td class="num">${time(p.month)}</td><td class="num">${time(p.total)}</td>` +
       `<td class="num muted">${ago(p.last)}</td></tr>`;
   }
   if (!DATA.people.length) html += `<tr><td colspan="7" class="muted">Nobody yet.</td></tr>`;
