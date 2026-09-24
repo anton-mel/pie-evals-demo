@@ -25,3 +25,26 @@ def test_restore_places_artifacts(tmp_path, monkeypatch):
     assert (pie_root / "examples/target/wasm32-wasip2/release/text_completion_bench.wasm").exists()
     assert installed and installed[0][-1].endswith(".whl")  # wheel installed into the bench venv
     assert installed[0][0] == "--force-reinstall"
+
+
+def test_checkout_moves_past_a_build_dirtied_tree(tmp_path):
+    import subprocess
+
+    src = tmp_path / "src"
+    subprocess.run(["git", "init", "-q", str(src)], check=True)
+
+    def run(*a):
+        return subprocess.run(["git", "-C", str(src), "-c", "user.name=t", "-c", "user.email=t@t", *a], check=True, capture_output=True, text=True).stdout.strip()
+
+    (src / "Cargo.lock").write_text("a\n")
+    run("add", ".")
+    run("commit", "-qm", "a")
+    first = run("rev-parse", "HEAD")
+    (src / "Cargo.lock").write_text("b\n")
+    run("commit", "-qam", "b")
+    second = run("rev-parse", "HEAD")
+    run("checkout", "-q", first)
+    (src / "Cargo.lock").write_text("rewritten by a build\n")
+    pb.ensure_checkout(src, second)
+    assert run("rev-parse", "HEAD") == second
+    assert (src / "Cargo.lock").read_text() == "b\n"

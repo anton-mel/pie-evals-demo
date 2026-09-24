@@ -100,10 +100,10 @@ def ensure_checkout(pie_root: Path, commit: str, mirror: Path | None = None, ups
             return
     head = subprocess.run(["git", "-C", str(pie_root), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     if not head.startswith(commit) and not commit.startswith(head):
-        r = subprocess.run(["git", "-C", str(pie_root), "checkout", "--quiet", commit], capture_output=True, text=True)
+        r = subprocess.run(["git", "-C", str(pie_root), "checkout", "--quiet", "--force", commit], capture_output=True, text=True)
         if r.returncode != 0:
             _git(["-C", str(pie_root), "fetch", "--quiet", "--depth", "1", "origin", commit])
-            subprocess.run(["git", "-C", str(pie_root), "checkout", "--quiet", "FETCH_HEAD"], check=True)
+            subprocess.run(["git", "-C", str(pie_root), "checkout", "--quiet", "--force", "FETCH_HEAD"], check=True)
 
 
 def update_mirror(mirror: Path, upstream: str = PIE_UPSTREAM) -> None:
