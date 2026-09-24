@@ -140,7 +140,7 @@ const esc = x => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").re
 const modelName = id => (DATA.models.find(m => m.id === id) || { name: id }).name;
 const macName = id => (DATA.pool.find(m => m.id === id) || DATA.results[id] || { name: id }).name;
 let tab = "Overview", charts = [], me = null, mine = null, author = "", page = 0;
-const PER_PAGE = 50;
+const PER_PAGE = 20;
 const token = () => { try { return localStorage.getItem("pie-evals-token"); } catch { return null; } };
 
 const modelSel = document.getElementById("model");
