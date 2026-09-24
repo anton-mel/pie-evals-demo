@@ -98,7 +98,11 @@ PAGE = """<!doctype html>
   .x { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 22px; line-height: 1; cursor: pointer; color: #656d76; }
   tr.push { cursor: pointer; } tr.push:hover { background: #f6f8fa; }
   .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; }
-  .auto { font-size: 14px; color: #424a53; }
+  .auto { font-size: 14px; color: #424a53; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .auto .tag { margin: 0; background: #fff; border: 1px solid #d0d7de; padding: 2px 10px; color: #1f2328; }
+  .auto .tag.off { background: #fff8c5; border-color: #eac54f; }
+  .on-word { color: #656d76; }
+  .pill.small { height: 28px; padding: 0 12px; font-size: 13px; margin-left: 4px; }
   .filter { font-size: 14px; color: #424a53; display: inline-flex; align-items: center; gap: 6px; }
   .pager { display: flex; justify-content: center; align-items: center; gap: 6px; padding: 14px 0 0; flex-wrap: wrap; }
   .pager .pill { padding: 0 12px; min-width: 32px; justify-content: center; }
@@ -198,17 +202,18 @@ function overview() {
 }
 
 function summary() {
-  if (!mine) return `${esc(modelName(DATA.default_model))} on every connected Mac`;
-  if (mine.enabled === false) return "nothing (switched off)";
-  const models = (mine.models || []).map(modelName).join(", ") || esc(modelName(DATA.default_model));
-  const where = (mine.macs || []).length ? mine.macs.map(macName).join(", ") : "every connected Mac";
-  return `${esc(models)} on ${esc(where)}`;
+  const tag = x => `<span class="tag">${esc(x)}</span>`;
+  if (mine && mine.enabled === false) return `<span class="tag off">switched off</span>`;
+  const models = (mine?.models || []).length ? mine.models.map(modelName) : [modelName(DATA.default_model)];
+  const where = (mine?.macs || []).length ? mine.macs.map(macName) : ["every connected Mac"];
+  return `${models.map(tag).join("")}<span class="on-word">on</span>${where.map(tag).join("")}`;
 }
 const ALL = [...DATA.commits, ...DATA.history].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 const allCommits = () => ALL;
 function pushes() {
   const head = me
-    ? `<div class="auto">Your pushes run <b>${summary()}</b> <button class="link" id="edit">Change</button></div>`
+    ? `<div class="auto"><span>Your pushes run</span>${summary()}<button class="pill small" id="edit">` +
+      `<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>Change</button></div>`
     : `<div class="auto muted"><a href="#" id="sig">Sign in</a> to choose what runs on your pushes and to add runs to any commit.</div>`;
   const commits = allCommits(), authors = [...new Set(commits.map(c => c.author).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   if (author && !authors.includes(author)) authors.push(author);
