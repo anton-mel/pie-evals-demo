@@ -353,7 +353,7 @@ document.getElementById("modal").onclick = e => { if (e.target.id === "modal") c
 document.addEventListener("keydown", e => { if (e.key === "Escape") { closeSheet(); closeMenu(); } });
 
 function openSignIn() {
-  sheet(`<h2>Sign in with GitHub</h2><p class="muted">Paste a fine-grained GitHub token for <b>${DATA.repo}</b> with <b>Contents</b> and <b>Actions</b> read & write. It stays in this browser.</p>` +
+  sheet(`<h2>Sign in with GitHub</h2><p class="muted">Paste a GitHub token with access to ${DATA.repo}.</p>` +
     `<input id="tok" type="password" placeholder="github_pat_…" size="40"> <button class="act" id="go">Sign in</button> <span id="err" class="down"></span>`);
   document.getElementById("go").onclick = async () => {
     try { localStorage.setItem("pie-evals-token", document.getElementById("tok").value.trim()); } catch {}
