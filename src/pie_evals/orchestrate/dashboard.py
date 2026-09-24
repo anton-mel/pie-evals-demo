@@ -100,7 +100,11 @@ PAGE = """<!doctype html>
   .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; }
   .auto { font-size: 14px; color: #424a53; }
   .filter { font-size: 14px; color: #424a53; display: inline-flex; align-items: center; gap: 6px; }
-  .more { text-align: center; padding: 12px 0 0; }
+  .pager { display: flex; justify-content: center; align-items: center; gap: 6px; padding: 14px 0 0; flex-wrap: wrap; }
+  .pager .pill { padding: 0 12px; min-width: 32px; justify-content: center; }
+  .pager .pill.on { background: #1f2328; border-color: #1f2328; color: #fff; }
+  .pager .pill:disabled { opacity: .4; cursor: default; }
+  .pager .gap { color: #656d76; padding: 0 2px; }
   tr.person { cursor: pointer; } tr.person:hover { background: #f6f8fa; }
   button.link { border: 0; background: none; color: #0969da; font: inherit; cursor: pointer; padding: 0 0 0 6px; }
   #who { position: relative; }
@@ -135,7 +139,8 @@ const NL = String.fromCharCode(10);
 const esc = x => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 const modelName = id => (DATA.models.find(m => m.id === id) || { name: id }).name;
 const macName = id => (DATA.pool.find(m => m.id === id) || DATA.results[id] || { name: id }).name;
-let tab = "Overview", charts = [], me = null, mine = null, author = "", limit = 100;
+let tab = "Overview", charts = [], me = null, mine = null, author = "", page = 0;
+const PER_PAGE = 50;
 const token = () => { try { return localStorage.getItem("pie-evals-token"); } catch { return null; } };
 
 const modelSel = document.getElementById("model");
@@ -211,7 +216,10 @@ function pushes() {
     authors.map(a => `<option value="${esc(a)}" ${a === author ? "selected" : ""}>${esc(a)}</option>`).join("") + `</select></label>`;
   let html = `<div class="toolbar">${head}${filter}</div><div class="card"><table class="compact"><colgroup><col><col style="width:140px"><col style="width:96px"><col style="width:120px"></colgroup>` +
              `<tr><th>commit</th><th>author</th><th>date</th><th>benchmarks</th></tr>`;
-  const matching = commits.filter(c => !author || c.author === author), shown = matching.slice(0, limit);
+  const matching = commits.filter(c => !author || c.author === author);
+  const pages = Math.max(1, Math.ceil(matching.length / PER_PAGE));
+  page = Math.min(page, pages - 1);
+  const shown = matching.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
   if (!shown.length) html += `<tr><td colspan="4" class="muted">No pushes by ${esc(author)} yet.</td></tr>`;
   for (const c of shown) {
     const n = ran(c.sha).size;
@@ -219,16 +227,27 @@ function pushes() {
             `<td class="clip">${esc(c.author)}</td><td>${c.date}</td>` +
             `<td>${n ? `<span class="tag">${n} run${n > 1 ? "s" : ""}</span>` : `<span class="tag new">not measured</span>`}</td></tr>`;
   }
-  const more = matching.length > shown.length ? `<div class="more"><button class="pill" id="more">Show more · ${matching.length - shown.length} left</button></div>` : "";
-  document.getElementById("main").innerHTML = html + `</table>${more}</div>`;
+  document.getElementById("main").innerHTML = html + `</table>${pager(pages)}</div>`;
   document.querySelectorAll("tr.push").forEach(tr => tr.onclick = () => openCommit(tr.dataset.sha));
-  document.getElementById("author").onchange = e => { author = e.target.value; limit = 100; draw(); };
-  const m = document.getElementById("more");
-  if (m) m.onclick = () => { limit += 100; draw(); };
+  document.getElementById("author").onchange = e => { author = e.target.value; page = 0; draw(); };
+  document.querySelectorAll(".pager button[data-page]").forEach(b => b.onclick = () => { page = +b.dataset.page; draw(); window.scrollTo(0, 0); });
   const e = document.getElementById("edit"), s = document.getElementById("sig");
   if (e) e.onclick = editMine;
   if (s) s.onclick = ev => { ev.preventDefault(); openSignIn(); };
 }
+function pager(pages) {
+  if (pages < 2) return "";
+  const want = [...new Set([0, pages - 1, page - 1, page, page + 1].filter(i => i >= 0 && i < pages))].sort((a, b) => a - b);
+  let out = "", prev = -1;
+  for (const i of want) {
+    if (i - prev > 1) out += `<span class="gap">…</span>`;
+    out += `<button class="pill ${i === page ? "on" : ""}" data-page="${i}">${i + 1}</button>`;
+    prev = i;
+  }
+  return `<div class="pager"><button class="pill" data-page="${Math.max(0, page - 1)}" ${page === 0 ? "disabled" : ""}>‹ Prev</button>${out}` +
+         `<button class="pill" data-page="${Math.min(pages - 1, page + 1)}" ${page === pages - 1 ? "disabled" : ""}>Next ›</button></div>`;
+}
+
 function openCommit(sha) {
   const c = allCommits().find(x => x.sha === sha) || { sha, message: "", author: "", date: "" };
   const done = ran(sha), cols = [...new Set([...DATA.pool.map(m => m.id), ...Object.keys(DATA.results)])];
