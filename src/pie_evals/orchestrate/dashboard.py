@@ -97,6 +97,8 @@ PAGE = """<!doctype html>
   .sheet { position: relative; background: #fff; border-radius: 10px; width: min(640px, 100%); max-height: 84vh; overflow: auto; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
   .sheet .card { border: 0; margin: 0; }
   .tag.new { background: #fff8c5; }
+  .signrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .err { font-size: 12px; color: #cf222e; margin: 6px 0 0 14px; min-height: 16px; }
   .x { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 22px; line-height: 1; cursor: pointer; color: #656d76; }
   tr.push { cursor: pointer; } tr.push:hover { background: #f6f8fa; }
   .auto { font-size: 14px; color: #424a53; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -354,7 +356,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") { closeSheet
 
 function openSignIn() {
   sheet(`<h2>Sign in with GitHub</h2><p class="muted">Paste a GitHub token with access to ${DATA.repo}.</p>` +
-    `<input id="tok" type="password" placeholder="github_pat_…" size="40"> <button class="act" id="go">Sign in</button> <span id="err" class="down"></span>`);
+    `<div class="signrow"><input id="tok" type="password" placeholder="github_pat_…" size="40"><button class="act" id="go">Sign in</button></div><div id="err" class="err"></div>`);
   document.getElementById("go").onclick = async () => {
     try { localStorage.setItem("pie-evals-token", document.getElementById("tok").value.trim()); } catch {}
     await signIn();
