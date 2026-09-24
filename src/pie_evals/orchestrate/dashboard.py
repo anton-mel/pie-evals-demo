@@ -100,6 +100,7 @@ PAGE = """<!doctype html>
   .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; }
   .auto { font-size: 14px; color: #424a53; }
   .filter { font-size: 14px; color: #424a53; display: inline-flex; align-items: center; gap: 6px; }
+  .more { text-align: center; padding: 12px 0 0; }
   tr.person { cursor: pointer; } tr.person:hover { background: #f6f8fa; }
   button.link { border: 0; background: none; color: #0969da; font: inherit; cursor: pointer; padding: 0 0 0 6px; }
   #who { position: relative; }
@@ -134,7 +135,7 @@ const NL = String.fromCharCode(10);
 const esc = x => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 const modelName = id => (DATA.models.find(m => m.id === id) || { name: id }).name;
 const macName = id => (DATA.pool.find(m => m.id === id) || DATA.results[id] || { name: id }).name;
-let tab = "Overview", charts = [], me = null, mine = null, recent = null, author = "";
+let tab = "Overview", charts = [], me = null, mine = null, author = "", limit = 100;
 const token = () => { try { return localStorage.getItem("pie-evals-token"); } catch { return null; } };
 
 const modelSel = document.getElementById("model");
@@ -198,11 +199,8 @@ function summary() {
   const where = (mine.macs || []).length ? mine.macs.map(macName).join(", ") : "every connected Mac";
   return `${esc(models)} on ${esc(where)}`;
 }
-function allCommits() {
-  const by = new Map(DATA.commits.map(c => [c.sha, { ...c }]));
-  for (const c of recent || []) if (!by.has(c.sha)) by.set(c.sha, c);
-  return [...by.values()].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-}
+const ALL = [...DATA.commits, ...DATA.history].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+const allCommits = () => ALL;
 function pushes() {
   const head = me
     ? `<div class="auto">Your pushes run <b>${summary()}</b> <button class="link" id="edit">Change</button></div>`
@@ -213,7 +211,7 @@ function pushes() {
     authors.map(a => `<option value="${esc(a)}" ${a === author ? "selected" : ""}>${esc(a)}</option>`).join("") + `</select></label>`;
   let html = `<div class="toolbar">${head}${filter}</div><div class="card"><table class="compact"><colgroup><col><col style="width:140px"><col style="width:96px"><col style="width:120px"></colgroup>` +
              `<tr><th>commit</th><th>author</th><th>date</th><th>benchmarks</th></tr>`;
-  const shown = commits.filter(c => !author || c.author === author);
+  const matching = commits.filter(c => !author || c.author === author), shown = matching.slice(0, limit);
   if (!shown.length) html += `<tr><td colspan="4" class="muted">No pushes by ${esc(author)} yet.</td></tr>`;
   for (const c of shown) {
     const n = ran(c.sha).size;
@@ -221,23 +219,16 @@ function pushes() {
             `<td class="clip">${esc(c.author)}</td><td>${c.date}</td>` +
             `<td>${n ? `<span class="tag">${n} run${n > 1 ? "s" : ""}</span>` : `<span class="tag new">not measured</span>`}</td></tr>`;
   }
-  document.getElementById("main").innerHTML = html + `</table></div>`;
+  const more = matching.length > shown.length ? `<div class="more"><button class="pill" id="more">Show more · ${matching.length - shown.length} left</button></div>` : "";
+  document.getElementById("main").innerHTML = html + `</table>${more}</div>`;
   document.querySelectorAll("tr.push").forEach(tr => tr.onclick = () => openCommit(tr.dataset.sha));
-  document.getElementById("author").onchange = e => { author = e.target.value; draw(); };
+  document.getElementById("author").onchange = e => { author = e.target.value; limit = 100; draw(); };
+  const m = document.getElementById("more");
+  if (m) m.onclick = () => { limit += 100; draw(); };
   const e = document.getElementById("edit"), s = document.getElementById("sig");
   if (e) e.onclick = editMine;
   if (s) s.onclick = ev => { ev.preventDefault(); openSignIn(); };
-  if (me && recent === null) loadRecent();
 }
-async function loadRecent() {
-  recent = [];
-  try {
-    const got = await gh(`repos/${DATA.pie_repo}/commits?sha=main&per_page=30`) || [];
-    recent = got.map(c => ({ sha: c.sha, message: c.commit.message.split(NL)[0], author: c.author?.login || c.commit.author.name, date: c.commit.committer.date.slice(0, 10) }));
-  } catch { recent = []; }
-  if (tab === "Pushes") draw();
-}
-
 function openCommit(sha) {
   const c = allCommits().find(x => x.sha === sha) || { sha, message: "", author: "", date: "" };
   const done = ran(sha), cols = [...new Set([...DATA.pool.map(m => m.id), ...Object.keys(DATA.results)])];
@@ -344,7 +335,7 @@ function addMac() {
 function closeMenu() { document.querySelector(".menu")?.remove(); }
 document.addEventListener("click", e => { if (!e.target.closest("#who")) closeMenu(); });
 async function signIn() {
-  me = null; mine = null; recent = null;
+  me = null; mine = null;
   if (token()) {
     try { me = await gh("user"); } catch { me = null; }
     if (me) {
@@ -364,7 +355,7 @@ function renderWho() {
     if (document.querySelector(".menu")) return closeMenu();
     who.insertAdjacentHTML("beforeend", `<div class="menu"><button id="add">Add a Mac</button><button id="out">Sign out</button></div>`);
     document.getElementById("add").onclick = () => { closeMenu(); addMac(); };
-    document.getElementById("out").onclick = () => { closeMenu(); try { localStorage.removeItem("pie-evals-token"); } catch {} me = null; mine = null; recent = null; renderWho(); draw(); };
+    document.getElementById("out").onclick = () => { closeMenu(); try { localStorage.removeItem("pie-evals-token"); } catch {} me = null; mine = null; renderWho(); draw(); };
   };
 }
 
@@ -388,6 +379,18 @@ def _gh(path: str) -> dict | list | None:
         return json.loads(out)
     except (OSError, subprocess.CalledProcessError, json.JSONDecodeError):
         return None
+
+
+def history(pie_repo: str) -> list[dict]:
+    try:
+        out = subprocess.run(["gh", "api", "--paginate", "--slurp", f"repos/{pie_repo}/commits?sha=main&per_page=100"],
+                             capture_output=True, text=True, check=True).stdout
+        pages = json.loads(out)
+    except (OSError, subprocess.CalledProcessError, json.JSONDecodeError):
+        return []
+    return [{"sha": c["sha"], "message": (c["commit"]["message"] or "").splitlines()[0][:120] if c["commit"]["message"] else "",
+             "author": (c.get("author") or {}).get("login") or c["commit"]["author"]["name"],
+             "date": c["commit"]["committer"]["date"]} for page in pages for c in page]
 
 
 def runners(repo: str) -> list[dict] | None:
@@ -457,8 +460,12 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
                 mac["models"][r["artifact"]][i][r["pie_commit"]] = {"v": r[field], "tflops": tf[tf_field]}
                 have.add(r["artifact"])
 
+    known = {c["sha"]: c for c in (history(pie_repo) if lookup_commits else [])}
     commits = []
     for sha in order:
+        if sha in known:
+            commits.append(dict(known[sha]))
+            continue
         info = _gh(f"repos/{pie_repo}/commits/{sha}") if lookup_commits else None
         commit = (info or {}).get("commit", {})
         commits.append({
@@ -470,6 +477,8 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
     commits.sort(key=lambda c: c["date"] or "~")
     for c in commits:
         c["date"] = c["date"][:10]
+    measured = {c["sha"] for c in commits}
+    all_commits = [{**c, "date": c["date"][:10]} for c in known.values() if c["sha"] not in measured]
 
     models = mac_models(matrix)
     for m in models:
@@ -477,7 +486,7 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
     return {
         "repo": repo, "pie_repo": pie_repo, "default_model": DEFAULT_MODEL,
         "metrics": [{"phase": p, "name": n} for p, n, *_ in METRICS],
-        "commits": commits, "results": results, "models": models,
+        "commits": commits, "history": all_commits, "results": results, "models": models,
         "pool": _pool(live, matrix, last), "people": people(users_dir),
     }
 
