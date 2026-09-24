@@ -18,7 +18,6 @@ artifacts:
     base_model: Qwen/Qwen3.5-0.8B
     family: qwen3_5      # GDN hybrid
     scheme: bf16
-    max_context: 4096    # pie's qwen35-d0.8b SKU: "past the model's max_context of 4096 tokens" (HF config says 262144)
     expected_gib: 1.6
     tiers: [smoke, nightly, weekly]
     pie_sku: qwen35-d0.8b-bf16-kv-bf16   # the tp>1 artifact is imported as this row (import picks the first fitting row otherwise: the u4g64 twin, which has no tp2)
@@ -27,7 +26,6 @@ artifacts:
     base_model: google/gemma-4-E4B-it
     family: gemma4
     scheme: bf16
-    max_context: 4096    # pie's gemma4-e4b SKU: "past the model's max_context of 4096 tokens"
     expected_gib: 8.0
     tiers: [smoke, nightly, weekly]
 
@@ -42,7 +40,6 @@ artifacts:
     kind: miniature
     # pie's own fixture: matches catalog row qwen36-35b-a3b-mini-u4g64-kv-bf16 (layers: 5)
     miniature: {layers: "0-4", experts: 16, period: 4, note: "pie's mini-l5-e16 fixture"}
-    max_context: 4096    # pie's SKU max_context ("past the model's max_context of 4096 tokens")
     expected_gib: 1.0
     tiers: [smoke, nightly, weekly]
     pie_sku: qwen36-35b-a3b-mini-u4g64-kv-bf16   # the tp>1 artifact is imported as this row (import picks the first fitting row otherwise: the u4g64 twin, which has no tp2)
@@ -54,7 +51,6 @@ artifacts:
     kind: miniature
     # matches catalog row gptoss-20b-mini-bf16-mxfp4-kv-bf16 (layers: 5; pie PR pie-evals/gptoss-mini-sku)
     miniature: {layers: "0-4", experts: 16, period: 2, note: "sliding/full pairs; 16 of 32 experts"}
-    max_context: 4096    # pie's SKU max_context ("past the model's max_context of 4096 tokens")
     expected_gib: 2.5
     tiers: [smoke, nightly, weekly]
     pie_sku: gptoss-20b-mini-bf16-mxfp4-kv-bf16   # the tp>1 artifact is imported as this row (import picks the first fitting row otherwise: the u4g64 twin, which has no tp2)
@@ -68,7 +64,6 @@ artifacts:
     # matches catalog row dsv4-flash-mini-bf16-kv-bf16 (pie PR #625): source layers 0-3 (two SWA,
     # ratio-4 CSA with indexer, ratio-128 HCA) + 42 (the bias-gated closer), 16 of 256 experts
     miniature: {layers: "0-3,42", experts: 16, period: 1, note: "pie's flash_mini fixture; shrink family deepseek_v4_mlx"}
-    max_context: 4096    # pie's SKU max_context ("past the model's max_context of 4096 tokens")
     expected_gib: 6.0
     tiers: [smoke, nightly, weekly]
   - id: deepseek-v4.1-flash-mini8
@@ -130,7 +125,6 @@ artifacts:
     base_model: openai/gpt-oss-20b
     family: gpt_oss
     scheme: mxfp4
-    max_context: 4096    # pie's SKU max_context ("past the model's max_context of 4096 tokens")
     expected_gib: 10.4
     tiers: [nightly, weekly]
 
