@@ -107,9 +107,6 @@ PAGE = """<!doctype html>
   .auto .tag { padding: 0 12px; }
   .auto .tag.off { background: #fff8c5; border-color: #eac54f; }
   .on-word { color: #656d76; }
-  h2.group { font-size: 15px; font-weight: 600; color: #1f2328; margin: 0 0 8px 2px; }
-  h2.group .muted { font-weight: 400; margin-left: 4px; }
-  .card + h2.group { margin-top: 24px; }
   .pill.small { padding: 0 12px; gap: 6px; margin-left: 4px; }
   .filter select { padding: 0 30px 0 12px; }
   .filter { font-size: 14px; color: #424a53; display: inline-flex; align-items: center; gap: 6px; }
@@ -324,8 +321,7 @@ function pool() {
   let html = "";
   for (const kind of [...new Set(["self-hosted", ...DATA.pool.map(m => m.kind)])]) {
     const list = DATA.pool.filter(m => m.kind === kind);
-    const title = kind === "self-hosted" ? "Self-hosted" : kind;
-    html += `<h2 class="group">${esc(title)} <span class="muted">${list.length}</span></h2><div class="card"><table class="compact fixed">` +
+    html += `<div class="card"><table class="compact fixed">` +
             `<colgroup><col><col style="width:90px"><col style="width:100px"><col style="width:150px"><col style="width:90px"><col style="width:150px"></colgroup>` +
             `<tr><th>machine</th><th>memory</th><th>status</th><th>last run</th><th>commit</th><th>author</th></tr>`;
     for (const m of list) {
