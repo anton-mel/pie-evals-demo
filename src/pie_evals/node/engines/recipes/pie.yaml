@@ -33,9 +33,15 @@ competitive:
   extends: default
   knobs:
     # Engine-side admission = client concurrency (pie_bench derives it from
-    # --concurrency; nothing to pass). max_forward_requests bounds the batch
-    # the engine can fire; leave it at the script default (512) unless a
-    # shape exceeds it.
+    # --concurrency; nothing to pass).
+    max_forward_requests:
+      value: "$concurrency"
+      rationale: >
+        engine-cuda declares its KV pool for max_forward_requests seats at the
+        full context, whatever the card holds: at the script default (512)
+        gemma-4-E4B declared 57344 MiB on a 24 GB RTX 4090 and every
+        concurrency cell was refused (pie issue #630, nightly 35935510089).
+        The shape's concurrency is what vLLM's max_num_seqs is set to as well.
     engine_option:
       value: {}
       rationale: >
@@ -52,13 +58,6 @@ competitive:
           rationale: >
             The Metal engine sizes its own heap and has no memory-fraction
             knob (pie_bench ignores --gpu-mem-util for --engine metal).
-        max_forward_requests:
-          value: "$concurrency"
-          rationale: >
-            On Metal the fleet width is derived from max_forward_requests and
-            the state-slot pool is sized 2x it (pie_bench); a value narrower
-            than the offered concurrency seats fewer lanes than the run holds
-            open.
   workload_kind:
     concurrency:
       knobs: {}
