@@ -1,12 +1,3 @@
-"""FLOP/s derived from a record's tok/s and its model's ``config.json``.
-
-Work is counted from the architecture, not read from the engine, so an
-engine change that does less work for the same answer shows up as higher
-tok/s at the same FLOPs per token. Multiply-accumulates count as two FLOPs.
-Covered: dense attention, Qwen3.5's gated-delta/full-attention hybrid
-(``layer_types``) and mixture-of-experts MLPs; anything else returns None.
-"""
-
 from __future__ import annotations
 
 import json
@@ -74,8 +65,6 @@ def decode_flops_per_token(c: dict[str, Any], context: float) -> float:
 
 
 def tflops(row: dict[str, Any], params: dict[str, Any], config: dict[str, Any] | None) -> dict[str, float | None]:
-    """``prefill_tflops`` and ``decode_tflops`` for one record row; the decode
-    rate is the lane's own when there is one lane, the aggregate otherwise."""
     out: dict[str, float | None] = {"prefill_tflops": None, "decode_tflops": None}
     if not config:
         return out

@@ -1,7 +1,3 @@
-# One pie commit, sent by pie's CI on every main commit (repository_dispatch
-# `pie-eval`) or by hand. mode targeted: the `targeted` tier (pie alone, one
-# small model, six shapes, ~5 min per platform); mode full: the `smoke` tier.
-# Results are written to the store, which the history page is built from.
 name: pie eval
 permissions: { contents: write, actions: read }
 concurrency:
@@ -13,38 +9,54 @@ on:
   workflow_dispatch:
     inputs:
       pie_commit: { description: "pie commit", required: true }
-      mode: { description: "targeted | full", required: false, default: "targeted" }
-      platforms: { description: "comma-separated platform ids, or mac / gpu (empty: every platform of the mode)", required: false, default: "" }
+      models: { description: "comma-separated model ids (empty: the author's setup)", required: false, default: "" }
+      macs: { description: "comma-separated Mac ids (empty: the author's setup)", required: false, default: "" }
+
+env:
+  PIE_REPO: ${{ vars.PIE_REPO || 'pie-project/pie' }}
+  DEFAULT_MODELS: qwen3.5-0.8b-bf16
 
 jobs:
   start:
     runs-on: ubuntu-latest
     outputs:
       commit: ${{ steps.p.outputs.commit }}
-      tier: ${{ steps.p.outputs.tier }}
-      platforms: ${{ steps.p.outputs.platforms }}
+      models: ${{ steps.p.outputs.models }}
+      macs: ${{ steps.p.outputs.macs }}
     steps:
       - uses: actions/checkout@v4
       - id: p
         env:
+          GH_TOKEN: ${{ secrets.GH_RUNNER_PAT || github.token }}
           COMMIT: ${{ github.event.client_payload.pie_commit || github.event.inputs.pie_commit }}
-          MODE: ${{ github.event.client_payload.mode || github.event.inputs.mode || 'targeted' }}
-          PLATFORMS: ${{ github.event.client_payload.platforms || github.event.inputs.platforms }}
+          IN_MODELS: ${{ github.event.inputs.models }}
+          IN_MACS: ${{ github.event.inputs.macs }}
         run: |
           [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::pie_commit must be a full sha, got '$COMMIT'"; exit 1; }
-          case "$MODE" in targeted) tier=targeted ;; full) tier=smoke ;; *) echo "::error::mode must be targeted or full"; exit 1 ;; esac
-          case "$PLATFORMS" in
-            mac) PLATFORMS=$(yq -r '.platforms[] | select(.os == "macos") | .id' matrix/platforms.yaml | paste -sd, -) ;;
-            gpu) PLATFORMS=$(yq -r '.platforms[] | select(.os == "linux") | .id' matrix/platforms.yaml | paste -sd, -) ;;
-          esac
-          [[ "$PLATFORMS" =~ ^[a-z0-9.,-]*$ ]] || { echo "::error::bad platforms '$PLATFORMS'"; exit 1; }
-          { echo "commit=$COMMIT"; echo "tier=$tier"; echo "platforms=$PLATFORMS"; } >> "$GITHUB_OUTPUT"
+          info=$(gh api "repos/$PIE_REPO/commits/$COMMIT" 2>/dev/null || echo '{}')
+          author=$(jq -r '.author.login // empty' <<<"$info")
+          line=$(jq -r '.commit.message // ""' <<<"$info" | grep -iE '^evals:' | tail -1 || true)
+          models=""; macs=""; source=default
+          if [ -n "$author" ] && [ -f "users/$author.json" ]; then
+            models=$(jq -r '.models // [] | join(",")' "users/$author.json"); macs=$(jq -r '.macs // [] | join(",")' "users/$author.json"); source="users/$author.json"
+          fi
+          if [ -n "$line" ]; then
+            m=$(grep -oE 'models=[^ ]+' <<<"$line" | cut -d= -f2 || true); k=$(grep -oE 'macs=[^ ]+' <<<"$line" | cut -d= -f2 || true)
+            [ -n "$m" ] && models=$m; [ -n "$k" ] && macs=$k; source="commit message"
+          fi
+          [ -n "$IN_MODELS" ] && { models=$IN_MODELS; source=manual; }
+          [ -n "$IN_MACS" ] && { macs=$IN_MACS; source=manual; }
+          [ -n "$models" ] || models=$DEFAULT_MODELS
+          [[ "$models$macs" =~ ^[a-z0-9.,-]*$ ]] || { echo "::error::bad models '$models' or macs '$macs'"; exit 1; }
+          echo "author=${author:-unknown} setup=$source models=$models macs=${macs:-every connected Mac}" | tee -a "$GITHUB_STEP_SUMMARY"
+          { echo "commit=$COMMIT"; echo "models=$models"; echo "macs=$macs"; } >> "$GITHUB_OUTPUT"
 
   run:
     needs: start
     uses: ./.github/workflows/tier.yml
     with:
-      tier: ${{ needs.start.outputs.tier }}
+      tier: targeted
       pie_commit: ${{ needs.start.outputs.commit }}
-      platforms: ${{ needs.start.outputs.platforms }}
+      artifacts: ${{ needs.start.outputs.models }}
+      platforms: ${{ needs.start.outputs.macs }}
     secrets: inherit

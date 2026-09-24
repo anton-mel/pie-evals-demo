@@ -72,7 +72,7 @@ def test_flops_scale_with_the_rate():
     assert flops.tflops({"decode_tok_s": 1.0}, {"prefill": 1}, None) == {"prefill_tflops": None, "decode_tflops": None}
 
 
-def test_dashboard_has_one_series_per_cell(tmp_path, matrix, monkeypatch):
+def test_site_has_pushes_pool_and_people(tmp_path, matrix, monkeypatch):
     monkeypatch.setattr(flops, "model_config", lambda repo: QWEN35_08B)
     st = Store(tmp_path / "store")
     t0 = datetime(2026, 9, 1, tzinfo=timezone.utc)
@@ -80,6 +80,16 @@ def test_dashboard_has_one_series_per_cell(tmp_path, matrix, monkeypatch):
         cell = _cell(matrix, "m5-max-48g", wl)
         for j in range(2):
             st.write_run([_rec(cell, 400 + j, t0 + timedelta(days=j), commit=f"c{j}", run=f"r{i}{j}")], tier=Tier.TARGETED, run_id=f"r{i}{j}")
-    assert dashboard.render(st, tmp_path / "site") == 2
-    html = (tmp_path / "site" / "index.html").read_text()
-    assert "lc-2k-128" in html and "decode_tflops" in html
+    users = tmp_path / "users"
+    users.mkdir()
+    (users / "friend.json").write_text('{"models": ["qwen3.5-0.8b-bf16"], "macs": ["m5-max-48g"]}')
+    live = [{"name": "a-mac", "status": "online", "busy": True, "labels": [{"name": "self-hosted"}, {"name": "macOS"}, {"name": "m5-max-48g"}]},
+            {"name": "a-pod", "status": "online", "busy": False, "labels": [{"name": "self-hosted"}, {"name": "Linux"}, {"name": "l40s-x1"}]}]
+    data = dashboard.build(st, matrix, live, repo="o/evals", pie_repo="o/pie", users_dir=users, lookup_commits=False)
+    assert [c["sha"] for c in data["commits"]] == ["c0", "c1"]
+    assert [(m["id"], m["status"]) for m in data["pool"]] == [("m5-max-48g", "busy")]
+    assert set(data["results"]["m5-max-48g"]["models"]["qwen3.5-0.8b-bf16"]) == {0, 2, 3}
+    assert data["people"] == [{"login": "friend", "models": ["qwen3.5-0.8b-bf16"], "macs": ["m5-max-48g"]}]
+    assert any(m["id"] == "qwen3.5-0.8b-bf16" and m["has_results"] for m in data["models"])
+    assert dashboard.render(st, matrix, tmp_path / "site", live, repo="o/evals", users_dir=users, lookup_commits=False) == 2
+    assert "My setup" in (tmp_path / "site" / "index.html").read_text()
