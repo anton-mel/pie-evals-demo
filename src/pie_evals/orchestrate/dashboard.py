@@ -97,7 +97,6 @@ PAGE = """<!doctype html>
   .sheet { position: relative; background: #fff; border-radius: 10px; width: min(640px, 100%); max-height: 84vh; overflow: auto; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
   .sheet .card { border: 0; margin: 0; }
   .tag.new { background: #fff8c5; }
-  pre.cmd { background: #f6f8fa; border: 1px solid #d8dee4; border-radius: 6px; padding: 10px; white-space: pre-wrap; word-break: break-all; font-size: 12px; }
   .x { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 22px; line-height: 1; cursor: pointer; color: #656d76; }
   tr.push { cursor: pointer; } tr.push:hover { background: #f6f8fa; }
   .auto { font-size: 14px; color: #424a53; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -364,16 +363,6 @@ function openSignIn() {
     if (me) { closeSheet(); draw(); } else document.getElementById("err").textContent = "That token did not work.";
   };
 }
-function addMac() {
-  const cmd = `PLATFORM_ID=<id> ./infra/mac/setup-runner.sh "$(gh api -X POST repos/${DATA.repo}/actions/runners/registration-token -q .token)"`;
-  sheet(`<h2>Add a Mac</h2><p class="muted">On the Mac, in a checkout of <b>${DATA.repo}</b>, run:</p><pre class="cmd">${esc(cmd)}</pre>` +
-    `<button class="act" id="copy">Copy</button> <span id="msg" class="muted"></span>` +
-    `<p class="muted"><code>&lt;id&gt;</code> is the Mac's entry in <code>matrix/platforms.yaml</code>, for example <code>m5-max-48g</code>. The token needs admin on ${DATA.repo}.</p>`);
-  document.getElementById("copy").onclick = async () => {
-    try { await navigator.clipboard.writeText(cmd); document.getElementById("msg").textContent = "Copied."; } catch { document.getElementById("msg").textContent = "Select and copy the command."; }
-  };
-}
-
 function closeMenu() { document.querySelector(".menu")?.remove(); }
 document.addEventListener("click", e => { if (!e.target.closest("#who")) closeMenu(); });
 async function signIn() {
@@ -402,8 +391,7 @@ function renderWho() {
   if (i) i.onclick = openSignIn;
   if (m) m.onclick = () => {
     if (document.querySelector(".menu")) return closeMenu();
-    who.insertAdjacentHTML("beforeend", `<div class="menu"><button id="add"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M1.75 2.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25ZM0 2.75C0 1.784.784 1 1.75 1h12.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 14.25 12H9.458l.5 1.5h1.292a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1 0-1.5h1.292l.5-1.5H1.75A1.75 1.75 0 0 1 0 10.25Zm7.042 9.25-.5 1.5h2.916l-.5-1.5Z"/></svg>Add a Mac</button><button id="out"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 2.75C2 1.784 2.784 1 3.75 1h2.5a.75.75 0 0 1 0 1.5h-2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h2.5a.75.75 0 0 1 0 1.5h-2.5A1.75 1.75 0 0 1 2 13.25Zm10.44 4.5-1.97-1.97a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l3.25 3.25a.75.75 0 0 1 0 1.06l-3.25 3.25a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.97-1.97H6.75a.75.75 0 0 1 0-1.5Z"/></svg>Sign out</button></div>`);
-    document.getElementById("add").onclick = () => { closeMenu(); addMac(); };
+    who.insertAdjacentHTML("beforeend", `<div class="menu"><button id="out"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 2.75C2 1.784 2.784 1 3.75 1h2.5a.75.75 0 0 1 0 1.5h-2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h2.5a.75.75 0 0 1 0 1.5h-2.5A1.75 1.75 0 0 1 2 13.25Zm10.44 4.5-1.97-1.97a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l3.25 3.25a.75.75 0 0 1 0 1.06l-3.25 3.25a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.97-1.97H6.75a.75.75 0 0 1 0-1.5Z"/></svg>Sign out</button></div>`);
     document.getElementById("out").onclick = () => { closeMenu(); try { localStorage.removeItem("pie-evals-token"); } catch {} me = null; mine = null; renderWho(); draw(); };
   };
 }
