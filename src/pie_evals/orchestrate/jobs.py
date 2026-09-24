@@ -190,4 +190,8 @@ def plan_pods(matrix: Matrix, jobs: list[JobSpec]) -> list[dict]:
         p["est_minutes"] = round(p["est_minutes"] + j.est_minutes, 1)
     for p in pods.values():
         p["kill_minutes"] = max(matrix.kill_minutes, int(p["est_minutes"] * matrix.kill_factor) + 30)
+        # no stock for the x2: the smaller hosted platforms' own pods are tried next; each
+        # carries only the labels of what it can seat, and the gate drops the rest
+        hosted = {matrix.platforms[l] for l in p["labels"] if l in matrix.platforms}
+        p["fallback"] = [p["pod"]] + [h.id for h in sorted(hosted, key=lambda h: -h.count) if h.id != p["pod"] and h.runpod_gpu_type]
     return sorted(pods.values(), key=lambda p: p["pod"])

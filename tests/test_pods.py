@@ -19,6 +19,8 @@ def test_one_pod_hosts_the_x1_and_x2_of_its_gpu():
     # the kill timer covers the whole queue, never less than one job's
     assert l40s["kill_minutes"] >= max(m.kill_minutes, int(l40s["est_minutes"] * m.kill_factor))
     assert len(js) > len(pods)
+    # no x2 stock: the x1's own pod is tried next (it seats only the x1 shards)
+    assert l40s["fallback"] == ["l40s-x2", "l40s-x1"] and pods["rtx4090-x1"]["fallback"] == ["rtx4090-x1"]
 
 
 def test_resident_runners_need_no_pod():

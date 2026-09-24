@@ -254,8 +254,12 @@ def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_versi
     h = None
     plat = None
     errors = []
+    want = [x.strip() for x in labels.split(",") if x.strip()] if labels else None
+    lab = None
     for pid in [x.strip() for x in platform.split(",") if x.strip()]:
         plat = m.platforms[pid]
+        # a fallback pod seats only the hosted platforms that fit on it
+        lab = [x for x in want if x not in m.platforms or m.platforms[x].count <= plat.count] if want else None
         try:
             h = runpod.create_pod(plat, repo=repo, runner_pat=runner_pat, runner_token=runner_token, kill_minutes=kill_minutes or m.kill_minutes,
                                   image=image or runpod.DEFAULT_IMAGE, image_version=image_version, network_volume_id=network_volume_id,
@@ -263,7 +267,7 @@ def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_versi
                                   container_disk_gb=int(rp.get("container_disk_gb", 40)), cloud_type=str(rp.get("cloud_type", "SECURE")),
                                   allowed_cuda_versions=list(cuda_versions) or None, debug=debug, exec_script=exec_script,
                                   community_fallback=bool(rp.get("community_fallback", True)), log=lambda m_: click.echo(m_, err=True),
-                                  labels=[x.strip() for x in labels.split(",") if x.strip()] if labels else None, idle_minutes=idle_minutes)
+                                  labels=lab, idle_minutes=idle_minutes)
             click.echo(f"launched on {pid}", err=True)
             if wait_runner and runner_pat and not exec_script:
                 if not runpod.wait_for_runner(h.id, repo, runner_pat, wait_runner, log=lambda m_: click.echo(m_, err=True)):
@@ -286,7 +290,7 @@ def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_versi
         click.echo(f"start log: https://{h.id}-8080.proxy.runpod.net/start.log", err=True)
     if os.environ.get("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-            f.write(f"pod_id={h.id}\nplatform={plat.id}\n")
+            f.write(f"pod_id={h.id}\nplatform={plat.id}\nlabels={','.join(lab or plat.runner_labels)}\n")
 
 
 @main.command("runpod-gpus")
