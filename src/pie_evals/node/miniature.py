@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import uuid
 from pathlib import Path
 
 from pie_evals.schema import ArtifactKind, ArtifactSpec, MiniatureRecipe
@@ -101,7 +102,7 @@ def ensure_miniature(
     base = Path(os.environ.get("PIE_EVALS_SHRINK_CACHE") or (Path(os.environ["PIE_EVALS_CACHE"]) / "shrink" if os.environ.get("PIE_EVALS_CACHE") else tempfile.gettempdir()))
     cache_dir = base / f"{os.uname().nodename}-{os.getpid()}" / repo_cache_dirname(artifact.base_model)
     out.parent.mkdir(parents=True, exist_ok=True)
-    tmp = out.parent / f".tmp-{out.name}-{os.getpid()}"
+    tmp = out.parent / f".tmp-{out.name}-{os.uname().nodename}-{os.getpid()}-{uuid.uuid4().hex[:6]}"  # pods on one volume share pids (pie #650: a shared spool zeroes the loser)
     shutil.rmtree(tmp, ignore_errors=True)
     argv = miniature_argv(artifact, pie_root, tmp, python, cache_dir=cache_dir)
     proc = subprocess.run(argv, capture_output=True, text=True, timeout=timeout_s, check=False)

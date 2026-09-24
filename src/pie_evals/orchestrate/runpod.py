@@ -284,6 +284,8 @@ def create_pod(
                 # "Low" stock is a momentary reading; unpin and, if allowed, take a
                 # community pod: no volume (cold caches, 80 GB container disk) but a run
                 if body.get("dataCenterIds") or body.get("networkVolumeId"):
+                    if exec_script:  # volume maintenance on a pod without the volume is a no-op that bills
+                        raise RuntimeError(f"no instance in the volume's data center for the exec script: {msg}") from e
                     log("no secure instance in the volume's data center; retrying unpinned without the volume")
                     body.pop("dataCenterIds", None)
                     body.pop("networkVolumeId", None)

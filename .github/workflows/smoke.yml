@@ -17,11 +17,24 @@ on:
   repository_dispatch:
     types: [pie-commit]
 jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs: { pie_commit: "${{ steps.c.outputs.commit }}" }
+    steps:
+      - id: c
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          C="${{ github.event.inputs.pie_commit || github.event.client_payload.pie_commit }}"
+          # a short SHA or a branch name cannot be shallow-fetched on the pod (smoke 35957005898 lost
+          # every cell to `git fetch --depth 1 origin 3801f892`); resolve it to the full SHA here
+          if ! [[ "$C" =~ ^[0-9a-f]{40}$ ]]; then C=$(gh api "repos/pie-project/pie/commits/$C" --jq .sha); fi
+          echo "commit=$C" >> "$GITHUB_OUTPUT"
   run:
+    needs: resolve
     uses: ./.github/workflows/tier.yml
     with:
       tier: smoke
-      pie_commit: ${{ github.event.inputs.pie_commit || github.event.client_payload.pie_commit }}
+      pie_commit: ${{ needs.resolve.outputs.pie_commit }}
       platforms: ${{ github.event.inputs.platforms || '' }}
       build_platform: ${{ github.event.inputs.build_platform || '' }}
     secrets: inherit

@@ -138,3 +138,22 @@ def hf_snapshot_file(repo_id: str, file_name: str, revision: str | None = None) 
     # GGUF repos sometimes nest quant files one directory down (Q4_K_M/...).
     hits = sorted(snap.rglob(Path(file_name).name))
     return hits[0].resolve() if hits else None
+
+
+def serve_envelope(workloads: list[WorkloadSpec]) -> WorkloadSpec:
+    """The shape one server must admit for every workload of a process: the
+    longest context of any of them and the highest concurrency of any of them.
+    Picking the single "widest" workload by concurrency × context let a
+    long-context latency shape win over c8 in the smoke tier, so the server
+    booted with an admission cap of 1 and every smoke c8 measured single-stream
+    (4090 smoke c8 422 tok/s against 6716 in the nightly)."""
+    by_ctx = max(workloads, key=context_tokens_for)
+    conc = max(workload_concurrency(w) for w in workloads)
+    reqs = max(workload_num_requests(w) for w in workloads)
+    if workload_concurrency(by_ctx) >= conc:
+        return by_ctx
+    # keep the kind: a long_context shape passes its prompt as a shared prefix,
+    # and recast as `concurrency` it would put 8k-32k words on the argv (E2BIG,
+    # nightly 35971360265); only the latency kinds ignore a concurrency param
+    kind = "concurrency" if str(by_ctx.kind) in ("single_stream", "control_aa") else by_ctx.kind
+    return by_ctx.model_copy(update={"kind": kind, "params": {**by_ctx.params, "concurrency": conc, "num_requests": max(reqs, conc * 2)}})

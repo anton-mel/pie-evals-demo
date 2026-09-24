@@ -46,8 +46,14 @@ from . import preflight as pf
 from . import provenance as prov
 from .engines import EngineLaunchError, get_engine
 from .engines.recipes import load_recipe
+from .engines.shape import context_tokens_for, serve_envelope
 from .metrics.stats import cov, decide_repetition, median
 from .workloads import common_args_for
+
+# the long-context shapes (lc-8k, lc-32k) size the server's arena and KV rows; when
+# that envelope does not fit the card the short shapes still can (gemma-4-26b on a 4090)
+SHORT_CONTEXT_TOKENS = 8192
+MEMORY_BOUND_MARKS = ("device memory exhausted", "weight residency", "does not hold this deployment")
 
 
 class NodeRunner:
@@ -72,6 +78,7 @@ class NodeRunner:
         self.t_start = time.monotonic()
         self._killed = threading.Event()
         self._done: set[str] = set()
+        self._last_state: dict = {}
         self._start_watchdog()
 
     # ------------------------------------------------------------------ time policy
@@ -84,6 +91,14 @@ class NodeRunner:
 
     def remaining_to_kill_s(self) -> float:
         return max(1.0, self.job.kill_s - self.elapsed_s())
+
+    def cell_timeout_s(self, cell: Cell) -> int:
+        """A round may take at most ten times the workload's estimate (floor
+        ten minutes), under the job-wide cap and the kill deadline. Nightly
+        35959142812 lost a whole 60-minute shard to one hung 30-second cell
+        (pie #649): the flat 5400 s cap let it run to the client's timeout."""
+        scaled = max(600.0, float(cell.workload.est_minutes) * 60.0 * 10.0)
+        return int(min(self.job.per_cell_timeout_s, scaled, self.remaining_to_kill_s()))
 
     def _start_watchdog(self) -> None:
         """Hard deadline: at ``job.kill_s`` (= budget × kill_factor) kill every
@@ -200,6 +215,14 @@ class NodeRunner:
             job = job.model_copy(update={"cells": [c for c in job.cells if str(c.engine) != "pie"]})
         pre = pf.Preflight()
         machine_before = pre.before_job(self.platform)
+        self._last_state = machine_before  # failure records carry the state the card was in
+        if machine_before.get("gpu_drain_error"):
+            # a card that already holds someone else's memory (nightly 35963868578: 5.7 GiB,
+            # no process) invalidates every number and refuses the big loads; give the shard back
+            self.log(f"GPU not clean at job start: {machine_before['gpu_drain_error']}; no cell is attempted on this pod")
+            for c in job.cells:
+                self.emit(self._failed(c, ErrorClass.HARNESS_INVALID, f"GPU not clean at job start: {machine_before['gpu_drain_error']}", None))
+            return []
         fingerprint = prov.hardware_fingerprint()
         records: list[Record] = []
         groups = job.cells_by_process()
@@ -236,7 +259,7 @@ class NodeRunner:
                         model_path = ensure_artifact(first.artifact, snapshot, self.pie_root / "target/release/pie", self.job.pie_commit, log=self.log)
                     except Exception as e:
                         for c in cells:
-                            self.emit(self._failed(c, ErrorClass.LOAD_FAIL, f"artifact import: {str(e).strip().splitlines()[-1][:300]}", fingerprint))
+                            self.emit(self._failed(c, ErrorClass.LOAD_FAIL, f"artifact import: {str(e).strip().splitlines()[-1][:900]}", fingerprint))
                         continue
             recipe_name = "competitive" if str(first.engine) != "pie" else "default"
             try:
@@ -256,20 +279,27 @@ class NodeRunner:
                 # one boot per model: the bench then attaches to this server for every
                 # cell and round instead of reloading the weights each time (gemma-4 E4B
                 # spent ~7 min per round loading; the measurement itself takes seconds)
-                widest = max(cells, key=lambda c: int(c.workload.params.get("concurrency", 1)) * (int(c.workload.params.get("prefill", 0)) + int(c.workload.params.get("decode", 0)))).workload
                 serve_log = self.out / "serve" / f"{artifact_key.replace('/', '_')}-{mode_key}.log"
-                try:
-                    engine.serve(widest, serve_log, int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
-                except EngineLaunchError as e:
-                    from .importer import RELAYOUT_MARK, ensure_artifact
 
-                    if RELAYOUT_MARK not in str(e) or str(first.engine) != "pie" or not self.job.pie_commit or model_path != snapshot:
+                try:
+                    engine, model_path = self._boot(engine, serve_envelope([c.workload for c in cells]), serve_log, cls=cls, first=first, recipe=recipe, num_layers=num_layers, snapshot=snapshot, model_path=model_path)
+                except EngineLaunchError as e:
+                    # a 32k envelope does not fit a 24 GB card beside a 16 GiB model
+                    # (nightly 35985312978): give the long shapes up, keep the short ones
+                    short = [c for c in cells if context_tokens_for(c.workload) <= SHORT_CONTEXT_TOKENS]
+                    if not any(m in str(e) for m in MEMORY_BOUND_MARKS) or not short or len(short) == len(cells):
                         raise
-                    self.log("pie refuses to serve this checkpoint directly; importing it as an artifact and retrying")
-                    model_path = ensure_artifact(first.artifact, snapshot, self.pie_root / "target/release/pie", self.job.pie_commit, log=self.log)
-                    recipe["snapshot_dir"] = str(model_path)
+                    self.log(f"engine boot at the full envelope failed for memory; retrying with the shapes under {SHORT_CONTEXT_TOKENS} tokens ({len(short)} of {len(cells)} cells)")
+                    for c in cells:
+                        if c not in short:
+                            self.emit(self._failed(c, e.error_class, f"does not fit beside the short shapes: {e}", fingerprint))
+                    try:
+                        engine.stop()
+                    except Exception:
+                        pass
                     engine = cls(pie_root=self.pie_root, artifact=first.artifact, platform=first.platform, mode=first.mode, recipe=recipe, num_layers=num_layers)
-                    engine.serve(widest, serve_log, int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
+                    cells = short
+                    engine, model_path = self._boot(engine, serve_envelope([c.workload for c in cells]), serve_log, cls=cls, first=first, recipe=recipe, num_layers=num_layers, snapshot=snapshot, model_path=model_path)
                 if getattr(engine, "server_url", None):
                     self.log(f"serving {artifact_key} at {engine.server_url}")
             except EngineLaunchError as e:
@@ -291,6 +321,7 @@ class NodeRunner:
             order.sort(key=lambda c: 0 if c.workload.kind.value == "control_aa" else 1)
             control_ok = True
             model_state = pre.before_model(self.platform) if hasattr(pre, "before_model") else machine_before
+            self._last_state = model_state
             for cell in order:
                 if cell.cell_id in self._done:
                     continue
@@ -337,6 +368,24 @@ class NodeRunner:
         self._log.close()
         return records
 
+    def _boot(self, engine, shape, serve_log: Path, *, cls, first: Cell, recipe: dict, num_layers, snapshot: Path, model_path: Path):
+        """Serve ``shape``; a pie checkpoint it refuses to read directly is
+        imported as an artifact once and served from there. Returns the
+        (possibly rebuilt) engine and the path it serves."""
+        try:
+            engine.serve(shape, serve_log, int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
+        except EngineLaunchError as e:
+            from .importer import RELAYOUT_MARK, ensure_artifact
+
+            if RELAYOUT_MARK not in str(e) or str(first.engine) != "pie" or not self.job.pie_commit or model_path != snapshot:
+                raise
+            self.log("pie refuses to serve this checkpoint directly; importing it as an artifact and retrying")
+            model_path = ensure_artifact(first.artifact, snapshot, self.pie_root / "target/release/pie", self.job.pie_commit, log=self.log)
+            recipe["snapshot_dir"] = str(model_path)
+            engine = cls(pie_root=self.pie_root, artifact=first.artifact, platform=first.platform, mode=first.mode, recipe=recipe, num_layers=num_layers)
+            engine.serve(shape, serve_log, int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
+        return engine, model_path
+
     # ------------------------------------------------------------------ one cell
     def _run_cell(self, cell: Cell, engine, snapshot: Path, engine_version: str, recipe: dict, recipe_name: str, fingerprint: dict, machine_state: dict) -> Record:
         t0 = time.monotonic()
@@ -348,7 +397,7 @@ class NodeRunner:
         results = []
         try:
             for i in range(policy.min_rounds):
-                res = engine.run(cell.workload, common, cell_out / f"r{i}", int(min(self.job.per_cell_timeout_s, self.remaining_to_kill_s())))
+                res = engine.run(cell.workload, common, cell_out / f"r{i}", self.cell_timeout_s(cell))
                 results.append(res)
                 rounds.append(self._primary(res.perf))
             hist = self.job.history.get(cell.cell_id, [])
@@ -358,7 +407,7 @@ class NodeRunner:
                 for _ in range(d.more_rounds):
                     if len(rounds) >= policy.max_rounds:
                         break
-                    res = engine.run(cell.workload, common, cell_out / f"r{len(rounds)}", int(min(self.job.per_cell_timeout_s, self.remaining_to_kill_s())))
+                    res = engine.run(cell.workload, common, cell_out / f"r{len(rounds)}", self.cell_timeout_s(cell))
                     results.append(res)
                     rounds.append(self._primary(res.perf))
         except EngineLaunchError as e:
@@ -375,15 +424,19 @@ class NodeRunner:
         perf.load_s = results[0].duration_s - (results[med_idx].duration_s if len(results) > 1 else 0) if len(results) > 1 else None
         status = CellStatus.PASS
         invalid = None
+        # a tensor-parallel process adds collective latency to every step, so its
+        # single-stream rounds spread like a concurrent shape's (gemma-4-E4B tp2 on
+        # L40S x2: A/A spread 2.1 % against the 2 % bound, every cell withheld)
+        tight = policy.cov_noisy_threshold if int(cell.mode.tp) <= 1 else policy.cov_noisy_threshold_concurrent
+        thr = tight if cell.workload.kind.value in ("single_stream", "control_aa", "long_context") else policy.cov_noisy_threshold_concurrent
         if perf.failed:
             status, invalid = CellStatus.FAIL, f"{perf.failed} of {perf.requests} requests failed"
-        elif len(rounds) >= 2 and perf.cov > (policy.cov_noisy_threshold if cell.workload.kind.value in ("single_stream", "control_aa", "long_context") else policy.cov_noisy_threshold_concurrent):
-            thr = policy.cov_noisy_threshold if cell.workload.kind.value in ("single_stream", "control_aa", "long_context") else policy.cov_noisy_threshold_concurrent
+        elif len(rounds) >= 2 and perf.cov > thr:
             status, invalid = CellStatus.NOISY, f"cov {perf.cov:.3%} > {thr:.1%}"
         if cell.workload.kind.value == "control_aa" and len(rounds) >= 2:
             spread = abs(rounds[0] - rounds[-1]) / median(rounds)
-            if spread > policy.cov_noisy_threshold:
-                status, invalid = CellStatus.NOISY, f"control A/A spread {spread:.3%}"
+            if spread > tight:
+                status, invalid = CellStatus.NOISY, f"control A/A spread {spread:.3%} > {tight:.1%}"
         accuracy = self._accuracy(cell, engine, snapshot)
         if accuracy.status == AccuracyStatus.FAIL and status == CellStatus.PASS:
             status = CellStatus.FAIL
@@ -433,6 +486,7 @@ class NodeRunner:
     def _failed(self, cell: Cell, cls: ErrorClass, msg: str, fingerprint: dict | None, duration: float | None = None) -> Record:
         self._done.add(cell.cell_id)
         p = prov.Provenance(hardware_fingerprint=fingerprint or {}, runner=self.runner_name, pie_commit=self.job.pie_commit, harness_commit=prov.git_commit(Path(__file__).resolve().parents[3]))
+        p.machine_state = self._last_state  # a boot refusal on a card someone else holds 5 GiB of (nightly 35963868578) reads differently
         return Record(run_id=self.run_id, job_id=self.job.job_id, tier=self.job.tier, cell_id=cell.cell_id, cell_key=cell.cell_key, cell=cell,
                       status=CellStatus.FAIL, error_class=cls, error_message=msg[:1000], provenance=p, duration_s=duration)
 

@@ -21,6 +21,8 @@ artifacts:
     max_context: 4096    # pie's qwen35-d0.8b SKU: "past the model's max_context of 4096 tokens" (HF config says 262144)
     expected_gib: 1.6
     tiers: [smoke, nightly, weekly]
+    pie_sku: qwen35-d0.8b-bf16-kv-bf16   # the tp>1 artifact is imported as this row (import picks the first fitting row otherwise: the u4g64 twin, which has no tp2)
+
   - id: gemma-4-e4b-bf16
     base_model: google/gemma-4-E4B-it
     family: gemma4
@@ -30,6 +32,8 @@ artifacts:
     tiers: [smoke, nightly, weekly]
 
   # ---------------- miniatures: real shapes of big architectures, cheap ----
+    pie_sku: gemma4-e4b-bf16-kv-bf16   # the tp>1 artifact is imported as this row (import picks the first fitting row otherwise: the u4g64 twin, which has no tp2)
+
   - id: qwen3.6-35b-a3b-mini5
     base_model: mlx-community/Qwen3.6-35B-A3B-4bit
     family: qwen3_6_moe   # hybrid MoE, 256 experts top-4
@@ -41,6 +45,8 @@ artifacts:
     max_context: 4096    # pie's SKU max_context ("past the model's max_context of 4096 tokens")
     expected_gib: 1.0
     tiers: [smoke, nightly, weekly]
+    pie_sku: qwen36-35b-a3b-mini-u4g64-kv-bf16   # the tp>1 artifact is imported as this row (import picks the first fitting row otherwise: the u4g64 twin, which has no tp2)
+
   - id: gpt-oss-20b-mxfp4-mini5
     base_model: openai/gpt-oss-20b
     family: gpt_oss
@@ -51,6 +57,8 @@ artifacts:
     max_context: 4096    # pie's SKU max_context ("past the model's max_context of 4096 tokens")
     expected_gib: 2.5
     tiers: [smoke, nightly, weekly]
+    pie_sku: gptoss-20b-mini-bf16-mxfp4-kv-bf16   # the tp>1 artifact is imported as this row (import picks the first fitting row otherwise: the u4g64 twin, which has no tp2)
+
   - id: deepseek-v4-flash-mini5
     base_model: mlx-community/DeepSeek-V4-Flash-bf16
     family: deepseek_v4   # CSA/HCA sparse attention + mHC + MoE
@@ -87,6 +95,8 @@ artifacts:
     max_context: 4096
     expected_gib: 5.0
     tiers: [smoke, nightly, weekly]
+    pie_sku: glm53-flash-mini-u4g64-u4g64-kv-bf16   # the tp>1 artifact is imported as this row (import picks the first fitting row otherwise: the u4g64 twin, which has no tp2)
+
   - id: kimi-k3-mini8
     base_model: moonshotai/Kimi-K3
     family: kimi_k3       # KDA + MLA (every 4th), latent MoE, AttnRes
@@ -98,6 +108,8 @@ artifacts:
     max_context: 4096
     expected_gib: 22.0   # 19 GiB of weights + the KDA state pool; on a 24 GB card the load reserves 3.2 GB and the first fire wants 4.0 GB (nightly 35935510089)
     tiers: [smoke, nightly, weekly]
+    pie_sku: kimik3-mini-bf16-mxfp4-kv-bf16   # the tp>1 artifact is imported as this row (import picks the first fitting row otherwise: the u4g64 twin, which has no tp2)
+
   - id: nemotron-h-mini8
     base_model: nvidia/Nemotron-H-8B-Base-8K
     family: nemotron_h    # Mamba/SSM hybrid
@@ -165,6 +177,7 @@ artifacts:
     source_format: gguf
     gguf_file: Qwen3.6-27B-Q4_K_M.gguf
     gguf_config_from: Qwen/Qwen3.6-27B
+    pie_sku: qwen36-27b-u4g64-kv-bf16   # the import otherwise lands the dflash twin, which no boot loads (nightly 35998010528)
     expected_gib: 15.6
     tiers: [nightly, weekly]
 

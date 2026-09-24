@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import uuid
 from pathlib import Path
 
 from pie_evals.schema import ArtifactSpec, SourceFormat
@@ -21,7 +22,10 @@ RELAYOUT_MARK = "would relayout a weight plane"
 
 
 def needs_import(artifact: ArtifactSpec) -> bool:
-    return artifact.source_format == SourceFormat.MLX
+    # pie serve reads safetensors and .zt only; mlx and gguf checkpoints go
+    # through `pie model import` (nightly 35967154121: the GGUF snapshot dir
+    # "holds no .safetensors and no .zt container")
+    return artifact.source_format in (SourceFormat.MLX, SourceFormat.GGUF)
 
 
 def artifact_root(root: Path | None = None) -> Path:
@@ -44,9 +48,10 @@ def ensure_artifact(artifact: ArtifactSpec, snapshot: Path, pie_bin: Path, commi
     have = find_zt(d)
     if have:
         return have
-    tmp = d.parent / f".tmp-{d.name}-{os.getpid()}"
+    tmp = d.parent / f".tmp-{d.name}-{os.uname().nodename}-{os.getpid()}-{uuid.uuid4().hex[:6]}"  # pods on one volume share pids (pie #650: a shared spool zeroes the loser)
     tmp.mkdir(parents=True, exist_ok=True)
-    argv = [str(pie_bin), "model", "import", str(snapshot), "--out", str(tmp), "--keep-source"]
+    source = snapshot / artifact.gguf_file if artifact.gguf_file else snapshot  # a GGUF repo is one file plus the base model's config.json
+    argv = [str(pie_bin), "model", "import", str(source), "--out", str(tmp), "--keep-source"]
     if artifact.pie_sku:
         argv += ["--sku", artifact.pie_sku]
     env = {**os.environ}
