@@ -1,7 +1,5 @@
 {
-  "models": [
-    "qwen3.5-0.8b-bf16"
-  ],
+  "models": [],
   "macs": [],
-  "enabled": true
+  "enabled": false
 }
