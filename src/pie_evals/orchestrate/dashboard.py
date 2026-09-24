@@ -445,7 +445,12 @@ def mac_models(matrix: Matrix) -> list[dict]:
     for c in matrix.expand():
         if (c.platform.os == "macos" and c.engine.value == "pie" and c.program.id == "text-completion-bench"
                 and c.mode.tp == 1 and c.declared_unsupported_reason is None and c.artifact.kind.value == "full"):
-            seen[c.artifact.id] = {"id": c.artifact.id, "name": f"{c.artifact.base_model} · {c.artifact.scheme}"}
+            seen[c.artifact.id] = {"id": c.artifact.id, "name": c.artifact.base_model, "scheme": str(c.artifact.scheme)}
+    names = [m["name"] for m in seen.values()]
+    for m in seen.values():
+        scheme = m.pop("scheme")
+        if names.count(m["name"]) > 1:
+            m["name"] = f"{m['name']} ({scheme})"
     return sorted(seen.values(), key=lambda m: m["name"])
 
 
