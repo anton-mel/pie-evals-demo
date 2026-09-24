@@ -117,7 +117,7 @@ def jobs(obj, tier, pie_commit, platforms, engines, programs, artifacts, max_job
     click.echo(json.dumps(gh, indent=1))
     if os.environ.get("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-            f.write(f"kill_minutes={m.kill_minutes}\njobs={len(js)}\n")
+            f.write(f"kill_minutes={m.kill_minutes}\nbench_timeout_minutes={int(m.kill_minutes) + 15}\njobs={len(js)}\n")  # workflow expressions cannot add
 
 
 @main.command("collect")

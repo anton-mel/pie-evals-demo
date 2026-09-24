@@ -21,6 +21,7 @@ jobs:
     outputs:
       matrix: ${{ steps.jobs.outputs.matrix }}
       kill_minutes: ${{ steps.jobs.outputs.kill_minutes }}
+      bench_timeout_minutes: ${{ steps.jobs.outputs.bench_timeout_minutes }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
@@ -164,7 +165,7 @@ jobs:
     # hard kill = job budget × kill_factor (policy in matrix/suites.yaml): the runner watchdog and the pod
     # self-destruct fire at kill_minutes; the job outlives them by a margin so the records get uploaded
     # (nightly 35959142812: a flat 90 fired before the 120-minute watchdog and four shards left nothing)
-    timeout-minutes: ${{ fromJSON(needs.expand.outputs.kill_minutes) + 15 }}
+    timeout-minutes: ${{ fromJSON(needs.expand.outputs.bench_timeout_minutes) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
