@@ -281,23 +281,8 @@ class NodeRunner:
                 # spent ~7 min per round loading; the measurement itself takes seconds)
                 serve_log = self.out / "serve" / f"{artifact_key.replace('/', '_')}-{mode_key}.log"
 
-                def boot(shape):
-                    nonlocal engine, model_path
-                    try:
-                        engine.serve(shape, serve_log, int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
-                    except EngineLaunchError as e:
-                        from .importer import RELAYOUT_MARK, ensure_artifact
-
-                        if RELAYOUT_MARK not in str(e) or str(first.engine) != "pie" or not self.job.pie_commit or model_path != snapshot:
-                            raise
-                        self.log("pie refuses to serve this checkpoint directly; importing it as an artifact and retrying")
-                        model_path = ensure_artifact(first.artifact, snapshot, self.pie_root / "target/release/pie", self.job.pie_commit, log=self.log)
-                        recipe["snapshot_dir"] = str(model_path)
-                        engine = cls(pie_root=self.pie_root, artifact=first.artifact, platform=first.platform, mode=first.mode, recipe=recipe, num_layers=num_layers)
-                        engine.serve(shape, serve_log, int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
-
                 try:
-                    boot(serve_envelope([c.workload for c in cells]))
+                    engine, model_path = self._boot(engine, serve_envelope([c.workload for c in cells]), serve_log, cls=cls, first=first, recipe=recipe, num_layers=num_layers, snapshot=snapshot, model_path=model_path)
                 except EngineLaunchError as e:
                     # a 32k envelope does not fit a 24 GB card beside a 16 GiB model
                     # (nightly 35985312978): give the long shapes up, keep the short ones
@@ -314,7 +299,7 @@ class NodeRunner:
                         pass
                     engine = cls(pie_root=self.pie_root, artifact=first.artifact, platform=first.platform, mode=first.mode, recipe=recipe, num_layers=num_layers)
                     cells = short
-                    boot(serve_envelope([c.workload for c in cells]))
+                    engine, model_path = self._boot(engine, serve_envelope([c.workload for c in cells]), serve_log, cls=cls, first=first, recipe=recipe, num_layers=num_layers, snapshot=snapshot, model_path=model_path)
                 if getattr(engine, "server_url", None):
                     self.log(f"serving {artifact_key} at {engine.server_url}")
             except EngineLaunchError as e:
@@ -382,6 +367,24 @@ class NodeRunner:
         self.log(f"done in {self.elapsed_s():.0f}s (budget {job.budget_s}s, kill {job.kill_s}s)")
         self._log.close()
         return records
+
+    def _boot(self, engine, shape, serve_log: Path, *, cls, first: Cell, recipe: dict, num_layers, snapshot: Path, model_path: Path):
+        """Serve ``shape``; a pie checkpoint it refuses to read directly is
+        imported as an artifact once and served from there. Returns the
+        (possibly rebuilt) engine and the path it serves."""
+        try:
+            engine.serve(shape, serve_log, int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
+        except EngineLaunchError as e:
+            from .importer import RELAYOUT_MARK, ensure_artifact
+
+            if RELAYOUT_MARK not in str(e) or str(first.engine) != "pie" or not self.job.pie_commit or model_path != snapshot:
+                raise
+            self.log("pie refuses to serve this checkpoint directly; importing it as an artifact and retrying")
+            model_path = ensure_artifact(first.artifact, snapshot, self.pie_root / "target/release/pie", self.job.pie_commit, log=self.log)
+            recipe["snapshot_dir"] = str(model_path)
+            engine = cls(pie_root=self.pie_root, artifact=first.artifact, platform=first.platform, mode=first.mode, recipe=recipe, num_layers=num_layers)
+            engine.serve(shape, serve_log, int(min(self.job.load_timeout_s, self.remaining_to_kill_s())))
+        return engine, model_path
 
     # ------------------------------------------------------------------ one cell
     def _run_cell(self, cell: Cell, engine, snapshot: Path, engine_version: str, recipe: dict, recipe_name: str, fingerprint: dict, machine_state: dict) -> Record:
