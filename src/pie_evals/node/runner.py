@@ -85,6 +85,14 @@ class NodeRunner:
     def remaining_to_kill_s(self) -> float:
         return max(1.0, self.job.kill_s - self.elapsed_s())
 
+    def cell_timeout_s(self, cell: Cell) -> int:
+        """A round may take at most ten times the workload's estimate (floor
+        ten minutes), under the job-wide cap and the kill deadline. Nightly
+        35959142812 lost a whole 60-minute shard to one hung 30-second cell
+        (pie #649): the flat 5400 s cap let it run to the client's timeout."""
+        scaled = max(600.0, float(cell.workload.est_minutes) * 60.0 * 10.0)
+        return int(min(self.job.per_cell_timeout_s, scaled, self.remaining_to_kill_s()))
+
     def _start_watchdog(self) -> None:
         """Hard deadline: at ``job.kill_s`` (= budget × kill_factor) kill every
         child in our process group and exit. The workflow's timeout-minutes
@@ -348,7 +356,7 @@ class NodeRunner:
         results = []
         try:
             for i in range(policy.min_rounds):
-                res = engine.run(cell.workload, common, cell_out / f"r{i}", int(min(self.job.per_cell_timeout_s, self.remaining_to_kill_s())))
+                res = engine.run(cell.workload, common, cell_out / f"r{i}", self.cell_timeout_s(cell))
                 results.append(res)
                 rounds.append(self._primary(res.perf))
             hist = self.job.history.get(cell.cell_id, [])
@@ -358,7 +366,7 @@ class NodeRunner:
                 for _ in range(d.more_rounds):
                     if len(rounds) >= policy.max_rounds:
                         break
-                    res = engine.run(cell.workload, common, cell_out / f"r{len(rounds)}", int(min(self.job.per_cell_timeout_s, self.remaining_to_kill_s())))
+                    res = engine.run(cell.workload, common, cell_out / f"r{len(rounds)}", self.cell_timeout_s(cell))
                     results.append(res)
                     rounds.append(self._primary(res.perf))
         except EngineLaunchError as e:
