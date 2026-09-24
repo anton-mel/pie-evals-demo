@@ -97,7 +97,10 @@ PAGE = """<!doctype html>
   pre.cmd { background: #f6f8fa; border: 1px solid #d8dee4; border-radius: 6px; padding: 10px; white-space: pre-wrap; word-break: break-all; font-size: 12px; }
   .x { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 22px; line-height: 1; cursor: pointer; color: #656d76; }
   tr.push { cursor: pointer; } tr.push:hover { background: #f6f8fa; }
-  .auto { margin: 0 0 12px; font-size: 14px; color: #424a53; }
+  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; }
+  .auto { font-size: 14px; color: #424a53; }
+  .filter { font-size: 14px; color: #424a53; display: inline-flex; align-items: center; gap: 6px; }
+  tr.person { cursor: pointer; } tr.person:hover { background: #f6f8fa; }
   button.link { border: 0; background: none; color: #0969da; font: inherit; cursor: pointer; padding: 0 0 0 6px; }
   #who { position: relative; }
   .menu { position: absolute; right: 0; top: 40px; background: #fff; border: 1px solid #d0d7de; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 6px; z-index: 20; min-width: 160px; display: flex; flex-direction: column; }
@@ -131,7 +134,7 @@ const NL = String.fromCharCode(10);
 const esc = x => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 const modelName = id => (DATA.models.find(m => m.id === id) || { name: id }).name;
 const macName = id => (DATA.pool.find(m => m.id === id) || DATA.results[id] || { name: id }).name;
-let tab = "Overview", charts = [], me = null, mine = null, recent = null;
+let tab = "Overview", charts = [], me = null, mine = null, recent = null, author = "";
 const token = () => { try { return localStorage.getItem("pie-evals-token"); } catch { return null; } };
 
 const modelSel = document.getElementById("model");
@@ -204,9 +207,15 @@ function pushes() {
   const head = me
     ? `<div class="auto">Your pushes run <b>${summary()}</b> <button class="link" id="edit">Change</button></div>`
     : `<div class="auto muted"><a href="#" id="sig">Sign in</a> to choose what runs on your pushes and to add runs to any commit.</div>`;
-  let html = head + `<div class="card"><table class="compact"><colgroup><col><col style="width:140px"><col style="width:96px"><col style="width:120px"></colgroup>` +
+  const commits = allCommits(), authors = [...new Set(commits.map(c => c.author).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  if (author && !authors.includes(author)) authors.push(author);
+  const filter = `<label class="filter">author <select id="author"><option value="">everyone</option>` +
+    authors.map(a => `<option value="${esc(a)}" ${a === author ? "selected" : ""}>${esc(a)}</option>`).join("") + `</select></label>`;
+  let html = `<div class="toolbar">${head}${filter}</div><div class="card"><table class="compact"><colgroup><col><col style="width:140px"><col style="width:96px"><col style="width:120px"></colgroup>` +
              `<tr><th>commit</th><th>author</th><th>date</th><th>benchmarks</th></tr>`;
-  for (const c of allCommits()) {
+  const shown = commits.filter(c => !author || c.author === author);
+  if (!shown.length) html += `<tr><td colspan="4" class="muted">No pushes by ${esc(author)} yet.</td></tr>`;
+  for (const c of shown) {
     const n = ran(c.sha).size;
     html += `<tr class="push" data-sha="${c.sha}"><td class="clip" title="${esc(c.message)}"><code>${c.sha.slice(0, 7)}</code> ${esc(c.message)}</td>` +
             `<td class="clip">${esc(c.author)}</td><td>${c.date}</td>` +
@@ -214,6 +223,7 @@ function pushes() {
   }
   document.getElementById("main").innerHTML = html + `</table></div>`;
   document.querySelectorAll("tr.push").forEach(tr => tr.onclick = () => openCommit(tr.dataset.sha));
+  document.getElementById("author").onchange = e => { author = e.target.value; draw(); };
   const e = document.getElementById("edit"), s = document.getElementById("sig");
   if (e) e.onclick = editMine;
   if (s) s.onclick = ev => { ev.preventDefault(); openSignIn(); };
@@ -291,12 +301,13 @@ function pool() {
 function people() {
   let html = `<div class="card"><table><tr><th>who</th><th>models</th><th>Macs</th></tr>`;
   for (const p of DATA.people) {
-    html += `<tr><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}${p.enabled === false ? ` <span class="tag">off</span>` : ""}</td>` +
+    html += `<tr class="person" data-login="${esc(p.login)}"><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}${p.enabled === false ? ` <span class="tag">off</span>` : ""}</td>` +
       `<td>${p.models.map(m => `<span class="tag">${esc(modelName(m))}</span>`).join("") || `<span class="muted">default</span>`}</td>` +
       `<td>${p.macs.map(m => `<span class="tag">${esc(macName(m))}</span>`).join("") || `<span class="muted">every connected Mac</span>`}</td></tr>`;
   }
   if (!DATA.people.length) html += `<tr><td colspan="3" class="muted">Nobody has a setup yet: everyone gets ${esc(modelName(DATA.default_model))} on every connected Mac.</td></tr>`;
   document.getElementById("main").innerHTML = html + `</table></div>`;
+  document.querySelectorAll("tr.person").forEach(tr => tr.onclick = () => { author = tr.dataset.login; tab = "Pushes"; draw(); });
 }
 
 async function gh(path, opts = {}) {
