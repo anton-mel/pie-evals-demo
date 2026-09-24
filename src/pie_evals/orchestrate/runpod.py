@@ -280,6 +280,13 @@ def create_pod(
             break
         except RuntimeError as e:
             msg = str(e)
+            if "dataCenterIds" in msg and body.get("dataCenterIds") and " 400 " in msg[:40]:
+                # the stock query names data centers the REST schema's enum does not
+                # (US-MO-2 on 2026-09-24); an unpinned request still lands there
+                log(f"RunPod rejects the data center pin {body['dataCenterIds']}; retrying unpinned")
+                body.pop("dataCenterIds", None)
+                data_center = None
+                continue
             if "no instances currently available" in msg:
                 # "Low" stock is a momentary reading; unpin and, if allowed, take a
                 # community pod: no volume (cold caches, 80 GB container disk) but a run

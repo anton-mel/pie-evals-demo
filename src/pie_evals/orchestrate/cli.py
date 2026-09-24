@@ -264,7 +264,7 @@ def launch_pod(obj, platform, repo, runner_pat, runner_token, image, image_versi
             break
         except RuntimeError as e:
             errors.append(f"{pid}: {str(e)[:120]}")
-            click.echo(f"no pod for {pid}: {str(e)[:120]}", err=True)
+            click.echo(f"no pod for {pid}: {str(e)[:600]}", err=True)
     if h is None or plat is None:
         raise click.ClickException("no instance on any platform: " + "; ".join(errors))
     click.echo(h.id)

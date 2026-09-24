@@ -46,6 +46,25 @@ def test_create_pod_rest_body(monkeypatch):
     assert body["dockerStartCmd"][:2] == ["bash", "-lc"] and "--ephemeral" in body["dockerStartCmd"][2]
 
 
+def test_create_pod_unpins_a_data_center_the_rest_schema_rejects(monkeypatch):
+    m = Matrix.load(ROOT / "matrix")
+    posts = []
+
+    def fake_req(method, path, body=None, api_key=None, params=None):
+        if path == "/pods" and method == "POST":
+            posts.append(dict(body))
+            if body.get("dataCenterIds"):
+                raise RuntimeError('runpod POST /pods: 400 [{"problems":["At /pods/properties/dataCenterIds/items/enum: value must be one of ..."]}]')
+            return {"id": "pod123"}
+        return {}
+
+    monkeypatch.setattr(runpod, "_req", fake_req)
+    monkeypatch.setattr(runpod, "choose_placement", lambda *a, **k: runpod.Placement(data_center="US-MO-2", volume_id=None, stock="Low", note="stock"))
+    h = runpod.create_pod(m.platforms["pro6000-x1"], repo="o/r", runner_pat="PAT", kill_minutes=90, volumes={"EUR-IS-1": "v1"}, api_key="k", log=lambda *_: None)
+    assert h.id == "pod123" and h.data_center is None
+    assert posts[0]["dataCenterIds"] == ["US-MO-2"] and "dataCenterIds" not in posts[1]
+
+
 def test_reap_uses_name_timestamp(monkeypatch):
     import time
 
