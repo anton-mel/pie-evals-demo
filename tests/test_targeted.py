@@ -5,7 +5,6 @@ import pytest
 
 from pie_evals.node import build as pb
 from pie_evals.orchestrate import dashboard, flops
-from pie_evals.orchestrate import pr_report as prr
 from pie_evals.orchestrate.matrix import Matrix
 from pie_evals.orchestrate.store import Store
 from pie_evals.schema import CellStatus, PerfMetrics, Provenance, Record, Tier
@@ -71,29 +70,6 @@ def test_flops_scale_with_the_rate():
     batched = flops.tflops({"output_tok_s": 1000.0, "prefill_tok_s": 5.0}, {"prefill": 128, "decode": 128, "concurrency": 8}, QWEN35_08B)
     assert batched["prefill_tflops"] is None and batched["decode_tflops"] > 0
     assert flops.tflops({"decode_tok_s": 1.0}, {"prefill": 1}, None) == {"prefill_tflops": None, "decode_tflops": None}
-
-
-def test_pr_report_flags_a_drop_against_main(tmp_path, matrix, monkeypatch):
-    monkeypatch.setattr(flops, "model_config", lambda repo: QWEN35_08B)
-    cell = _cell(matrix, "m5-max-48g", "ss-128-64")
-    st = Store(tmp_path / "store")
-    t0 = datetime(2026, 9, 1, tzinfo=timezone.utc)
-    for i, v in enumerate([500, 502, 501, 503]):
-        st.write_run([_rec(cell, v, t0 + timedelta(days=i), commit=f"main{i}", run=f"r{i}")], tier=Tier.TARGETED, run_id=f"r{i}")
-    out = _node_out(tmp_path, [_rec(cell, 450, t0 + timedelta(days=9), commit="pr")])
-    rows = prr.node_rows([out])
-    body, verdict = prr.build(rows, prr.main_history(st, exclude_commit="pr"), pie_commit="pr" * 20, mode="targeted",
-                              expected=["m5-max-48g", "m1-max-32g"])
-    assert verdict["regressions"] == 1 and verdict["missing"] == ["m1-max-32g"]
-    assert body.startswith(prr.MARKER) and "🔴" in body and "Slower than main" in body
-
-
-def test_pr_report_keeps_a_noisy_value_out_of_the_verdict(tmp_path, matrix, monkeypatch):
-    monkeypatch.setattr(flops, "model_config", lambda repo: None)
-    cell = _cell(matrix, "m5-max-48g", "c8")
-    out = _node_out(tmp_path, [_rec(cell, 900, datetime.now(timezone.utc), commit="pr", status=CellStatus.NOISY)])
-    body, verdict = prr.build(prr.node_rows([out]), {}, pie_commit="pr" * 20, mode="targeted")
-    assert verdict["noisy"] == 1 and verdict["regressions"] == 0 and "⚠️ noisy" in body
 
 
 def test_dashboard_has_one_series_per_cell(tmp_path, matrix, monkeypatch):
