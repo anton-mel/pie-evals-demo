@@ -235,7 +235,7 @@
 | vllm | l40s-x1 | kimi-k3-mini8 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | checkpoint unavailable for kimi-k3-mini8: 'OSError: [Errno 28] No space left on device' |
 | sglang | l40s-x1 | kimi-k3-mini8 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | fail | crash | ValueError: The repository /workspace/.hf/hub/models--moonshotai--Kimi-K3/snapshots/mini-l0-7-e32-b4 contains custom cod |
 | sglang | l40s-x1 | kimi-k3-mini8 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | crash | ValueError: The repository /workspace/.hf/hub/models--moonshotai--Kimi-K3/snapshots/mini-l0-7-e32-b4 contains custom cod |
-| pie | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | rs-speculative-decoding | tp1,rs | fail | crash | all 8 requests failed: truth take: channel is poisoned: pipeline: forward failed: direct launch rejected: invalid submis |
+| pie | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | rs-speculative-decoding | tp1,rs | fail | crash | all 8 requests failed: KeyError: 'num_output_tokens' |
 | pie | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | classifier-free-guidance | tp1 | fail | crash | all 8 requests failed: JSONDecodeError: Expecting value: line 1 column 1 (char 0) |
 | vllm | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
 | vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
@@ -243,7 +243,7 @@
 | vllm | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | engine setup: Command '['uv', 'pip', 'install', '--quiet', '--python', '/workspace/pie-evals-cache/venv-vllm-0.30.0/bin/ |
 | sglang | l40s-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | checkpoint unavailable for qwen3.5-0.8b-bf16: '[Errno 28] No space left on device' |
 | sglang | l40s-x1 | qwen3.5-0.8b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | fail | load_fail | checkpoint unavailable for qwen3.5-0.8b-bf16: '[Errno 28] No space left on device' |
-| pie | l40s-x1 | qwen3.6-35b-a3b-mini5 | ss-128-64 | rs-speculative-decoding | tp1,rs | fail | crash | all 8 requests failed: truth take: channel is poisoned: pipeline: forward failed: direct launch rejected: invalid submis |
+| pie | l40s-x1 | qwen3.6-35b-a3b-mini5 | ss-128-64 | rs-speculative-decoding | tp1,rs | fail | crash | all 8 requests failed: KeyError: 'num_output_tokens' |
 | pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | trackb-h2o | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
 | pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | trackb-snapkv | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
 | pie | l40s-x2 | gemma-4-e4b-bf16 | lc-1k-128 | snapkv-eviction | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
