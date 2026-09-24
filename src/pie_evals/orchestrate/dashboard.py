@@ -97,6 +97,7 @@ PAGE = """<!doctype html>
   .sheet { position: relative; background: #fff; border-radius: 10px; width: min(640px, 100%); max-height: 84vh; overflow: auto; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
   .sheet .card { border: 0; margin: 0; }
   .tag.new { background: #fff8c5; }
+  .signin-page { max-width: 560px; margin: 24px auto; }
   .signrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .err { font-size: 12px; color: #cf222e; margin: 6px 0 0 14px; min-height: 16px; }
   .x { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 22px; line-height: 1; cursor: pointer; color: #656d76; }
@@ -354,13 +355,21 @@ document.getElementById("close").onclick = closeSheet;
 document.getElementById("modal").onclick = e => { if (e.target.id === "modal") closeSheet(); };
 document.addEventListener("keydown", e => { if (e.key === "Escape") { closeSheet(); closeMenu(); } });
 
+let back = "Overview";
 function openSignIn() {
-  sheet(`<h2>Sign in with GitHub</h2><p class="muted">Paste a GitHub token with access to ${DATA.repo}.</p>` +
-    `<div class="signrow"><input id="tok" type="password" placeholder="Paste GitHub access token" size="40"><button class="act" id="go">Sign in</button></div><div id="err" class="err"></div>`);
-  document.getElementById("go").onclick = async () => {
-    try { localStorage.setItem("pie-evals-token", document.getElementById("tok").value.trim()); } catch {}
+  if (tab !== "Sign in") back = tab;
+  tab = "Sign in"; closeSheet(); draw();
+}
+function signInPage() {
+  document.getElementById("main").innerHTML = `<div class="card signin-page"><h2>Sign in with GitHub</h2><p class="muted">Paste a GitHub token with access to ${DATA.repo}.</p>` +
+    `<div class="signrow"><input id="tok" type="password" placeholder="Paste GitHub access token" size="40"><button class="act" id="go">Sign in</button></div><div id="err" class="err"></div></div>`;
+  const tok = document.getElementById("tok"), go = document.getElementById("go");
+  tok.focus();
+  tok.onkeydown = e => { if (e.key === "Enter") go.click(); };
+  go.onclick = async () => {
+    try { localStorage.setItem("pie-evals-token", tok.value.trim()); } catch {}
     await signIn();
-    if (me) { closeSheet(); draw(); } else document.getElementById("err").textContent = denied || "That token did not work.";
+    if (me) { tab = back; draw(); } else document.getElementById("err").textContent = denied || "That token did not work.";
   };
 }
 function closeMenu() { document.querySelector(".menu")?.remove(); }
@@ -411,7 +420,8 @@ function draw() {
   document.getElementById("tabs").innerHTML = TABS.map(t => `<button class="${t === tab ? "on" : ""}">${t}</button>`).join("");
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { tab = b.textContent; draw(); });
   document.getElementById("controls").hidden = tab !== "Overview";
-  ({ "Overview": overview, "CI/CD": cicd, "Pushes": pushes, "Machines": pool, "People": people })[tab]();
+  document.getElementById("in")?.classList.toggle("on", tab === "Sign in");
+  ({ "Overview": overview, "CI/CD": cicd, "Pushes": pushes, "Machines": pool, "People": people, "Sign in": signInPage })[tab]();
 }
 signIn().then(draw);
 </script>
