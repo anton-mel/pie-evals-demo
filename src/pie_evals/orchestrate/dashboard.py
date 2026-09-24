@@ -59,7 +59,6 @@ PAGE = """<!doctype html>
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eaeef2; vertical-align: top; }
   th { font-size: 13px; color: #424a53; font-weight: 600; }
   td.num, th.num { text-align: right; }
-  tr.push { cursor: pointer; } tr.push:hover { background: #f6f8fa; }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
   .idle { background: #1a7f37; } .busy { background: #bf8700; } .offline { background: #cf222e; }
   .tag { display: inline-block; background: #eaeef2; border-radius: 10px; padding: 0 8px; margin: 0 4px 4px 0; font-size: 13px; }
@@ -85,9 +84,6 @@ PAGE = """<!doctype html>
 const DATA = __DATA__;
 const TABS = ["Overview", "Pushes", "Macs", "People", "My setup"];
 const COLORS = ["#0969da", "#bf8700", "#8250df"];
-const pct = (a, b) => (a / b - 1) * 100;
-const signed = v => `<span class="${v > 0.5 ? "up" : v < -0.5 ? "down" : ""}">${v > 0 ? "+" : ""}${v.toFixed(1)}%</span>`;
-const mean = xs => xs.reduce((a, b) => a + b, 0) / xs.length;
 const modelName = id => (DATA.models.find(m => m.id === id) || { name: id }).name;
 const macName = id => (DATA.pool.find(m => m.id === id) || { name: id }).name;
 let tab = "Overview", charts = [], me = null;
@@ -102,13 +98,6 @@ const unitName = () => unitSel.value === "v" ? "tok/s" : "TFLOP/s";
 function series(mac, metric) {
   const byCommit = (DATA.results[mac]?.models[modelSel.value] || {})[metric] || {};
   return DATA.commits.filter(c => byCommit[c.sha]).map(c => ({ sha: c.sha, ...byCommit[c.sha] }));
-}
-function phaseChange(mac, phase, from, to) {
-  const xs = DATA.metrics.map((m, i) => [m, i]).filter(([m]) => m.phase === phase).map(([, i]) => {
-    const s = series(mac, i), a = s.find(p => p.sha === from), b = s.find(p => p.sha === to);
-    return a && b ? pct(b.v, a.v) : null;
-  }).filter(v => v != null);
-  return xs.length ? mean(xs) : null;
 }
 const macs = () => Object.keys(DATA.results).filter(m => DATA.results[m].models[modelSel.value]);
 
@@ -148,36 +137,15 @@ function overview() {
 }
 
 function pushes() {
-  const list = macs();
-  let html = `<div class="card"><h2>Pushes to main</h2><table><tr><th>commit</th><th>author</th>` +
-    list.map(m => `<th class="num">${DATA.results[m].name}<br><span class="muted">prefill · decode</span></th>`).join("") + `</tr>`;
+  let html = `<div class="card"><h2>Recent pushes</h2><table><tr><th>commit</th><th>author</th><th>date</th><th>ran</th></tr>`;
   [...DATA.commits].reverse().forEach(c => {
-    const i = DATA.commits.indexOf(c), prev = DATA.commits[i - 1];
-    const cells = list.map(m => {
-      if (!prev) return `<td class="num muted">first</td>`;
-      const p = phaseChange(m, "Prefill", prev.sha, c.sha), d = phaseChange(m, "Decode", prev.sha, c.sha);
-      return `<td class="num">${p == null ? "–" : signed(p)} · ${d == null ? "–" : signed(d)}</td>`;
-    }).join("");
-    html += `<tr class="push" data-sha="${c.sha}"><td><a href="https://github.com/${DATA.pie_repo}/commit/${c.sha}" target="_blank">${c.sha.slice(0, 7)}</a> ${c.message}<div class="muted">${c.date}</div></td><td>${c.author}</td>${cells}</tr>` +
-            `<tr class="detail" data-for="${c.sha}" hidden><td colspan="${2 + list.length}">${detail(c.sha, list)}</td></tr>`;
+    const ran = Object.keys(DATA.results).flatMap(mac => Object.keys(DATA.results[mac].models)
+      .filter(model => Object.values(DATA.results[mac].models[model]).some(byCommit => byCommit[c.sha]))
+      .map(model => `<span class="tag">${DATA.results[mac].name} · ${modelName(model)}</span>`)).join("");
+    html += `<tr><td><a href="https://github.com/${DATA.pie_repo}/commit/${c.sha}" target="_blank">${c.sha.slice(0, 7)}</a> ${c.message}</td>` +
+            `<td>${c.author}</td><td>${c.date}</td><td>${ran}</td></tr>`;
   });
-  document.getElementById("main").innerHTML = html + `</table><div class="muted" style="margin-top:8px">Average change against the previous push. Click a push for every test.</div></div>`;
-  document.querySelectorAll("tr.push").forEach(tr => tr.onclick = e => {
-    if (e.target.tagName === "A") return;
-    const d = document.querySelector(`tr.detail[data-for="${tr.dataset.sha}"]`); d.hidden = !d.hidden;
-  });
-}
-function detail(sha, list) {
-  let html = `<table><tr><th>test</th>` + list.map(m => `<th class="num">${DATA.results[m].name}</th>`).join("") + `</tr>`;
-  DATA.metrics.forEach((m, i) => {
-    html += `<tr><td>${m.phase} · ${m.name}</td>` + list.map(mac => {
-      const s = series(mac, i), k = s.findIndex(p => p.sha === sha);
-      if (k < 0) return `<td class="num muted">–</td>`;
-      const p = s[k], ch = k > 0 ? " " + signed(pct(p.v, s[k - 1].v)) : "";
-      return `<td class="num">${Math.round(p.v).toLocaleString()} tok/s${p.tflops != null ? ` · ${p.tflops.toFixed(2)} TFLOP/s` : ""}${ch}</td>`;
-    }).join("") + `</tr>`;
-  });
-  return html + `</table>`;
+  document.getElementById("main").innerHTML = html + `</table></div>`;
 }
 
 function pool() {
@@ -256,7 +224,7 @@ function draw() {
   charts.forEach(c => c.destroy()); charts = [];
   document.getElementById("tabs").innerHTML = TABS.map(t => `<button class="${t === tab ? "on" : ""}">${t}</button>`).join("");
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { tab = b.textContent; draw(); });
-  modelSel.style.visibility = tab === "Overview" || tab === "Pushes" ? "visible" : "hidden";
+  modelSel.style.visibility = tab === "Overview" ? "visible" : "hidden";
   unitSel.style.visibility = tab === "Overview" ? "visible" : "hidden";
   ({ "Overview": overview, "Pushes": pushes, "Macs": pool, "People": people, "My setup": setup })[tab]();
 }
