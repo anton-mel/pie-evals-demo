@@ -2,10 +2,10 @@
 
 | status | cells |
 |---|---|
-| pass | 500 |
-| fail | 539 |
+| pass | 499 |
+| fail | 554 |
 | declared_unsupported | 7537 |
-| not_run | 3775 |
+| not_run | 3761 |
 | noisy | 139 |
 
 ## Gaps (expected supported, but not passing)
@@ -362,20 +362,19 @@
 | pie | pro6000-x1 | qwen3.6-27b-gguf-q4km | mixed-256 | text-completion-bench | tp1 | fail | load_fail | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: " |
 | pie | pro6000-x1 | qwen3.6-27b-gguf-q4km | kv-oversub | text-completion-bench | tp1 | fail | load_fail | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: " |
 | pie | pro6000-x1 | qwen3.6-27b-gguf-q4km | ss-128-64 | classifier-free-guidance | tp1 | fail | load_fail | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: " |
-| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | control-aa | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | ss-128-64 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | ss-512-256 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | c8 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | c32 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | c64 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | c256 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | lc-8k-128 | text-completion-bench | tp1 | fail | crash | does not fit beside the short shapes: pie serve exited before ready: RuntimeError: start: boot embedded worker: creating |
-| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | lc-32k-128 | text-completion-bench | tp1 | fail | crash | does not fit beside the short shapes: pie serve exited before ready: RuntimeError: start: boot embedded worker: creating |
-| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | mixed-256 | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
-| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | kv-oversub | text-completion-bench | tp1 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: i |
+| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | ss-128-64 | text-completion-bench | tp1 | fail | crash | ConnectionError: WebSocket connection closed |
+| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | ss-512-256 | text-completion-bench | tp1 | fail | crash | ConnectionError: WebSocket connection closed |
+| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | c8 | text-completion-bench | tp1 | fail | crash | ConnectionError: WebSocket connection closed |
+| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | c32 | text-completion-bench | tp1 | fail | crash | ConnectionError: WebSocket connection closed |
+| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | c64 | text-completion-bench | tp1 | fail | crash | ConnectionError: WebSocket connection closed |
+| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | c256 | text-completion-bench | tp1 | fail | crash | ConnectionError: WebSocket connection closed |
+| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | ConnectionError: WebSocket connection closed |
+| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | lc-2k-128 | text-completion-bench | tp1 | fail | crash | ConnectionError: WebSocket connection closed |
+| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | lc-8k-128 | text-completion-bench | tp1 | fail | crash | ConnectionError: WebSocket connection closed |
+| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | lc-32k-128 | text-completion-bench | tp1 | fail | crash | ConnectionError: WebSocket connection closed |
+| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | ConnectionError: WebSocket connection closed |
+| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | mixed-256 | text-completion-bench | tp1 | fail | crash | ConnectionError: WebSocket connection closed |
+| pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | kv-oversub | text-completion-bench | tp1 | fail | crash | ConnectionError: WebSocket connection closed |
 | pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | lc-1k-128 | trackb-h2o | tp1 | fail | crash | pie serve exited before ready: pyo3_runtime.PanicException: value 55 is weight 16, a split-plane bank; it resolves throu |
 | pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | lc-1k-128 | trackb-snapkv | tp1 | fail | crash | pie serve exited before ready: pyo3_runtime.PanicException: value 55 is weight 16, a split-plane bank; it resolves throu |
 | pie | rtx4090-x1 | gemma-4-26b-a4b-mlx4 | lc-1k-128 | snapkv-eviction | tp1 | fail | crash | pie serve exited before ready: pyo3_runtime.PanicException: value 55 is weight 16, a split-plane bank; it resolves throu |
@@ -415,16 +414,18 @@
 | vllm | rtx4090-x1 | gemma-4-e4b-bf16 | c8 | text-completion-bench | tp1 | fail | crash | RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {} |
 | pie | rtx4090-x1 | glm-5.3-flash-mini8 | control-aa | text-completion-bench | tp1 | fail | crash | all 8 requests failed: g0 take: channel is poisoned: pipeline: forward failed: direct launch rejected: invalid submissio |
 | pie | rtx4090-x1 | glm-5.3-flash-mini8 | ss-128-64 | rs-speculative-decoding | tp1,rs | fail | crash | all 8 requests failed: truth take: channel is poisoned: pipeline: forward failed: direct launch rejected: invalid submis |
-| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | text-completion-bench | tp1 | fail | crash | all 8 requests failed: decode frame submit: pipeline: frame slot 0: pipeline: pipeline failed: pipeline: forward failed: |
-| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | ss-512-256 | text-completion-bench | tp1 | fail | crash | all 8 requests failed: g0 take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admission a |
-| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | c8 | text-completion-bench | tp1 | fail | crash | all 32 requests failed: g0 take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admission  |
-| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | c32 | text-completion-bench | tp1 | fail | crash | all 128 requests failed: g0 take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admission |
-| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | c64 | text-completion-bench | tp1 | fail | crash | all 256 requests failed: decode frame submit: pipeline: frame slot 0: pipeline: pipeline failed: pipeline: forward faile |
-| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | fail | crash | all 1024 requests failed: g0 take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admissio |
-| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | text-completion-bench | tp1 | fail | crash | all 4 requests failed: decode frame submit: pipeline: frame slot 1: pipeline: pipeline failed: pipeline: forward failed: |
-| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | fail | crash | all 64 requests failed: out take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admission |
-| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | mixed-256 | text-completion-bench | tp1 | fail | crash | all 256 requests failed: g0 take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admission |
-| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | fail | crash | all 256 requests failed: drain prefill chunk @0: drop_tok_c take: channel is poisoned: pipeline: forward failed: direct  |
+| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | control-aa | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | ss-512-256 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | c8 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | c32 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | c64 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | c256 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-2k-128 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | prefix-1k-x64 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | mixed-256 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | kv-oversub | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
 | pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | trackb-h2o | tp1 | fail | crash | all 4 requests failed: @0: tok_out_p take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame  |
 | pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | trackb-snapkv | tp1 | fail | crash | all 4 requests failed: prefill submit @0: bind failed: intrinsic attn_score is not advertised by the engine serving this |
 | pie | rtx4090-x1 | gpt-oss-20b-mxfp4 | lc-1k-128 | snapkv-eviction | tp1 | fail | crash | all 4 requests failed: prefill submit @0: bind failed: intrinsic attn_score is not advertised by the engine serving this |
@@ -462,6 +463,20 @@
 | pie | rtx4090-x1 | qwen3.6-27b-gguf-q4km | mixed-256 | text-completion-bench | tp1 | fail | load_fail | pie serve exited before ready: RuntimeError: start: boot embedded worker: reading the model metadata for "default": cann |
 | pie | rtx4090-x1 | qwen3.6-27b-gguf-q4km | kv-oversub | text-completion-bench | tp1 | fail | load_fail | pie serve exited before ready: RuntimeError: start: boot embedded worker: reading the model metadata for "default": cann |
 | pie | rtx4090-x1 | qwen3.6-27b-gguf-q4km | ss-128-64 | classifier-free-guidance | tp1 | fail | load_fail | pie serve exited before ready: RuntimeError: start: boot embedded worker: reading the model metadata for "default": cann |
+| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | control-aa | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | ss-128-64 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | ss-512-256 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | c8 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | c32 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | c64 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | c256 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | lc-1k-128 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | lc-2k-128 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | lc-8k-128 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | lc-32k-128 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | prefix-1k-x64 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | mixed-256 | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
+| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | kv-oversub | text-completion-bench | tp1 | fail | harness_invalid | GPU preflight: cuInit answered 999 |
 | pie | rtx4090-x1 | qwen3.6-27b-mlx4 | ss-128-64 | rs-speculative-decoding | tp1,rs | fail | crash | all 8 requests failed: truth take: channel is poisoned: pipeline: forward failed: direct launch rejected: invalid submis |
 | pie | rtx4090-x1 | qwen3.6-35b-a3b-mini5 | ss-128-64 | classifier-free-guidance | tp1 | fail | crash | all 8 requests failed: JSONDecodeError: Expecting value: line 1 column 1 (char 0) |
 | pie | rtx4090-x1 | qwen3.6-35b-a3b-mlx4 | ss-128-64 | rs-speculative-decoding | tp1,rs | fail | crash | all 8 requests failed: truth take: channel is poisoned: pipeline: forward failed: direct launch rejected: frame admissio |
@@ -4241,20 +4256,6 @@
 | sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | sglang | rtx4090-x1 | qwen3.5-0.8b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | pie | rtx4090-x1 | qwen3.6-27b-gguf-q4km | ss-128-64 | rs-speculative-decoding | tp1,rs | not_run |  |  |
-| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | control-aa | text-completion-bench | tp1 | not_run |  |  |
-| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
-| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
-| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | c8 | text-completion-bench | tp1 | not_run |  |  |
-| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | c32 | text-completion-bench | tp1 | not_run |  |  |
-| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | c64 | text-completion-bench | tp1 | not_run |  |  |
-| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | c256 | text-completion-bench | tp1 | not_run |  |  |
-| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
-| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
-| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
-| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
-| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
-| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
-| pie | rtx4090-x1 | qwen3.6-27b-mlx4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
 | pie | rtx4090-x1 | qwen3.6-27b-mlx4 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
 | pie | rtx4090-x1 | qwen3.6-35b-a3b-mlx4 | control-aa | text-completion-bench | tp1 | not_run |  |  |
 | pie | rtx4090-x1 | qwen3.6-35b-a3b-mlx4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
@@ -4502,9 +4503,9 @@
 | deepseek_v4 | · | · | · | · | · | 0/23 | 0/23 | 0/23 | · | · | · | · | · |
 | deepseek_v41 | · | · | · | · | · | 0/23 | 0/23 | 0/23 | · | · | · | · | · |
 | gemma4 | 0/40 | 0/40 | 0/40 | 0/40 | 3/40 | 0/48 | 0/48 | 0/48 | 0/40 | 6/40 | 0/40 | 5/40 | 0/40 |
-| gemma4_moe | 0/21 | 0/21 | 0/21 | 0/21 | 0/21 | 0/25 | 0/25 | 0/25 | 0/21 | 0/21 | 0/21 | 0/21 | 0/21 |
+| gemma4_moe | 0/21 | 0/21 | 0/21 | 0/21 | 0/21 | 0/25 | 0/25 | 0/25 | 0/21 | 0/21 | 0/21 | 1/21 | 0/21 |
 | glm5_next | 0/14 | 0/14 | 0/14 | 0/14 | 4/14 | 0/18 | 0/18 | 0/18 | 6/14 | 9/14 | 0/14 | 0/14 | 0/14 |
-| gpt_oss | 0/59 | 0/59 | 0/59 | 33/59 | 10/59 | 0/71 | 0/71 | 0/71 | 0/59 | 17/59 | 0/59 | 15/59 | 23/59 |
+| gpt_oss | 0/59 | 0/59 | 0/59 | 33/59 | 10/59 | 0/71 | 0/71 | 0/71 | 0/59 | 17/59 | 0/59 | 13/59 | 23/59 |
 | kimi_k3 | 0/14 | 0/14 | 0/14 | 12/14 | 0/14 | 0/18 | 0/18 | 0/18 | 6/14 | 6/14 | 0/14 | · | 0/14 |
 | qwen3_5 | 0/14 | 0/14 | 0/14 | 12/14 | 4/14 | 0/18 | 0/18 | 0/18 | 8/14 | 7/14 | 0/14 | 12/14 | 0/14 |
 | qwen3_6 | 0/32 | 0/32 | 0/32 | 0/32 | 0/32 | 0/40 | 0/40 | 0/40 | 0/32 | 0/32 | 0/32 | 0/32 | 0/32 |
