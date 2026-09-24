@@ -100,22 +100,18 @@ PAGE = """<!doctype html>
   pre.cmd { background: #f6f8fa; border: 1px solid #d8dee4; border-radius: 6px; padding: 10px; white-space: pre-wrap; word-break: break-all; font-size: 12px; }
   .x { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 22px; line-height: 1; cursor: pointer; color: #656d76; }
   tr.push { cursor: pointer; } tr.push:hover { background: #f6f8fa; }
-  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; }
   .auto { font-size: 14px; color: #424a53; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .auto .tag, .pill.small, .filter select { box-sizing: border-box; height: 28px; display: inline-flex; align-items: center; margin: 0;
+  .auto .tag, .pill.small { box-sizing: border-box; height: 28px; display: inline-flex; align-items: center; margin: 0;
     font-size: 13px; line-height: 1; border: 1px solid #d0d7de; border-radius: 999px; background-color: #fff; color: #1f2328; }
   .auto .tag { padding: 0 12px; }
   .auto .tag.off { background: #fff8c5; border-color: #eac54f; }
   .on-word { color: #656d76; }
   .pill.small { padding: 0 12px; gap: 6px; margin-left: 4px; }
-  .filter select { padding: 0 30px 0 12px; }
-  .filter { font-size: 14px; color: #424a53; display: inline-flex; align-items: center; gap: 6px; }
   .pager { display: flex; justify-content: center; align-items: center; gap: 6px; padding: 14px 0 0; flex-wrap: wrap; }
   .pager .pill { padding: 0 12px; min-width: 32px; justify-content: center; }
   .pager .pill.on { background: #1f2328; border-color: #1f2328; color: #fff; }
   .pager .pill:disabled { opacity: .4; cursor: default; }
   .pager .gap { color: #656d76; padding: 0 2px; }
-  tr.person { cursor: pointer; } tr.person:hover { background: #f6f8fa; }
   button.link { border: 0; background: none; color: #0969da; font: inherit; cursor: pointer; padding: 0 0 0 6px; }
   #who { position: relative; }
   .menu { position: absolute; right: 0; top: 40px; background: #fff; border: 1px solid #d0d7de; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 6px; z-index: 20; min-width: 160px; display: flex; flex-direction: column; }
@@ -150,7 +146,7 @@ const esc = x => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").re
 const modelName = id => (DATA.models.find(m => m.id === id) || { name: id }).name;
 const RUNNABLE = [...new Map(DATA.pool.filter(m => m.os === "macos").map(m => [m.id, m])).values()];
 const macName = id => (DATA.pool.find(m => m.id === id) || DATA.results[id] || { name: id }).name;
-let tab = "Overview", charts = [], me = null, mine = null, author = "", page = 0;
+let tab = "Overview", charts = [], me = null, mine = null, page = 0;
 const PER_PAGE = 20;
 const token = () => { try { return localStorage.getItem("pie-evals-token"); } catch { return null; } };
 
@@ -221,17 +217,12 @@ const fmtTime = d => { const t = when(d); return t && !isNaN(t) && d.length > 10
 const ALL = [...DATA.commits, ...DATA.history].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 const allCommits = () => ALL;
 function pushes() {
-  const commits = allCommits(), authors = [...new Set(commits.map(c => c.author).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-  if (author && !authors.includes(author)) authors.push(author);
-  const filter = `<label class="filter">author <select id="author"><option value="">everyone</option>` +
-    authors.map(a => `<option value="${esc(a)}" ${a === author ? "selected" : ""}>${esc(a)}</option>`).join("") + `</select></label>`;
-  let html = `<div class="toolbar"><span></span>${filter}</div><div class="card"><table class="compact fixed"><colgroup><col><col style="width:140px"><col style="width:96px"><col style="width:60px"><col style="width:120px"></colgroup>` +
+  const commits = allCommits();
+  let html = `<div class="card"><table class="compact fixed"><colgroup><col><col style="width:140px"><col style="width:96px"><col style="width:60px"><col style="width:120px"></colgroup>` +
              `<tr><th>commit</th><th>author</th><th>date</th><th>time</th><th>benchmarks</th></tr>`;
-  const matching = commits.filter(c => !author || c.author === author);
-  const pages = Math.max(1, Math.ceil(matching.length / PER_PAGE));
+  const pages = Math.max(1, Math.ceil(commits.length / PER_PAGE));
   page = Math.min(page, pages - 1);
-  const shown = matching.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
-  if (!shown.length) html += `<tr><td colspan="5" class="muted">No pushes by ${esc(author)} yet.</td></tr>`;
+  const shown = commits.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
   for (const c of shown) {
     const n = ran(c.sha).size;
     html += `<tr class="push" data-sha="${c.sha}"><td class="clip" title="${esc(c.message)}"><code>${c.sha.slice(0, 7)}</code> ${esc(c.message)}</td>` +
@@ -240,7 +231,6 @@ function pushes() {
   }
   document.getElementById("main").innerHTML = html + `</table>${pager(pages)}</div>`;
   document.querySelectorAll("tr.push").forEach(tr => tr.onclick = () => openCommit(tr.dataset.sha));
-  document.getElementById("author").onchange = e => { author = e.target.value; page = 0; draw(); };
   document.querySelectorAll(".pager button[data-page]").forEach(b => b.onclick = () => { page = +b.dataset.page; draw(); window.scrollTo(0, 0); });
 }
 function pager(pages) {
@@ -342,13 +332,12 @@ function people() {
   const ago = d => { if (!d) return "–"; const h = (Date.now() - new Date(d)) / 36e5; return h < 1 ? "just now" : h < 24 ? `${Math.round(h)}h ago` : `${Math.round(h / 24)}d ago`; };
   let html = `<div class="card"><table class="compact"><tr><th>who</th><th>access</th><th class="num">last active</th></tr>`;
   for (const p of DATA.people) {
-    html += `<tr class="person" data-login="${esc(p.login)}"><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}</td>` +
+    html += `<tr><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}</td>` +
       `<td class="muted">${esc(p.role || "–")}</td>` +
       `<td class="num muted">${ago(p.last)}</td></tr>`;
   }
   if (!DATA.people.length) html += `<tr><td colspan="3" class="muted">Nobody yet.</td></tr>`;
   document.getElementById("main").innerHTML = html + `</table></div>`;
-  document.querySelectorAll("tr.person").forEach(tr => tr.onclick = () => { author = tr.dataset.login; tab = "Pushes"; draw(); });
 }
 
 async function gh(path, opts = {}) {
