@@ -328,15 +328,16 @@ function pool() {
   for (const kind of [...new Set(["self-hosted", ...DATA.pool.map(m => m.kind)])]) {
     const list = DATA.pool.filter(m => m.kind === kind);
     const title = kind === "self-hosted" ? "Self-hosted" : kind;
-    html += `<h2 class="group">${esc(title)} <span class="muted">${list.length}</span></h2><div class="card"><table class="compact">` +
+    html += `<h2 class="group">${esc(title)} <span class="muted">${list.length}</span></h2><div class="card"><table class="compact fixed">` +
+            `<colgroup><col><col style="width:90px"><col style="width:100px"><col style="width:150px"><col style="width:90px"><col style="width:150px"></colgroup>` +
             `<tr><th>machine</th><th>memory</th><th>status</th><th>last run</th><th>commit</th><th>author</th></tr>`;
     for (const m of list) {
       const c = m.last.commit ? ALL.find(x => x.sha === m.last.commit) : null;
-      html += `<tr><td>${esc(m.name)} <span class="muted">${m.id}</span></td>` +
+      html += `<tr><td class="clip">${esc(m.name)} <span class="muted">${m.id}</span></td>` +
         `<td>${m.memory_gib ? m.memory_gib + " GB" : ""}</td><td><span class="dot ${m.status}"></span>${m.status}</td>` +
         `<td>${m.last.at ? `${fmtDate(m.last.at)} <span class="muted">${fmtTime(m.last.at)}</span>` : "–"}</td>` +
         `<td>${m.last.commit ? `<a href="#" class="sha" data-sha="${m.last.commit}"><code>${m.last.commit.slice(0, 7)}</code></a>` : "–"}</td>` +
-        `<td>${c?.author ? esc(c.author) : "–"}</td></tr>`;
+        `<td class="clip">${c?.author ? esc(c.author) : "–"}</td></tr>`;
     }
     if (!list.length) html += `<tr><td colspan="6" class="muted">None connected.</td></tr>`;
     html += `</table></div>`;
