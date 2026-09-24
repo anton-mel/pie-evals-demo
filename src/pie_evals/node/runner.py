@@ -375,14 +375,14 @@ class NodeRunner:
         perf.load_s = results[0].duration_s - (results[med_idx].duration_s if len(results) > 1 else 0) if len(results) > 1 else None
         status = CellStatus.PASS
         invalid = None
-        if perf.failed:
-            status, invalid = CellStatus.FAIL, f"{perf.failed} of {perf.requests} requests failed"
         # a tensor-parallel process adds collective latency to every step, so its
         # single-stream rounds spread like a concurrent shape's (gemma-4-E4B tp2 on
         # L40S x2: A/A spread 2.1 % against the 2 % bound, every cell withheld)
         tight = policy.cov_noisy_threshold if int(cell.mode.tp) <= 1 else policy.cov_noisy_threshold_concurrent
         thr = tight if cell.workload.kind.value in ("single_stream", "control_aa", "long_context") else policy.cov_noisy_threshold_concurrent
-        if len(rounds) >= 2 and perf.cov > thr:
+        if perf.failed:
+            status, invalid = CellStatus.FAIL, f"{perf.failed} of {perf.requests} requests failed"
+        elif len(rounds) >= 2 and perf.cov > thr:
             status, invalid = CellStatus.NOISY, f"cov {perf.cov:.3%} > {thr:.1%}"
         if cell.workload.kind.value == "control_aa" and len(rounds) >= 2:
             spread = abs(rounds[0] - rounds[-1]) / median(rounds)
