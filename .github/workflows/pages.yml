@@ -1,0 +1,28 @@
+# The history page (`pie-evals dashboard`), rebuilt from the store on main
+# after every run that can write to it.
+name: pages
+on:
+  workflow_run:
+    workflows: [pie eval, smoke, nightly, weekly]
+    types: [completed]
+  workflow_dispatch:
+permissions: { contents: read, pages: write, id-token: write }
+concurrency: { group: pages, cancel-in-progress: true }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: astral-sh/setup-uv@v3
+      - run: uv venv && uv pip install -e ".[orchestrate]"
+      - run: .venv/bin/pie-evals dashboard --out site
+        env: { HF_TOKEN: "${{ secrets.HF_TOKEN }}" }
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: site }
+      - id: deploy
+        uses: actions/deploy-pages@v4
