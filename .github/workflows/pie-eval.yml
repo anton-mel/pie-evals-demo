@@ -19,7 +19,7 @@ on:
       platforms: { description: "comma-separated platform ids, or mac / gpu (empty: every platform of the mode)", required: false, default: "" }
 
 env:
-  PIE_REPO: pie-project/pie
+  PIE_REPO: ${{ vars.PIE_REPO || 'pie-project/pie' }}
   DASHBOARD: ${{ vars.PIE_EVALS_DASHBOARD || 'https://pie-project.github.io/pie-evals/' }}
 
 jobs:
