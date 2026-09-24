@@ -12,8 +12,8 @@ checked against the build that reads it.
 from __future__ import annotations
 
 import os
-import uuid
 import subprocess
+import uuid
 from pathlib import Path
 
 from pie_evals.schema import ArtifactSpec, SourceFormat

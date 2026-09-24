@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import uuid
 from pathlib import Path
 
 from pie_evals.schema import ArtifactKind, ArtifactSpec, MiniatureRecipe
@@ -92,7 +93,6 @@ def ensure_miniature(
     # The raw-tensor cache is pod-local for the same reason (and it is only a
     # download cache).
     import os
-import uuid
     import shutil
     import tempfile
 
