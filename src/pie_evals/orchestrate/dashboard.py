@@ -184,7 +184,7 @@ function pool() {
   let html = `<div class="card"><h2>Connected Macs</h2><table><tr><th>Mac</th><th>memory</th><th>status</th><th>last run</th></tr>`;
   for (const m of DATA.pool) html += `<tr><td>${m.name} <span class="muted">${m.id}</span></td><td>${m.memory_gib ? m.memory_gib + " GB" : ""}</td><td><span class="dot ${m.status}"></span>${m.status}</td><td>${m.last}</td></tr>`;
   if (!DATA.pool.length) html += `<tr><td colspan="4" class="muted">No Mac is connected.</td></tr>`;
-  document.getElementById("main").innerHTML = html + `</table><div class="muted" style="margin-top:8px">A Mac joins with <code>infra/mac/setup-runner.sh</code>.</div></div>`;
+  document.getElementById("main").innerHTML = html + `</table></div>`;
 }
 
 function people() {
