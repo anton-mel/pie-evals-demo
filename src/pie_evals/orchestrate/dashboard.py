@@ -16,6 +16,39 @@ from .store import Store
 
 PIE_COMMIT_URL = "https://github.com/pie-project/pie/commit/"
 
+# Plain-language label + display group for a workload shape, derived from
+# matrix/workloads.yaml's own kind/params so the dashboard never invents
+# meanings the config doesn't state. Group order matches that file's section
+# comments (self-check, single stream, concurrency sweep, ...).
+GROUP_ORDER = ["Self-check", "Single stream", "Concurrency sweep", "Long context",
+               "Prefix sharing", "Length mix", "KV oversubscription", "Replay", "Other"]
+
+
+def _toks(n: int) -> str:
+    return f"{n / 1024:g}K" if n >= 1024 else str(n)
+
+
+def _workload_label(w: dict) -> tuple[str, str]:
+    kind, p = w.get("kind"), w.get("params", {})
+    if kind == "control_aa":
+        return f"Self-check · {p['prefill']}→{p['decode']} tok", "Self-check"
+    if kind == "single_stream":
+        return f"Single stream · {_toks(p['prefill'])}→{p['decode']} tok", "Single stream"
+    if kind == "concurrency":
+        base = f"Concurrency {p['concurrency']} · {_toks(p['prefill'])}→{p['decode']} tok"
+        return (base + " · KV oversub", "KV oversubscription") if p.get("kv_oversubscribe") else (base, "Concurrency sweep")
+    if kind == "long_context":
+        return f"Long context {_toks(p['prefill'])} → {p['decode']} tok", "Long context"
+    if kind == "prefix_shared":
+        return f"Shared prefix {_toks(p['shared_prefix'])} × {p['variants']} variants", "Prefix sharing"
+    if kind == "mixed_length":
+        return f"Mixed lengths · {p['num_requests']} req", "Length mix"
+    if kind == "replay":
+        return f"Replay: {p.get('trace', w['id'])}", "Replay"
+    return w["id"], "Other"
+
+
+
 PAGE = """<!doctype html>
 <html lang="en">
 <head>
@@ -110,6 +143,7 @@ PAGE = """<!doctype html>
   table.matrix th, table.matrix td { border: 1px solid var(--gridline); padding: 6px 8px; text-align: right; white-space: nowrap; }
   table.matrix thead th { text-align: center; color: var(--text-secondary); font-weight: 600; background: var(--surface-1); position: sticky; top: 0; }
   table.matrix tbody th { text-align: left; color: var(--text-primary); font-weight: 600; background: var(--surface-1); position: sticky; left: 0; }
+  table.matrix tbody th .accel { display: block; font-weight: 400; color: var(--text-muted); font-size: 10.5px; }
   table.matrix td { font-variant-numeric: tabular-nums; cursor: pointer; }
   table.matrix td:hover { outline: 2px solid var(--series-1); outline-offset: -2px; }
   table.matrix td.empty { color: var(--text-muted); cursor: default; text-align: center; }
@@ -119,14 +153,21 @@ PAGE = """<!doctype html>
   .delta.critical { color: var(--critical); }
   .delta.flat { color: var(--text-muted); }
 
-  .platform-block { margin-top: 32px; }
-  .platform-block > h2 { border-bottom: 1px solid var(--gridline); padding-bottom: 6px; }
+  .detail-head { border-bottom: 1px solid var(--gridline); padding-bottom: 6px; margin-bottom: 4px; }
+  .detail-head h2 { margin-bottom: 2px; }
+  .program-block + .program-block { margin-top: 28px; }
+  .program-block > .program-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin: 18px 0 8px; }
+  .group-block + .group-block { margin-top: 18px; }
+  .group-block > .group-title {
+    font-size: 11px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase;
+    color: var(--text-muted); margin: 0 0 8px;
+  }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
   .card { border: 1px solid var(--border); background: var(--surface-1); border-radius: 8px; padding: 10px; }
   .card h3 { font-size: 12.5px; margin: 0 0 2px; font-weight: 600; }
   .card .unit { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
   .card canvas { max-height: 160px; }
-  .empty-state { color: var(--text-muted); padding: 24px 0; }
+  .empty-state { color: var(--text-secondary); padding: 32px 20px; text-align: center; background: var(--surface-1); border: 1px dashed var(--border); border-radius: 8px; }
 </style>
 </head>
 <body>
@@ -162,6 +203,7 @@ PAGE = """<!doctype html>
 
 <script>
 const DATA = __DATA__;
+const GROUP_ORDER = __GROUP_ORDER__;
 const COMMIT = "__COMMIT_URL__";
 
 // -- theme: OS default, overridable, remembered per viewer only --
@@ -210,6 +252,11 @@ function representatives() {
   return byCombo;
 }
 
+function accelOf(platform) {
+  const s = DATA.find(d => d.platform === platform);
+  return s ? s.accelerator : "";
+}
+
 function drawMatrix() {
   const platforms = [...new Set(DATA.map(d => d.platform))].sort();
   const artifacts = [...new Set(DATA.map(d => d.artifact))].sort();
@@ -235,21 +282,19 @@ function drawMatrix() {
       }
       return `<td data-platform="${p}" data-artifact="${a}">${fmt(lv, unit)}${deltaHtml}</td>`;
     }).join("");
-    return `<tr><th>${p}</th>${cells}</tr>`;
+    return `<tr><th>${p}<span class="accel">${accelOf(p)}</span></th>${cells}</tr>`;
   }).join("");
   table.innerHTML = thead + `<tbody>${rows}</tbody>` +
-    `<caption>Each cell is the platform/model pair's most-run workload &mdash; open the section below for every workload, mode and metric. &#9650;/&#9660; mark a change past &plusmn;2% since the previous recorded commit.</caption>`;
+    `<caption>Each cell is the platform/model pair's most-run workload. Click a cell to see every workload, mode and metric for that pair below. &#9650;/&#9660; mark a change past &plusmn;2% since the previous recorded commit.</caption>`;
   out.innerHTML = "";
   out.appendChild(table);
   table.querySelectorAll("td[data-platform]").forEach(td => td.onclick = () => {
     platformSel.value = td.dataset.platform;
     artifactSel.value = td.dataset.artifact;
     draw();
-    document.getElementById(`platform-${cssId(td.dataset.platform)}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("detail")?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 }
-
-function cssId(s) { return s.replace(/[^a-z0-9]+/gi, "-"); }
 
 const charts = [];
 function drawCharts() {
@@ -257,51 +302,69 @@ function drawCharts() {
   const p = platformSel.value, a = artifactSel.value;
   const out = document.getElementById("charts-out");
   out.innerHTML = "";
-  const byPlat = {};
-  DATA.filter(d => (p === "(all)" || d.platform === p) && (a === "(all)" || d.artifact === a))
-      .forEach(d => (byPlat[d.platform] ||= []).push(d));
-  const plats = Object.keys(byPlat).sort();
-  if (plats.length === 0) { out.innerHTML = '<p class="empty-state">No runs for this platform / model yet.</p>'; return; }
-  for (const plat of plats) {
-    const block = document.createElement("div");
-    block.className = "platform-block";
-    block.id = `platform-${cssId(plat)}`;
-    const h = document.createElement("h2"); h.textContent = `${plat} \\u00b7 ${byPlat[plat][0].accelerator}`; block.appendChild(h);
-    const grid = document.createElement("div"); grid.className = "grid"; block.appendChild(grid);
-    out.appendChild(block);
-    for (const s of byPlat[plat]) {
-      const pts = s.points.filter(pt => pointValue(pt) != null);
-      if (pts.length === 0) continue;
-      const card = document.createElement("div"); card.className = "card";
-      const title = `${s.artifact} \\u00b7 ${s.workload}${s.program === "text-completion-bench" ? "" : " \\u00b7 " + s.program} \\u00b7 ${s.mode}`;
-      const unitLabel = unit === "tflops" ? "decode TFLOP/s" : s.metric;
-      card.innerHTML = `<h3>${title}</h3><div class="unit">${unitLabel}</div><canvas></canvas>`;
-      grid.appendChild(card);
-      charts.push(new Chart(card.querySelector("canvas"), {
-        type: "line",
-        data: { labels: pts.map(x => x.commit.slice(0, 8)), datasets: [{
-          data: pts.map(x => pointValue(x)), borderColor: seriesColor(), borderWidth: 2,
-          pointRadius: 4, pointBackgroundColor: seriesColor(), tension: 0,
-        }] },
-        options: {
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: {
-              title: i => `${pts[i[0].dataIndex].commit.slice(0, 10)} \\u00b7 ${pts[i[0].dataIndex].date}`,
-              afterLabel: i => { const x = pts[i.dataIndex]; return [
-                x.prefill_tflops != null ? `prefill ${x.prefill_tflops.toFixed(2)} TFLOP/s` : null,
-                x.decode_tflops != null ? `decode ${x.decode_tflops.toFixed(2)} TFLOP/s` : null,
-                x.tier,
-              ].filter(Boolean); } } },
-          },
-          scales: {
-            x: { grid: { color: getComputedStyle(root).getPropertyValue("--gridline") }, ticks: { color: getComputedStyle(root).getPropertyValue("--text-muted") } },
-            y: { beginAtZero: false, grid: { color: getComputedStyle(root).getPropertyValue("--gridline") }, ticks: { color: getComputedStyle(root).getPropertyValue("--text-muted") } },
-          },
-          onClick: (e, el) => { if (el.length) window.open(COMMIT + pts[el[0].index].commit, "_blank"); },
-        },
-      }));
+  if (p === "(all)" || a === "(all)") {
+    out.innerHTML = '<p class="empty-state">Pick a platform and a model above \\u2014 or click a cell in the overview \\u2014 to see its full history: every workload, mode and metric.</p>';
+    return;
+  }
+  const matching = DATA.filter(d => d.platform === p && d.artifact === a);
+  if (matching.length === 0) { out.innerHTML = '<p class="empty-state">No runs for this platform / model yet.</p>'; return; }
+
+  const head = document.createElement("div"); head.className = "detail-head";
+  head.innerHTML = `<h2>${p} \\u00b7 ${accelOf(p)} \\u00b7 ${a}</h2>`;
+  out.appendChild(head);
+
+  const byProgram = {};
+  matching.forEach(d => (byProgram[d.program] ||= []).push(d));
+  const programs = Object.keys(byProgram).sort();
+  for (const prog of programs) {
+    const progBlock = document.createElement("div"); progBlock.className = "program-block";
+    if (programs.length > 1) {
+      const pt = document.createElement("div"); pt.className = "program-title"; pt.textContent = prog; progBlock.appendChild(pt);
     }
+    const byGroup = {};
+    byProgram[prog].forEach(d => (byGroup[d.workload_group] ||= []).push(d));
+    for (const group of GROUP_ORDER.filter(g => byGroup[g])) {
+      const series = byGroup[group].filter(s => s.points.some(pt => pointValue(pt) != null))
+                                    .sort((x, y) => x.workload_label.localeCompare(y.workload_label) || x.mode.localeCompare(y.mode));
+      if (series.length === 0) continue;
+      const groupBlock = document.createElement("div"); groupBlock.className = "group-block";
+      const gt = document.createElement("div"); gt.className = "group-title"; gt.textContent = group; groupBlock.appendChild(gt);
+      const grid = document.createElement("div"); grid.className = "grid"; groupBlock.appendChild(grid);
+      progBlock.appendChild(groupBlock);
+      for (const s of series) {
+        const pts = s.points.filter(pt => pointValue(pt) != null);
+        const card = document.createElement("div"); card.className = "card";
+        const modeTag = /^tp\\d+$/.test(s.mode) ? s.mode.toUpperCase() : s.mode;
+        const unitLabel = unit === "tflops" ? "decode TFLOP/s" : s.metric;
+        card.innerHTML = `<h3>${s.workload_label}</h3><div class="unit">${modeTag} \\u00b7 ${unitLabel}</div><canvas></canvas>`;
+        grid.appendChild(card);
+        charts.push(new Chart(card.querySelector("canvas"), {
+          type: "line",
+          data: { labels: pts.map(x => x.commit.slice(0, 8)), datasets: [{
+            data: pts.map(x => pointValue(x)), borderColor: seriesColor(), borderWidth: 2,
+            pointRadius: 4, pointBackgroundColor: seriesColor(), tension: 0,
+          }] },
+          options: {
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: {
+                title: i => `${pts[i[0].dataIndex].commit.slice(0, 10)} \\u00b7 ${pts[i[0].dataIndex].date}`,
+                afterLabel: i => { const x = pts[i.dataIndex]; return [
+                  x.prefill_tflops != null ? `prefill ${x.prefill_tflops.toFixed(2)} TFLOP/s` : null,
+                  x.decode_tflops != null ? `decode ${x.decode_tflops.toFixed(2)} TFLOP/s` : null,
+                  x.tier,
+                ].filter(Boolean); } } },
+            },
+            scales: {
+              x: { grid: { color: getComputedStyle(root).getPropertyValue("--gridline") }, ticks: { color: getComputedStyle(root).getPropertyValue("--text-muted") } },
+              y: { beginAtZero: false, grid: { color: getComputedStyle(root).getPropertyValue("--gridline") }, ticks: { color: getComputedStyle(root).getPropertyValue("--text-muted") } },
+            },
+            onClick: (e, el) => { if (el.length) window.open(COMMIT + pts[el[0].index].commit, "_blank"); },
+          },
+        }));
+      }
+    }
+    out.appendChild(progBlock);
   }
 }
 
@@ -329,13 +392,15 @@ def series(store: Store) -> list[dict]:
     for (plat, art, wl, prog, mode, metric), rs in sorted(grouped.items()):
         cell = json.loads(rs[-1]["record_json"])["cell"]
         config = flops.model_config(cell["artifact"]["base_model"]) if cell["artifact"]["kind"] == "full" else None
+        label, group = _workload_label(cell["workload"])
         by_commit: dict[str, dict] = {}
         for r in rs:
             tf = flops.tflops(r, cell["workload"]["params"], config)
             by_commit[r["pie_commit"]] = {"commit": r["pie_commit"], "value": r["primary_value"], "tier": r["tier"],
                                           "date": r["started_at"].strftime("%Y-%m-%d"), **tf}
         out.append({"platform": plat, "accelerator": rs[-1]["accelerator"], "artifact": art, "workload": wl, "program": prog,
-                    "mode": mode, "metric": metric.replace("_tok_s", " tok/s").replace("_", " "), "points": list(by_commit.values())})
+                    "mode": mode, "metric": metric.replace("_tok_s", " tok/s").replace("_", " "),
+                    "workload_label": label, "workload_group": group, "points": list(by_commit.values())})
     return out
 
 
@@ -345,6 +410,7 @@ def render(store: Store, out: Path) -> int:
     data = series(store)
     out.mkdir(parents=True, exist_ok=True)
     html = (PAGE.replace("__DATA__", json.dumps(data))
+                .replace("__GROUP_ORDER__", json.dumps(GROUP_ORDER))
                 .replace("__COMMIT_URL__", PIE_COMMIT_URL)
                 .replace("__GENERATED__", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")))
     (out / "index.html").write_text(html)
