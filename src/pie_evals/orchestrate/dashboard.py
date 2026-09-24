@@ -108,6 +108,7 @@ PAGE = """<!doctype html>
   .auto .tag { padding: 0 12px; }
   .auto .tag.off { background: #fff8c5; border-color: #eac54f; }
   .on-word { color: #656d76; }
+  .tag.kind { background: #fff; border: 1px solid #d0d7de; }
   .kicker { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: #656d76; margin-right: 4px; }
   .pill.small { padding: 0 12px; gap: 6px; margin-left: 4px; }
   .filter select { padding: 0 30px 0 12px; }
@@ -150,6 +151,7 @@ const COLORS = ["#0969da", "#bf8700", "#8250df", "#1a7f37", "#cf222e"];
 const NL = String.fromCharCode(10);
 const esc = x => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 const modelName = id => (DATA.models.find(m => m.id === id) || { name: id }).name;
+const RUNNABLE = [...new Map(DATA.pool.filter(m => m.os === "macos").map(m => [m.id, m])).values()];
 const macName = id => (DATA.pool.find(m => m.id === id) || DATA.results[id] || { name: id }).name;
 let tab = "Overview", charts = [], me = null, mine = null, author = "", page = 0;
 const PER_PAGE = 20;
@@ -266,12 +268,12 @@ function pager(pages) {
 
 function openCommit(sha) {
   const c = allCommits().find(x => x.sha === sha) || { sha, message: "", author: "", date: "" };
-  const done = ran(sha), cols = [...new Set([...DATA.pool.map(m => m.id), ...Object.keys(DATA.results)])];
+  const done = ran(sha), cols = [...new Set([...RUNNABLE.map(m => m.id), ...Object.keys(DATA.results)])];
   let grid = `<table class="grid"><tr><th>model</th>${cols.map(m => `<th class="c">${esc(macName(m))}</th>`).join("")}</tr>`;
   for (const m of DATA.models) {
     grid += `<tr><td>${esc(m.name)}</td>` + cols.map(mac => done.has(`${mac}|${m.id}`)
       ? `<td class="c"><span class="ok" title="measured">✓</span></td>`
-      : me && DATA.pool.some(p => p.id === mac) ? `<td class="c"><input type="checkbox" data-mac="${mac}" data-model="${m.id}"></td>` : `<td class="c muted">–</td>`).join("") + `</tr>`;
+      : me && RUNNABLE.some(p => p.id === mac) ? `<td class="c"><input type="checkbox" data-mac="${mac}" data-model="${m.id}"></td>` : `<td class="c muted">–</td>`).join("") + `</tr>`;
   }
   grid += `</table>`;
   sheet(`<h2><a href="https://github.com/${DATA.pie_repo}/commit/${sha}" target="_blank"><code>${sha.slice(0, 7)}</code></a> ${esc(c.message)}</h2>` +
@@ -303,7 +305,7 @@ async function editMine() {
     `<label class="check"><input type="checkbox" name="enabled" ${cur.enabled === false ? "" : "checked"}> benchmark my pushes</label>` +
     `<div class="row"><div><div class="label">Models</div>${pick("model", DATA.models, cur.models || [])}</div>` +
     `<div><div class="label">Machines</div><label class="check"><input type="checkbox" name="all" ${(cur.macs || []).length ? "" : "checked"}> every connected machine</label>` +
-    `${pick("mac", DATA.pool, cur.macs || [])}</div></div><button class="act" id="save">Save</button> <span id="msg" class="muted"></span>`);
+    `${pick("mac", RUNNABLE, cur.macs || [])}</div></div><button class="act" id="save">Save</button> <span id="msg" class="muted"></span>`);
   const picked = n => [...document.querySelectorAll(`#sheet input[name=${n}]:checked`)].map(x => x.value);
   document.getElementById("save").onclick = async () => {
     const data = { models: picked("model"), macs: picked("all").length ? [] : picked("mac"), enabled: picked("enabled").length > 0 };
@@ -319,9 +321,10 @@ async function editMine() {
 }
 
 function pool() {
-  let html = `<div class="card"><table class="compact"><tr><th>machine</th><th>memory</th><th>status</th><th>last run</th></tr>`;
-  for (const m of DATA.pool) html += `<tr><td>${esc(m.name)} <span class="muted">${m.id}</span></td><td>${m.memory_gib ? m.memory_gib + " GB" : ""}</td><td><span class="dot ${m.status}"></span>${m.status}</td><td>${m.last}</td></tr>`;
-  if (!DATA.pool.length) html += `<tr><td colspan="4" class="muted">No machine is connected.</td></tr>`;
+  let html = `<div class="card"><table class="compact"><tr><th>machine</th><th>type</th><th>memory</th><th>status</th><th>last run</th></tr>`;
+  for (const m of DATA.pool) html += `<tr><td>${esc(m.name)} <span class="muted">${m.id}</span></td><td><span class="tag kind">${esc(m.kind)}</span></td>` +
+    `<td>${m.memory_gib ? m.memory_gib + " GB" : ""}</td><td><span class="dot ${m.status}"></span>${m.status}</td><td>${m.last}</td></tr>`;
+  if (!DATA.pool.length) html += `<tr><td colspan="5" class="muted">No machine is connected.</td></tr>`;
   document.getElementById("main").innerHTML = html + `</table></div>`;
 }
 function people() {
@@ -439,18 +442,20 @@ def _pool(live: list[dict] | None, matrix: Matrix, last: dict[str, str]) -> list
     pool = []
     for r in live or []:
         labels = [lab["name"] for lab in r.get("labels", [])]
-        if "macOS" not in labels and "macos" not in labels:
-            continue
         pid = next((lab for lab in labels if lab in matrix.platforms), None)
-        spec = matrix.platforms.get(pid) if pid else None
+        if not pid:
+            continue
+        spec = matrix.platforms[pid]
         pool.append({
-            "name": spec.accelerator if spec else r["name"],
-            "id": pid or "",
-            "memory_gib": int(spec.memory_gib) if spec else None,
+            "name": spec.accelerator,
+            "id": pid,
+            "kind": "RunPod" if spec.runpod_gpu_type else "self-hosted",
+            "os": spec.os,
+            "memory_gib": int(spec.memory_gib),
             "status": "busy" if r["status"] == "online" and r.get("busy") else "idle" if r["status"] == "online" else "offline",
             "last": last.get(pid, ""),
         })
-    return sorted(pool, key=lambda m: m["name"])
+    return sorted(pool, key=lambda m: (m["kind"] != "self-hosted", m["name"]))
 
 
 def mac_models(matrix: Matrix) -> list[dict]:
