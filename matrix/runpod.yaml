@@ -6,8 +6,10 @@
 # (2) has a volume — falling back to any data center with stock and no
 # volume (cold caches) rather than failing. Add a volume here after creating
 # it (`pie-evals runpod-volume create <DC> <GB>`).
-volumes:
-  EUR-IS-1: "6v0l13yth9"
+volumes: {}
+# 6v0l13yth9 (EUR-IS-1, 200 GB) hit its quota on 2026-09-24 ("Disk quota exceeded" mid-download,
+# half-written snapshots); pods run volume-less on a 250 GB container disk until it is grown to 500 GB:
+#   EUR-IS-1: "6v0l13yth9"
 # prefer these first (widest GPU coverage), then any other volume DC, then anywhere
 preferred_data_centers: [EUR-IS-1, US-TX-3, EU-RO-1]
 cloud_type: SECURE

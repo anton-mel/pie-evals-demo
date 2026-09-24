@@ -96,4 +96,6 @@ def test_placement_prefers_volume_dc_with_stock(monkeypatch):
 
 def test_matrix_loads_runpod_layout():
     m = Matrix.load(ROOT / "matrix")
-    assert m.runpod["volumes"]["EUR-IS-1"] == "6v0l13yth9"
+    # volumes is a DC -> volume id map (empty while 6v0l13yth9 waits to be grown past its quota)
+    assert isinstance(m.runpod["volumes"], dict) and all(len(v) == 10 for v in m.runpod["volumes"].values())
+    assert "EUR-IS-1" in m.runpod["preferred_data_centers"] and m.runpod["cloud_type"] == "SECURE"
