@@ -34,9 +34,13 @@ PAGE = """<!doctype html>
   header { background: #fff; border-bottom: 1px solid #d8dee4; }
   .bar { max-width: 1000px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
   .brand { font-weight: 700; font-size: 17px; }
-  nav { display: flex; gap: 4px; flex-wrap: wrap; }
-  nav button { font: inherit; border: 0; background: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; color: #424a53; }
-  nav button.on { background: #eaeef2; color: #1f2328; font-weight: 600; }
+  nav { display: flex; gap: 8px; flex-wrap: wrap; }
+  nav button, .pill, .signout, .signin, select, button.act {
+    box-sizing: border-box; height: 32px; display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid #d0d7de; border-radius: 999px; padding: 0 14px; background: #fff; color: #424a53;
+    font: inherit; font-size: 14px; line-height: 1; cursor: pointer; }
+  nav button:hover, .pill:hover, .signout:hover, select:hover { background: #f6f8fa; }
+  nav button.on { background: #1f2328; border-color: #1f2328; color: #fff; }
   .grow { flex: 1; }
   main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 48px; }
   .controls { max-width: 1000px; margin: 0 auto; padding: 16px 16px 0; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; color: #424a53; font-size: 14px; }
@@ -69,27 +73,27 @@ PAGE = """<!doctype html>
   .idle { background: #1a7f37; } .busy { background: #bf8700; } .offline { background: #cf222e; }
   .tag { display: inline-block; background: #eaeef2; border-radius: 10px; padding: 0 8px; margin: 0 4px 4px 0; font-size: 13px; }
   .avatar { width: 22px; height: 22px; border-radius: 50%; vertical-align: middle; margin-right: 6px; }
-  select, input, button.act { font: inherit; padding: 6px 10px; border: 1px solid #d0d7de; border-radius: 6px; background: #fff; }
-  button.act { background: #1f883d; color: #fff; border-color: #1a7f37; cursor: pointer; }
+  select { appearance: none; -webkit-appearance: none; padding-right: 30px;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23656d76'/%3E%3C/svg%3E") no-repeat right 12px center; }
+  input { font: inherit; font-size: 14px; height: 32px; box-sizing: border-box; padding: 0 14px; border: 1px solid #d0d7de; border-radius: 999px; }
+  input[type=checkbox] { height: auto; }
+  button.act { background: #1f2328; border-color: #1f2328; color: #fff; font-weight: 600; }
+  button.act:hover { background: #32383f; }
   label.check { display: block; padding: 4px 0; }
   code { background: #eaeef2; border-radius: 4px; padding: 1px 5px; font-size: 13px; }
   a { color: #0969da; text-decoration: none; }
-  .signin { display: inline-flex; align-items: center; gap: 8px; background: #1f2328; color: #fff; border-radius: 6px; padding: 6px 12px; font-size: 14px; font-weight: 600; }
+  .signin { background: #1f2328; border-color: #1f2328; color: #fff; font-weight: 600; }
   .signin:hover { background: #32383f; }
   .signin svg { fill: currentColor; }
   #who { display: flex; align-items: center; gap: 8px; }
-  .pill, .signout { box-sizing: border-box; height: 32px; display: inline-flex; align-items: center; border: 1px solid #d0d7de; border-radius: 999px; font-size: 14px; line-height: 1; }
-  .pill { gap: 6px; padding: 0 12px 0 4px; color: #1f2328; }
+  .pill { padding: 0 12px 0 4px; color: #1f2328; }
   .pill .avatar { margin: 0; }
-  .signout { padding: 0 12px; color: #424a53; }
   .signout:hover, .pill:hover { background: #f6f8fa; }
   .modal { position: fixed; inset: 0; background: rgba(31, 35, 40, .45); display: flex; align-items: flex-start; justify-content: center; padding: 8vh 16px; z-index: 10; }
   .modal[hidden] { display: none; }
   .sheet { position: relative; background: #fff; border-radius: 10px; width: min(640px, 100%); max-height: 84vh; overflow: auto; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
   .sheet .card { border: 0; margin: 0; }
-  .subtabs { display: flex; gap: 4px; margin: -4px 32px 12px 0; border-bottom: 1px solid #eaeef2; padding-bottom: 8px; }
-  .subtabs button { font: inherit; border: 0; background: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; color: #424a53; }
-  .subtabs button.on { background: #eaeef2; color: #1f2328; font-weight: 600; }
+  .subtabs { display: flex; gap: 8px; margin: -4px 32px 16px 0; }
   .picklist { max-height: 220px; overflow: auto; border: 1px solid #eaeef2; border-radius: 6px; padding: 4px 8px; margin-bottom: 12px; }
   label.clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tag.new { background: #fff8c5; }
