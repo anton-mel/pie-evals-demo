@@ -74,7 +74,7 @@ jobs:
       - run: uv venv && uv pip install -e ".[orchestrate]"
       - name: launch pod
         id: pod
-        run: .venv/bin/pie-evals launch-pod --platform "${{ join(matrix.fallback, ',') }}" --labels "${{ join(matrix.labels, ',') }}" --repo "${{ github.repository }}" --image "${{ vars.RUNPOD_IMAGE || 'pieproject/runpod-ci-runner:latest' }}" --kill-minutes 1440 --reuse --wait-runner 480
+        run: .venv/bin/pie-evals launch-pod --platform "${{ join(matrix.fallback, ',') }}" --labels "${{ join(matrix.labels, ',') }}" --repo "${{ github.repository }}" --image "${{ vars.RUNPOD_IMAGE || 'pieproject/runpod-ci-runner:latest' }}" --kill-minutes 1440 --reuse --wait-runner 900
         env:
           RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
           GH_RUNNER_PAT: ${{ secrets.GH_RUNNER_PAT }}
