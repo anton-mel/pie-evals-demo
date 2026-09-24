@@ -80,33 +80,32 @@ def test_site_has_pushes_pool_and_people(tmp_path, matrix, monkeypatch):
         cell = _cell(matrix, "m5-max-48g", wl)
         for j in range(2):
             st.write_run([_rec(cell, 400 + j, t0 + timedelta(days=j), commit=f"c{j}", run=f"r{i}{j}")], tier=Tier.TARGETED, run_id=f"r{i}{j}")
-    users = tmp_path / "users"
-    users.mkdir()
-    (users / "friend.json").write_text('{"models": ["qwen3.5-0.8b-bf16"], "macs": ["m5-max-48g"]}')
     live = [{"name": "a-mac", "status": "online", "busy": True, "labels": [{"name": "self-hosted"}, {"name": "macOS"}, {"name": "m5-max-48g"}]},
             {"name": "a-pod", "status": "online", "busy": False, "labels": [{"name": "self-hosted"}, {"name": "Linux"}, {"name": "l40s-x1"}]}]
-    data = dashboard.build(st, matrix, live, repo="o/evals", pie_repo="o/pie", users_dir=users, lookup_commits=False)
+    data = dashboard.build(st, matrix, live, repo="o/evals", pie_repo="o/pie", lookup_commits=False)
     assert [c["sha"] for c in data["commits"]] == ["c0", "c1"]
     assert [(m["id"], m["kind"], m["status"]) for m in data["pool"]] == [("m5-max-48g", "self-hosted", "busy"), ("l40s-x1", "RunPod", "idle")]
     assert set(data["results"]["m5-max-48g"]["models"]["qwen3.5-0.8b-bf16"]) == {0, 2, 3}
     assert data["people"] == []
     assert any(m["id"] == "qwen3.5-0.8b-bf16" and m["has_results"] for m in data["models"])
-    assert dashboard.render(st, matrix, tmp_path / "site", live, repo="o/evals", users_dir=users, lookup_commits=False) == 2
+    assert dashboard.render(st, matrix, tmp_path / "site", live, repo="o/evals", lookup_commits=False) == 2
     assert "openCommit" in (tmp_path / "site" / "index.html").read_text()
 
 
-def test_people_count_runs_and_time_per_person(tmp_path, monkeypatch):
+def test_people_machine_time_today_month_total(monkeypatch):
+    from datetime import datetime, timezone
+    now = datetime(2026, 9, 21, 12, 0, tzinfo=timezone.utc)
     runs = [{"workflow_runs": [
         {"display_title": "pie eval " + "a" * 40, "event": "repository_dispatch", "triggering_actor": {"login": "bot"}, "status": "completed",
-         "run_started_at": "2026-09-20T10:00:00Z", "updated_at": "2026-09-20T10:06:00Z", "created_at": "2026-09-20T10:00:00Z"},
+         "run_started_at": "2026-09-21T10:00:00Z", "updated_at": "2026-09-21T10:06:00Z", "created_at": "2026-09-21T10:00:00Z"},
         {"display_title": "pie eval " + "b" * 40, "event": "workflow_dispatch", "triggering_actor": {"login": "friend"}, "status": "completed",
-         "run_started_at": "2026-09-21T10:00:00Z", "updated_at": "2026-09-21T10:30:00Z", "created_at": "2026-09-21T10:00:00Z"},
+         "run_started_at": "2026-09-01T10:00:00Z", "updated_at": "2026-09-01T10:30:00Z", "created_at": "2026-09-01T10:00:00Z"},
+        {"display_title": "pie eval " + "b" * 40, "event": "workflow_dispatch", "triggering_actor": {"login": "friend"}, "status": "completed",
+         "run_started_at": "2026-07-01T10:00:00Z", "updated_at": "2026-07-01T11:00:00Z", "created_at": "2026-07-01T10:00:00Z"},
     ]}]
     collaborators = [[{"login": "author", "role_name": "write"}, {"login": "friend", "role_name": "admin"}, {"login": "idle", "role_name": "write"}]]
     monkeypatch.setattr(dashboard, "_paginate", lambda path: runs if "runs" in path else collaborators)
-    users = tmp_path / "users"
-    users.mkdir()
-    (users / "idle.json").write_text('{"enabled": false}')
-    rows = dashboard.people("o/evals", users, {"a" * 40: "author"})
-    assert [(r["login"], r["role"], r["auto"], r["runs"], round(r["minutes"])) for r in rows] == [
-        ("friend", "admin", True, 1, 30), ("author", "write", True, 1, 6), ("idle", "write", False, 0, 0)]
+    used = dashboard.usage("o/evals", {"a" * 40: "author"}, now=now)
+    assert {k: (round(v["today"]), round(v["month"]), round(v["total"])) for k, v in used.items()} == {"author": (6, 6, 6), "friend": (0, 30, 90)}
+    rows = dashboard.people("o/evals", {"a" * 40: "author"})
+    assert [r["login"] for r in rows][-1] == "idle" and {r["login"]: r["role"] for r in rows}["friend"] == "admin"

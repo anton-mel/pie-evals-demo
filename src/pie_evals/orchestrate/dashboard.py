@@ -337,15 +337,15 @@ function pool() {
 }
 function people() {
   const ago = d => { if (!d) return "–"; const h = (Date.now() - new Date(d)) / 36e5; return h < 1 ? "just now" : h < 24 ? `${Math.round(h)}h ago` : `${Math.round(h / 24)}d ago`; };
-  const time = m => m >= 60 ? `${(m / 60).toFixed(1)} h` : `${Math.round(m)} min`;
-  let html = `<div class="card"><table class="compact"><tr><th>who</th><th>access</th><th>push runs</th><th class="num">runs · 30d</th><th class="num">machine time · 30d</th><th class="num">last active</th></tr>`;
+  const time = m => !m ? "–" : m >= 60 ? `${(m / 60).toFixed(1)} h` : `${Math.round(m)} min`;
+  let html = `<div class="card"><table class="compact"><tr><th>who</th><th>access</th><th class="num">today</th><th class="num">last 30 days</th><th class="num">total</th><th class="num">last active</th></tr>`;
   for (const p of DATA.people) {
     html += `<tr class="person" data-login="${esc(p.login)}"><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}</td>` +
-      `<td class="muted">${esc(p.role || "–")}</td><td>${p.auto ? "on" : `<span class="tag new">off</span>`}</td>` +
-      `<td class="num">${p.runs || "–"}</td><td class="num">${p.minutes ? time(p.minutes) : "–"}</td><td class="num muted">${ago(p.last)}</td></tr>`;
+      `<td class="muted">${esc(p.role || "–")}</td><td class="num">${time(p.today)}</td><td class="num">${time(p.month)}</td><td class="num">${time(p.total)}</td>` +
+      `<td class="num muted">${ago(p.last)}</td></tr>`;
   }
   if (!DATA.people.length) html += `<tr><td colspan="6" class="muted">Nobody yet.</td></tr>`;
-  document.getElementById("main").innerHTML = html + `</table></div>`;
+  document.getElementById("main").innerHTML = html + `</table><div class="muted" style="margin-top:8px">Machine time spent on each person's benchmarks.</div></div>`;
   document.querySelectorAll("tr.person").forEach(tr => tr.onclick = () => { author = tr.dataset.login; tab = "Pushes"; draw(); });
 }
 
@@ -492,42 +492,39 @@ def _when(ts: str | None) -> datetime | None:
     return datetime.fromisoformat(ts.replace("Z", "+00:00")) if ts else None
 
 
-def usage(repo: str, authors: dict[str, str], *, days: int = 30, now: datetime | None = None) -> dict[str, dict]:
+def usage(repo: str, authors: dict[str, str], *, now: datetime | None = None) -> dict[str, dict]:
     now = now or datetime.now(timezone.utc)
-    since = (now - timedelta(days=days)).strftime("%Y-%m-%d")
-    pages = _paginate(f"repos/{repo}/actions/workflows/pie-eval.yml/runs?per_page=100&created=>={since}")
+    today, month = now.replace(hour=0, minute=0, second=0, microsecond=0), now - timedelta(days=30)
+    pages = _paginate(f"repos/{repo}/actions/workflows/pie-eval.yml/runs?per_page=100")
     out: dict[str, dict] = {}
     for run in (r for page in pages for r in page.get("workflow_runs", [])):
         sha = (run.get("display_title") or "").split()[-1] if run.get("display_title") else ""
         who = (run.get("triggering_actor") or {}).get("login") if run.get("event") == "workflow_dispatch" else authors.get(sha)
         if not who:
             continue
-        start, end = _when(run.get("run_started_at")), _when(run.get("updated_at"))
-        u = out.setdefault(who, {"runs": 0, "minutes": 0.0, "last": ""})
-        u["runs"] += 1
-        if start and end and run.get("status") == "completed":
-            u["minutes"] += max(0.0, (end - start).total_seconds() / 60)
+        u = out.setdefault(who, {"today": 0.0, "month": 0.0, "total": 0.0, "last": ""})
         u["last"] = max(u["last"], run.get("created_at") or "")
+        start, end = _when(run.get("run_started_at")), _when(run.get("updated_at"))
+        if not (start and end and run.get("status") == "completed"):
+            continue
+        minutes = max(0.0, (end - start).total_seconds() / 60)
+        u["total"] += minutes
+        if start >= month:
+            u["month"] += minutes
+        if start >= today:
+            u["today"] += minutes
     return out
 
 
-def people(repo: str, users_dir: Path, authors: dict[str, str]) -> list[dict]:
+def people(repo: str, authors: dict[str, str]) -> list[dict]:
     roles = {c["login"]: c.get("role_name", "") for page in _paginate(f"repos/{repo}/collaborators?affiliation=all&per_page=100") for c in page}
-    auto: dict[str, bool] = {}
-    for f in sorted(users_dir.glob("*.json")) if users_dir.is_dir() else []:
-        try:
-            auto[f.stem] = json.loads(f.read_text()).get("enabled") is not False
-        except json.JSONDecodeError:
-            continue
     used = usage(repo, authors)
-    logins = set(roles) | set(auto) | set(used)
-    rows = [{"login": who, "role": roles.get(who, ""), "auto": auto.get(who, True), **used.get(who, {"runs": 0, "minutes": 0.0, "last": ""})}
-            for who in logins]
-    return sorted(rows, key=lambda p: (-p["minutes"], -p["runs"], p["login"].lower()))
+    none = {"today": 0.0, "month": 0.0, "total": 0.0, "last": ""}
+    rows = [{"login": who, "role": roles.get(who, ""), **used.get(who, none)} for who in set(roles) | set(used)]
+    return sorted(rows, key=lambda p: (-p["month"], -p["total"], p["login"].lower()))
 
 
-def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, pie_repo: str,
-          users_dir: Path = Path("users"), lookup_commits: bool = True) -> dict:
+def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, pie_repo: str, lookup_commits: bool = True) -> dict:
     t = store.table(Tier.TARGETED)
     rows = [r for r in t.to_pylist() if r["status"] == str(CellStatus.PASS) and r["pie_commit"]] if t.num_rows else []
     rows.sort(key=lambda r: r["started_at"])
@@ -576,13 +573,13 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
         "metrics": [{"phase": p, "name": n} for p, n, *_ in METRICS],
         "commits": commits, "history": all_commits, "results": results, "models": models,
         "pool": _pool(live, matrix, last),
-        "people": people(repo, users_dir, {c["sha"]: c["author"] for c in [*known.values(), *commits]}) if lookup_commits else [],
+        "people": people(repo, {c["sha"]: c["author"] for c in [*known.values(), *commits]}) if lookup_commits else [],
     }
 
 
 def render(store: Store, matrix: Matrix, out: Path, live: list[dict] | None = None, *, repo: str = "pie-project/pie-evals",
-           pie_repo: str = "pie-project/pie", users_dir: Path = Path("users"), lookup_commits: bool = True) -> int:
-    data = build(store, matrix, live, repo=repo, pie_repo=pie_repo, users_dir=users_dir, lookup_commits=lookup_commits)
+           pie_repo: str = "pie-project/pie", lookup_commits: bool = True) -> int:
+    data = build(store, matrix, live, repo=repo, pie_repo=pie_repo, lookup_commits=lookup_commits)
     out.mkdir(parents=True, exist_ok=True)
     (out / "index.html").write_text(PAGE.replace("__DATA__", json.dumps(data)))
     return len(data["commits"])
