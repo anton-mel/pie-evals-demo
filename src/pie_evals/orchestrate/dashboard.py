@@ -356,7 +356,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") { closeSheet
 
 function openSignIn() {
   sheet(`<h2>Sign in with GitHub</h2><p class="muted">Paste a GitHub token with access to ${DATA.repo}.</p>` +
-    `<div class="signrow"><input id="tok" type="password" placeholder="run gh auth token | pbcopy, then paste here" size="40"><button class="act" id="go">Sign in</button></div><div id="err" class="err"></div>`);
+    `<div class="signrow"><input id="tok" type="password" placeholder="Paste GitHub access token" size="40"><button class="act" id="go">Sign in</button></div><div id="err" class="err"></div>`);
   document.getElementById("go").onclick = async () => {
     try { localStorage.setItem("pie-evals-token", document.getElementById("tok").value.trim()); } catch {}
     await signIn();
