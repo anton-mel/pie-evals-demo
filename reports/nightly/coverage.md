@@ -2,11 +2,11 @@
 
 | status | cells |
 |---|---|
-| pass | 639 |
-| fail | 592 |
+| pass | 647 |
+| fail | 594 |
 | declared_unsupported | 8828 |
-| not_run | 5092 |
-| noisy | 169 |
+| not_run | 5079 |
+| noisy | 172 |
 
 ## Gaps (expected supported, but not passing)
 
@@ -384,6 +384,7 @@
 | pie | pro6000-x1 | gemma-4-26b-a4b-mlx4 | ss-128-64 | classifier-free-guidance | tp1 | fail | crash | pie serve exited before ready: pyo3_runtime.PanicException: value 55 is weight 16, a split-plane bank; it resolves throu |
 | pie | pro6000-x1 | gemma-4-e4b-bf16 | lc-1k-128 | trackb-h2o | tp1 | fail | crash | all 4 requests failed: KeyError: 'num_prompt_tokens' |
 | pie | pro6000-x1 | gemma-4-e4b-bf16 | lc-1k-128 | trackb-snapkv | tp1 | fail | crash | all 4 requests failed: KeyError: 'num_prompt_tokens' |
+| pie | pro6000-x1 | glm-5.3-flash-mini8 | ss-128-64 | rs-speculative-decoding | tp1,rs | fail | crash | all 8 requests failed: truth take: channel is poisoned: pipeline: forward failed: direct launch rejected: load failed: t |
 | pie | pro6000-x1 | glm-5.3-flash-mini8 | ss-128-64 | classifier-free-guidance | tp1 | fail | crash | all 8 requests failed: JSONDecodeError: Expecting value: line 1 column 1 (char 0) |
 | pie | pro6000-x1 | gpt-oss-20b-mlx-mxfp4 | lc-8k-128 | text-completion-bench | tp1 | fail | crash | all 4 requests failed: prefill chunk submit @0: pipeline: frame slot 0: pipeline: this fire would grow its sequence to 5 |
 | pie | pro6000-x1 | gpt-oss-20b-mlx-mxfp4 | lc-32k-128 | text-completion-bench | tp1 | fail | crash | all 4 requests failed: prefill chunk submit @0: pipeline: frame slot 0: pipeline: this fire would grow its sequence to 2 |
@@ -396,6 +397,7 @@
 | pie | pro6000-x1 | gpt-oss-20b-mlx-mxfp4 | ss-128-64 | classifier-free-guidance | tp1 | fail | crash | all 8 requests failed: JSONDecodeError: Invalid control character at: line 1 column 10 (char 9) |
 | pie | pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | trackb-h2o | tp1 | fail | crash | all 4 requests failed: bind failed: intrinsic attn_score is not advertised by the engine serving this model (`ModelProfi |
 | pie | pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | trackb-snapkv | tp1 | fail | crash | all 4 requests failed: prefill submit @0: bind failed: intrinsic attn_score is not advertised by the engine serving this |
+| pie | pro6000-x1 | kimi-k3-mini8 | ss-128-64 | rs-speculative-decoding | tp1,rs | fail | crash | all 8 requests failed: truth take: channel is poisoned: pipeline: forward failed: direct launch rejected: load failed: t |
 | pie | pro6000-x1 | qwen3.6-27b-gguf-q4km | control-aa | text-completion-bench | tp1 | fail | load_fail | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: " |
 | pie | pro6000-x1 | qwen3.6-27b-gguf-q4km | ss-128-64 | text-completion-bench | tp1 | fail | load_fail | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: " |
 | pie | pro6000-x1 | qwen3.6-27b-gguf-q4km | ss-512-256 | text-completion-bench | tp1 | fail | load_fail | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating engine for model "default" group 0: " |
@@ -714,6 +716,9 @@
 | vllm | pro6000-x1 | kimi-k3-mini8 | prefix-1k-x64 | text-completion-bench | tp1 | noisy |  |  |
 | sglang | pro6000-x1 | kimi-k3-mini8 | c8 | text-completion-bench | tp1 | noisy |  |  |
 | pie | pro6000-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | noisy |  |  |
+| pie | pro6000-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | rs-speculative-decoding | tp1,rs | noisy |  |  |
+| sglang | pro6000-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | noisy |  |  |
+| pie | pro6000-x1 | qwen3.6-35b-a3b-mini5 | ss-128-64 | rs-speculative-decoding | tp1,rs | noisy |  |  |
 | pie | rtx4090-x1 | glm-5.3-flash-mini8 | ss-128-64 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | rtx4090-x1 | glm-5.3-flash-mini8 | ss-512-256 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | rtx4090-x1 | glm-5.3-flash-mini8 | c8 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
@@ -4658,7 +4663,6 @@
 | vllm | pro6000-x1 | gemma-4-e4b-bf16 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | vllm | pro6000-x1 | gemma-4-e4b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | vllm | pro6000-x1 | gemma-4-e4b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| pie | pro6000-x1 | glm-5.3-flash-mini8 | ss-128-64 | rs-speculative-decoding | tp1,rs | not_run |  |  |
 | pie | pro6000-x1 | gpt-oss-20b-mxfp4 | control-aa | text-completion-bench | tp1 | not_run |  |  |
 | pie | pro6000-x1 | gpt-oss-20b-mxfp4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
 | pie | pro6000-x1 | gpt-oss-20b-mxfp4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
@@ -4736,7 +4740,6 @@
 | pie | pro6000-x1 | kimi-k3-mini8 | c256 | text-completion-bench | tp1 | not_run |  |  |
 | pie | pro6000-x1 | kimi-k3-mini8 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
 | pie | pro6000-x1 | kimi-k3-mini8 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
-| pie | pro6000-x1 | kimi-k3-mini8 | ss-128-64 | rs-speculative-decoding | tp1,rs | not_run |  |  |
 | pie | pro6000-x1 | kimi-k3-mini8 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
 | vllm | pro6000-x1 | kimi-k3-mini8 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
 | vllm | pro6000-x1 | kimi-k3-mini8 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
@@ -4762,7 +4765,6 @@
 | pie | pro6000-x1 | qwen3.5-0.8b-bf16 | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
 | pie | pro6000-x1 | qwen3.5-0.8b-bf16 | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
 | pie | pro6000-x1 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
-| pie | pro6000-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | rs-speculative-decoding | tp1,rs | not_run |  |  |
 | pie | pro6000-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
 | vllm | pro6000-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
 | vllm | pro6000-x1 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
@@ -4781,17 +4783,8 @@
 | vllm | pro6000-x1 | qwen3.5-0.8b-bf16 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | vllm | pro6000-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | vllm | pro6000-x1 | qwen3.5-0.8b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
-| sglang | pro6000-x1 | qwen3.5-0.8b-bf16 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | pro6000-x1 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | pro6000-x1 | qwen3.5-0.8b-bf16 | c64 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | pro6000-x1 | qwen3.5-0.8b-bf16 | c256 | text-completion-bench | tp1 | not_run |  |  |
 | sglang | pro6000-x1 | qwen3.5-0.8b-bf16 | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
 | sglang | pro6000-x1 | qwen3.5-0.8b-bf16 | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | pro6000-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | pro6000-x1 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
-| sglang | pro6000-x1 | qwen3.5-0.8b-bf16 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
-| sglang | pro6000-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | prefix-tree-kv-cache | tp1 | not_run |  |  |
-| sglang | pro6000-x1 | qwen3.5-0.8b-bf16 | mixed-256 | prefix-tree-kv-cache | tp1 | not_run |  |  |
 | sglang | pro6000-x1 | qwen3.5-0.8b-bf16 | ss-128-64 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | sglang | pro6000-x1 | qwen3.5-0.8b-bf16 | c8 | cacheback-speculative-decoding | tp1,ngram | not_run |  |  |
 | pie | pro6000-x1 | qwen3.6-27b-gguf-q4km | ss-128-64 | rs-speculative-decoding | tp1,rs | not_run |  |  |
@@ -4817,7 +4810,6 @@
 | pie | pro6000-x1 | qwen3.6-35b-a3b-mini5 | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
 | pie | pro6000-x1 | qwen3.6-35b-a3b-mini5 | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
 | pie | pro6000-x1 | qwen3.6-35b-a3b-mini5 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
-| pie | pro6000-x1 | qwen3.6-35b-a3b-mini5 | ss-128-64 | rs-speculative-decoding | tp1,rs | not_run |  |  |
 | pie | pro6000-x1 | qwen3.6-35b-a3b-mini5 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
 | pie | pro6000-x1 | qwen3.6-35b-a3b-mlx4 | control-aa | text-completion-bench | tp1 | not_run |  |  |
 | pie | pro6000-x1 | qwen3.6-35b-a3b-mlx4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
