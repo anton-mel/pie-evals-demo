@@ -15,6 +15,7 @@ on:
       max_jobs_per_platform: { type: string, required: false, default: "" }
       build_platform: { type: string, required: false, default: "" }
       persist: { type: boolean, required: false, default: true }
+      skip_recorded: { type: boolean, required: false, default: false }
     outputs:
       platforms: { value: "${{ jobs.expand.outputs.platforms }}" }
 
@@ -47,6 +48,7 @@ jobs:
           for a in $(echo "${{ inputs.artifacts }}" | tr ',' ' '); do PLAT_ARGS="$PLAT_ARGS --artifact $a"; done
           [ -n "${{ inputs.max_jobs }}" ] && PLAT_ARGS="$PLAT_ARGS --max-jobs ${{ inputs.max_jobs }}"
           [ -n "${{ inputs.max_jobs_per_platform }}" ] && PLAT_ARGS="$PLAT_ARGS --max-jobs-per-platform ${{ inputs.max_jobs_per_platform }}"
+          [ "${{ inputs.skip_recorded }}" = "true" ] && PLAT_ARGS="$PLAT_ARGS --skip-recorded"
           .venv/bin/pie-evals jobs --tier "${{ inputs.tier }}" --pie-commit "${{ inputs.pie_commit }}" --out jobs --skip-unavailable $PLAT_ARGS
           echo "matrix=$(cat jobs/gh-matrix.json)" >> "$GITHUB_OUTPUT"
           echo "needs_pods=$(jq -r '[.include[] | select(.runpod)] | length > 0' jobs/gh-matrix.json)" >> "$GITHUB_OUTPUT"

@@ -76,10 +76,11 @@ def check(obj):
 @click.option("--label", default=None)
 @click.option("--skip-unavailable", is_flag=True, help="drop platforms with no RunPod type and no online runner (needs gh + a token with actions:read)")
 @click.option("--repo", default=None, help="owner/name for --skip-unavailable (default: $GITHUB_REPOSITORY)")
+@click.option("--skip-recorded", is_flag=True, help="drop cells the store already holds at this pie commit (a re-dispatch after lost launches)")
 @click.pass_obj
-def jobs(obj, tier, pie_commit, platforms, engines, programs, artifacts, max_jobs, max_jobs_per_platform, out, label, skip_unavailable, repo):
+def jobs(obj, tier, pie_commit, platforms, engines, programs, artifacts, max_jobs, max_jobs_per_platform, out, label, skip_unavailable, repo, skip_recorded):
     """Write one JobSpec JSON per platform shard, plus a GitHub Actions matrix file."""
-    from .jobs import available_platforms
+    from .jobs import available_platforms, recorded_cell_keys
 
     m: Matrix = obj["matrix"]
     st: Store = obj["store"]
@@ -98,6 +99,11 @@ def jobs(obj, tier, pie_commit, platforms, engines, programs, artifacts, max_job
         cells = [c for c in cells if c.program.id in programs]
     if artifacts:
         cells = [c for c in cells if c.artifact.id in artifacts]
+    if skip_recorded and pie_commit:
+        done = recorded_cell_keys(st, Tier(tier), pie_commit)
+        before = len(cells)
+        cells = [c for c in cells if c.cell_key not in done]
+        click.echo(f"skip {before - len(cells)} cells already recorded at {pie_commit[:8]}", err=True)
     js = make_jobs(m, Tier(tier), pie_commit=pie_commit, store=st, platforms=plats, engines=list(engines) or None, cells=cells, label=label)
     if max_jobs_per_platform is not None:
         seen: dict[str, int] = {}

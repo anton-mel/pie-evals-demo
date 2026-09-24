@@ -160,3 +160,14 @@ def available_platforms(matrix: Matrix, repo: str, token: str | None = None) -> 
 
 def _feature_for(backend: str) -> str:
     return {"cuda": "cuda", "metal": "metal", "vulkan": "vulkan", "wgpu": "wgpu"}[backend]
+
+
+def recorded_cell_keys(store: Store, tier: Tier, pie_commit: str) -> set[str]:
+    """Cells the store already holds at this pie commit, so a re-dispatch after lost
+    launches (RunPod stock, a host that died) repeats only what never ran."""
+    t = store.table(tier)
+    if t.num_rows == 0:
+        return set()
+    keys = t.column("cell_key").to_pylist()
+    commits = t.column("pie_commit").to_pylist()
+    return {k for k, c in zip(keys, commits, strict=True) if c == pie_commit}

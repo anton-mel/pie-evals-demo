@@ -15,6 +15,7 @@ on:
       max_jobs: { description: "cap on jobs", required: false, default: "" }
       build_platform: { description: "platform for the build/prepare pod", required: false, default: "" }
       max_jobs_per_platform: { description: "cap per platform", required: false, default: "" }
+      skip_recorded: { description: "skip cells the store already holds at this pie commit (re-dispatch after lost launches)", type: boolean, required: false, default: false }
 
 jobs:
   resolve:
@@ -50,4 +51,5 @@ jobs:
       max_jobs: ${{ github.event.inputs.max_jobs || '' }}
       build_platform: ${{ github.event.inputs.build_platform || '' }}
       max_jobs_per_platform: ${{ github.event.inputs.max_jobs_per_platform || '' }}
+      skip_recorded: ${{ github.event.inputs.skip_recorded == 'true' }}
     secrets: inherit
