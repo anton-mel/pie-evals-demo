@@ -328,13 +328,21 @@ function pool() {
   for (const kind of [...new Set(["self-hosted", ...DATA.pool.map(m => m.kind)])]) {
     const list = DATA.pool.filter(m => m.kind === kind);
     const title = kind === "self-hosted" ? "Self-hosted" : kind;
-    html += `<h2 class="group">${esc(title)} <span class="muted">${list.length}</span></h2><div class="card"><table class="compact"><tr><th>machine</th><th>memory</th><th>status</th><th>last run</th></tr>`;
-    for (const m of list) html += `<tr><td>${esc(m.name)} <span class="muted">${m.id}</span></td>` +
-      `<td>${m.memory_gib ? m.memory_gib + " GB" : ""}</td><td><span class="dot ${m.status}"></span>${m.status}</td><td>${m.last}</td></tr>`;
-    if (!list.length) html += `<tr><td colspan="4" class="muted">None connected.</td></tr>`;
+    html += `<h2 class="group">${esc(title)} <span class="muted">${list.length}</span></h2><div class="card"><table class="compact">` +
+            `<tr><th>machine</th><th>memory</th><th>status</th><th>last run</th><th>commit</th><th>author</th></tr>`;
+    for (const m of list) {
+      const c = m.last.commit ? ALL.find(x => x.sha === m.last.commit) : null;
+      html += `<tr><td>${esc(m.name)} <span class="muted">${m.id}</span></td>` +
+        `<td>${m.memory_gib ? m.memory_gib + " GB" : ""}</td><td><span class="dot ${m.status}"></span>${m.status}</td>` +
+        `<td>${m.last.at ? `${fmtDate(m.last.at)} <span class="muted">${fmtTime(m.last.at)}</span>` : "–"}</td>` +
+        `<td>${m.last.commit ? `<a href="#" class="sha" data-sha="${m.last.commit}"><code>${m.last.commit.slice(0, 7)}</code></a>` : "–"}</td>` +
+        `<td>${c?.author ? esc(c.author) : "–"}</td></tr>`;
+    }
+    if (!list.length) html += `<tr><td colspan="6" class="muted">None connected.</td></tr>`;
     html += `</table></div>`;
   }
   document.getElementById("main").innerHTML = html;
+  document.querySelectorAll("a.sha").forEach(a => a.onclick = e => { e.preventDefault(); openCommit(a.dataset.sha); });
 }
 function people() {
   const ago = d => { if (!d) return "–"; const h = (Date.now() - new Date(d)) / 36e5; return h < 1 ? "just now" : h < 24 ? `${Math.round(h)}h ago` : `${Math.round(h / 24)}d ago`; };
@@ -454,7 +462,7 @@ def runners(repo: str) -> list[dict] | None:
     return got.get("runners", []) if isinstance(got, dict) else None
 
 
-def _pool(live: list[dict] | None, matrix: Matrix, last: dict[str, str]) -> list[dict]:
+def _pool(live: list[dict] | None, matrix: Matrix, last: dict[str, dict]) -> list[dict]:
     pool = []
     for r in live or []:
         labels = [lab["name"] for lab in r.get("labels", [])]
@@ -469,7 +477,7 @@ def _pool(live: list[dict] | None, matrix: Matrix, last: dict[str, str]) -> list
             "os": spec.os,
             "memory_gib": int(spec.memory_gib),
             "status": "busy" if r["status"] == "online" and r.get("busy") else "idle" if r["status"] == "online" else "offline",
-            "last": last.get(pid, ""),
+            "last": last.get(pid, {}),
         })
     return sorted(pool, key=lambda m: (m["kind"] != "self-hosted", m["name"]))
 
@@ -546,12 +554,12 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
 
     results: dict[str, dict] = {}
     order: list[str] = []
-    last: dict[str, str] = {}
+    last: dict[str, dict] = {}
     have: set[str] = set()
     for r in rows:
         if r["pie_commit"] not in order:
             order.append(r["pie_commit"])
-        last[r["platform"]] = f"{r['started_at']:%Y-%m-%d} · {r['pie_commit'][:7]}"
+        last[r["platform"]] = {"at": r["started_at"].strftime("%Y-%m-%dT%H:%M:%SZ"), "commit": r["pie_commit"]}
         mac = results.setdefault(r["platform"], {"name": r["accelerator"], "models": defaultdict(lambda: defaultdict(dict))})
         cell = json.loads(r["record_json"])["cell"]
         tf = None
