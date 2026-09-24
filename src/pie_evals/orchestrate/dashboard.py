@@ -71,6 +71,11 @@ PAGE = """<!doctype html>
   label.check { display: block; padding: 4px 0; }
   code { background: #eaeef2; border-radius: 4px; padding: 1px 5px; font-size: 13px; }
   a { color: #0969da; text-decoration: none; }
+  .modal { position: fixed; inset: 0; background: rgba(31, 35, 40, .45); display: flex; align-items: flex-start; justify-content: center; padding: 8vh 16px; z-index: 10; }
+  .modal[hidden] { display: none; }
+  .sheet { position: relative; background: #fff; border-radius: 10px; width: min(640px, 100%); max-height: 84vh; overflow: auto; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+  .sheet .card { border: 0; margin: 0; }
+  .x { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 22px; line-height: 1; cursor: pointer; color: #656d76; }
 </style>
 </head>
 <body>
@@ -83,9 +88,10 @@ PAGE = """<!doctype html>
   <span id="who"></span>
 </div></header>
 <main id="main"></main>
+<div id="modal" class="modal" hidden><div class="sheet"><button class="x" id="close" aria-label="close">×</button><div id="sheet"></div></div></div>
 <script>
 const DATA = __DATA__;
-const TABS = ["Overview", "Pushes", "Macs", "People", "My setup"];
+const TABS = ["Overview", "Pushes", "Macs", "People"];
 const COLORS = ["#0969da", "#bf8700", "#8250df"];
 const modelName = id => (DATA.models.find(m => m.id === id) || { name: id }).name;
 const macName = id => (DATA.pool.find(m => m.id === id) || { name: id }).name;
@@ -172,8 +178,13 @@ async function gh(path, opts = {}) {
   if (!r.ok && r.status !== 404) throw new Error(`${r.status} ${await r.text()}`);
   return r.status === 404 ? null : r.json();
 }
+function openSheet() { document.getElementById("modal").hidden = false; setup(); }
+function closeSheet() { document.getElementById("modal").hidden = true; }
+document.getElementById("close").onclick = closeSheet;
+document.getElementById("modal").onclick = e => { if (e.target.id === "modal") closeSheet(); };
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
 async function setup() {
-  const main = document.getElementById("main");
+  const main = document.getElementById("sheet");
   if (!me) {
     main.innerHTML = `<div class="card"><h2>Sign in</h2><p class="muted">Paste a GitHub token that can write to <b>${DATA.repo}</b> (fine-grained: Contents read & write). It stays in this browser.</p>` +
       `<input id="tok" type="password" placeholder="github_pat_…" size="40"> <button class="act" id="go">Sign in</button> <span id="err" class="down"></span></div>`;
@@ -210,11 +221,12 @@ async function signIn() {
 }
 function renderWho() {
   document.getElementById("who").innerHTML = me
-    ? `<img class="avatar" src="${me.avatar_url}">${me.login} <a href="#" id="out">sign out</a>`
+    ? `<a href="#" id="me"><img class="avatar" src="${me.avatar_url}">${me.login}</a> · <a href="#" id="out">sign out</a>`
     : `<a href="#" id="in">sign in</a>`;
-  const o = document.getElementById("out"), i = document.getElementById("in");
-  if (o) o.onclick = e => { e.preventDefault(); try { localStorage.removeItem("pie-evals-token"); } catch {} me = null; renderWho(); if (tab === "My setup") setup(); };
-  if (i) i.onclick = e => { e.preventDefault(); tab = "My setup"; draw(); };
+  const o = document.getElementById("out"), i = document.getElementById("in"), m = document.getElementById("me");
+  if (o) o.onclick = e => { e.preventDefault(); try { localStorage.removeItem("pie-evals-token"); } catch {} me = null; renderWho(); closeSheet(); };
+  if (i) i.onclick = e => { e.preventDefault(); openSheet(); };
+  if (m) m.onclick = e => { e.preventDefault(); openSheet(); };
 }
 
 function draw() {
@@ -223,7 +235,7 @@ function draw() {
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { tab = b.textContent; draw(); });
   modelSel.style.visibility = tab === "Overview" ? "visible" : "hidden";
   unitSel.style.visibility = tab === "Overview" ? "visible" : "hidden";
-  ({ "Overview": overview, "Pushes": pushes, "Macs": pool, "People": people, "My setup": setup })[tab]();
+  ({ "Overview": overview, "Pushes": pushes, "Macs": pool, "People": people })[tab]();
 }
 signIn().then(draw);
 </script>

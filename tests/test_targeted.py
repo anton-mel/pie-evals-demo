@@ -92,4 +92,4 @@ def test_site_has_pushes_pool_and_people(tmp_path, matrix, monkeypatch):
     assert data["people"] == [{"login": "friend", "models": ["qwen3.5-0.8b-bf16"], "macs": ["m5-max-48g"]}]
     assert any(m["id"] == "qwen3.5-0.8b-bf16" and m["has_results"] for m in data["models"])
     assert dashboard.render(st, matrix, tmp_path / "site", live, repo="o/evals", users_dir=users, lookup_commits=False) == 2
-    assert "My setup" in (tmp_path / "site" / "index.html").read_text()
+    assert "openSheet" in (tmp_path / "site" / "index.html").read_text()
