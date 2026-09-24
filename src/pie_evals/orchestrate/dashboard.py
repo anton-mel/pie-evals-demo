@@ -215,7 +215,7 @@ function overview() {
 
 function summary() {
   const tag = x => `<span class="tag">${esc(x)}</span>`;
-  if (mine && mine.enabled === false) return `<span class="tag off">switched off</span>`;
+  if (!mine || mine.enabled !== true) return `<span class="tag off">nothing, switched off</span>`;
   const models = (mine?.models || []).length ? mine.models.map(modelName) : [modelName(DATA.default_model)];
   const where = (mine?.macs || []).length ? mine.macs.map(macName) : ["every connected machine"];
   return `${models.map(tag).join("")}<span class="on-word">on</span>${where.map(tag).join("")}`;
@@ -301,16 +301,16 @@ function openCommit(sha) {
 }
 
 async function editMine() {
-  const cur = mine || { models: [DATA.default_model], macs: [], enabled: true };
+  const cur = mine || { models: [DATA.default_model], macs: [], enabled: false };
   const pick = (name, items, checked) => items.map(x => `<label class="check"><input type="checkbox" name="${name}" value="${x.id}" ${checked.includes(x.id) ? "checked" : ""}> ${esc(x.name)}</label>`).join("");
   sheet(`<h2>What runs on your pushes</h2><p class="muted">Every commit you land on pie main runs this.</p>` +
-    `<label class="check"><input type="checkbox" name="enabled" ${cur.enabled === false ? "" : "checked"}> benchmark my pushes</label>` +
+    `<label class="check"><input type="checkbox" name="enabled" ${cur.enabled === true ? "checked" : ""}> benchmark my pushes</label>` +
     `<div class="row"><div><div class="label">Models</div>${pick("model", DATA.models, cur.models || [])}</div>` +
     `<div><div class="label">Machines</div><label class="check"><input type="checkbox" name="all" ${(cur.macs || []).length ? "" : "checked"}> every connected machine</label>` +
     `${pick("mac", RUNNABLE, cur.macs || [])}</div></div><button class="act" id="save">Save</button> <span id="msg" class="muted"></span>`);
   const picked = n => [...document.querySelectorAll(`#sheet input[name=${n}]:checked`)].map(x => x.value);
   document.getElementById("save").onclick = async () => {
-    const data = { models: picked("model"), macs: picked("all").length ? [] : picked("mac"), enabled: picked("enabled").length > 0 };
+    const data = { ...(mine || {}), models: picked("model"), macs: picked("all").length ? [] : picked("mac"), enabled: picked("enabled").length > 0 };
     const msg = document.getElementById("msg"); msg.textContent = "Saving…";
     try {
       const path = `repos/${DATA.repo}/contents/users/${me.login}.json`, now = await gh(path);
@@ -344,8 +344,8 @@ function people() {
       `<td class="muted">${esc(p.role || "–")}</td><td class="num">${time(p.today)}</td><td class="num">${time(p.month)}</td><td class="num">${time(p.total)}</td>` +
       `<td class="num muted">${ago(p.last)}</td></tr>`;
   }
-  if (!DATA.people.length) html += `<tr><td colspan="6" class="muted">Nobody yet.</td></tr>`;
-  document.getElementById("main").innerHTML = html + `</table><div class="muted" style="margin-top:8px">Machine time spent on each person's benchmarks.</div></div>`;
+  if (!DATA.people.length) html += `<tr><td colspan="6" class="muted">Nobody has signed in yet.</td></tr>`;
+  document.getElementById("main").innerHTML = html + `</table><div class="muted" style="margin-top:8px">Everyone who has signed in, and the machine time their benchmarks used.</div></div>`;
   document.querySelectorAll("tr.person").forEach(tr => tr.onclick = () => { author = tr.dataset.login; tab = "Pushes"; draw(); });
 }
 
@@ -387,7 +387,14 @@ async function signIn() {
   if (token()) {
     try { me = await gh("user"); } catch { me = null; }
     if (me) {
-      try { const f = await gh(`repos/${DATA.repo}/contents/users/${me.login}.json`); mine = f ? JSON.parse(atob(f.content)) : null; } catch { mine = null; }
+      try {
+        const path = `repos/${DATA.repo}/contents/users/${me.login}.json`, f = await gh(path);
+        if (f) mine = JSON.parse(atob(f.content));
+        else {
+          mine = { models: [DATA.default_model], macs: [], enabled: false, joined: new Date().toISOString().slice(0, 10) };
+          await gh(path, { method: "PUT", body: JSON.stringify({ message: `users: ${me.login} joined`, content: btoa(JSON.stringify(mine, null, 2) + NL) }) });
+        }
+      } catch { mine = null; }
     }
   }
   renderWho();
@@ -516,15 +523,19 @@ def usage(repo: str, authors: dict[str, str], *, now: datetime | None = None) ->
     return out
 
 
-def people(repo: str, authors: dict[str, str]) -> list[dict]:
+def people(repo: str, authors: dict[str, str], users_dir: Path) -> list[dict]:
+    members = {f.stem for f in users_dir.glob("*.json")} if users_dir.is_dir() else set()
+    if not members:
+        return []
     roles = {c["login"]: c.get("role_name", "") for page in _paginate(f"repos/{repo}/collaborators?affiliation=all&per_page=100") for c in page}
     used = usage(repo, authors)
     none = {"today": 0.0, "month": 0.0, "total": 0.0, "last": ""}
-    rows = [{"login": who, "role": roles.get(who, ""), **used.get(who, none)} for who in set(roles) | set(used)]
+    rows = [{"login": who, "role": roles.get(who, ""), **used.get(who, none)} for who in members]
     return sorted(rows, key=lambda p: (-p["month"], -p["total"], p["login"].lower()))
 
 
-def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, pie_repo: str, lookup_commits: bool = True) -> dict:
+def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, pie_repo: str,
+          users_dir: Path = Path("users"), lookup_commits: bool = True) -> dict:
     t = store.table(Tier.TARGETED)
     rows = [r for r in t.to_pylist() if r["status"] == str(CellStatus.PASS) and r["pie_commit"]] if t.num_rows else []
     rows.sort(key=lambda r: r["started_at"])
@@ -573,13 +584,13 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
         "metrics": [{"phase": p, "name": n} for p, n, *_ in METRICS],
         "commits": commits, "history": all_commits, "results": results, "models": models,
         "pool": _pool(live, matrix, last),
-        "people": people(repo, {c["sha"]: c["author"] for c in [*known.values(), *commits]}) if lookup_commits else [],
+        "people": people(repo, {c["sha"]: c["author"] for c in [*known.values(), *commits]}, users_dir) if lookup_commits else [],
     }
 
 
 def render(store: Store, matrix: Matrix, out: Path, live: list[dict] | None = None, *, repo: str = "pie-project/pie-evals",
-           pie_repo: str = "pie-project/pie", lookup_commits: bool = True) -> int:
-    data = build(store, matrix, live, repo=repo, pie_repo=pie_repo, lookup_commits=lookup_commits)
+           pie_repo: str = "pie-project/pie", users_dir: Path = Path("users"), lookup_commits: bool = True) -> int:
+    data = build(store, matrix, live, repo=repo, pie_repo=pie_repo, users_dir=users_dir, lookup_commits=lookup_commits)
     out.mkdir(parents=True, exist_ok=True)
     (out / "index.html").write_text(PAGE.replace("__DATA__", json.dumps(data)))
     return len(data["commits"])

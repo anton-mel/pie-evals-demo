@@ -192,11 +192,12 @@ def report(obj, tier, out):
 @click.option("--out", type=click.Path(), default="site", show_default=True)
 @click.option("--repo", default=None, help="owner/name of this repo: its runners and users/ setups (default: $GITHUB_REPOSITORY)")
 @click.option("--pie-repo", default="pie-project/pie", show_default=True)
+@click.option("--users", "users_dir", type=click.Path(), default="users", show_default=True)
 @click.pass_obj
-def dashboard(obj, out, repo, pie_repo):
+def dashboard(obj, out, repo, pie_repo, users_dir):
     """Render the pie evals site: pushes, machines and people."""
     repo = repo or os.environ.get("GITHUB_REPOSITORY", "pie-project/pie-evals")
-    n = dash.render(obj["store"], obj["matrix"], Path(out), dash.runners(repo), repo=repo, pie_repo=pie_repo)
+    n = dash.render(obj["store"], obj["matrix"], Path(out), dash.runners(repo), repo=repo, pie_repo=pie_repo, users_dir=Path(users_dir))
     click.echo(f"{n} pushes -> {out}/index.html")
 
 

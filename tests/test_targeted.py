@@ -92,7 +92,7 @@ def test_site_has_pushes_pool_and_people(tmp_path, matrix, monkeypatch):
     assert "openCommit" in (tmp_path / "site" / "index.html").read_text()
 
 
-def test_people_machine_time_today_month_total(monkeypatch):
+def test_people_machine_time_today_month_total(tmp_path, monkeypatch):
     from datetime import datetime, timezone
     now = datetime(2026, 9, 21, 12, 0, tzinfo=timezone.utc)
     runs = [{"workflow_runs": [
@@ -107,5 +107,10 @@ def test_people_machine_time_today_month_total(monkeypatch):
     monkeypatch.setattr(dashboard, "_paginate", lambda path: runs if "runs" in path else collaborators)
     used = dashboard.usage("o/evals", {"a" * 40: "author"}, now=now)
     assert {k: (round(v["today"]), round(v["month"]), round(v["total"])) for k, v in used.items()} == {"author": (6, 6, 6), "friend": (0, 30, 90)}
-    rows = dashboard.people("o/evals", {"a" * 40: "author"})
-    assert [r["login"] for r in rows][-1] == "idle" and {r["login"]: r["role"] for r in rows}["friend"] == "admin"
+    users = tmp_path / "users"
+    users.mkdir()
+    for who in ("friend", "idle"):
+        (users / f"{who}.json").write_text('{"enabled": false}')
+    rows = dashboard.people("o/evals", {"a" * 40: "author"}, users)
+    assert [(r["login"], r["role"]) for r in rows] == [("friend", "admin"), ("idle", "write")]
+    assert dashboard.people("o/evals", {}, tmp_path / "nobody") == []
