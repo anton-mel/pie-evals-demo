@@ -143,7 +143,7 @@ PAGE = """<!doctype html>
 <div id="modal" class="modal" hidden><div class="sheet"><button class="x" id="close" aria-label="close">×</button><div id="sheet"></div></div></div>
 <script>
 const DATA = __DATA__;
-const TABS = ["Overview", "Pushes", "Macs", "People"];
+const TABS = ["Overview", "Pushes", "Machines", "People"];
 const COLORS = ["#0969da", "#bf8700", "#8250df", "#1a7f37", "#cf222e"];
 const NL = String.fromCharCode(10);
 const esc = x => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
@@ -211,7 +211,7 @@ function summary() {
   const tag = x => `<span class="tag">${esc(x)}</span>`;
   if (mine && mine.enabled === false) return `<span class="tag off">switched off</span>`;
   const models = (mine?.models || []).length ? mine.models.map(modelName) : [modelName(DATA.default_model)];
-  const where = (mine?.macs || []).length ? mine.macs.map(macName) : ["every connected Mac"];
+  const where = (mine?.macs || []).length ? mine.macs.map(macName) : ["every connected machine"];
   return `${models.map(tag).join("")}<span class="on-word">on</span>${where.map(tag).join("")}`;
 }
 const when = d => d ? new Date(d) : null;
@@ -300,7 +300,7 @@ async function editMine() {
   sheet(`<h2>What runs on your pushes</h2><p class="muted">Every commit you land on pie main runs this.</p>` +
     `<label class="check"><input type="checkbox" name="enabled" ${cur.enabled === false ? "" : "checked"}> benchmark my pushes</label>` +
     `<div class="row"><div><div class="label">Models</div>${pick("model", DATA.models, cur.models || [])}</div>` +
-    `<div><div class="label">Macs</div><label class="check"><input type="checkbox" name="all" ${(cur.macs || []).length ? "" : "checked"}> every connected Mac</label>` +
+    `<div><div class="label">Machines</div><label class="check"><input type="checkbox" name="all" ${(cur.macs || []).length ? "" : "checked"}> every connected machine</label>` +
     `${pick("mac", DATA.pool, cur.macs || [])}</div></div><button class="act" id="save">Save</button> <span id="msg" class="muted"></span>`);
   const picked = n => [...document.querySelectorAll(`#sheet input[name=${n}]:checked`)].map(x => x.value);
   document.getElementById("save").onclick = async () => {
@@ -317,19 +317,19 @@ async function editMine() {
 }
 
 function pool() {
-  let html = `<div class="card"><table class="compact"><tr><th>Mac</th><th>memory</th><th>status</th><th>last run</th></tr>`;
+  let html = `<div class="card"><table class="compact"><tr><th>machine</th><th>memory</th><th>status</th><th>last run</th></tr>`;
   for (const m of DATA.pool) html += `<tr><td>${esc(m.name)} <span class="muted">${m.id}</span></td><td>${m.memory_gib ? m.memory_gib + " GB" : ""}</td><td><span class="dot ${m.status}"></span>${m.status}</td><td>${m.last}</td></tr>`;
-  if (!DATA.pool.length) html += `<tr><td colspan="4" class="muted">No Mac is connected.</td></tr>`;
+  if (!DATA.pool.length) html += `<tr><td colspan="4" class="muted">No machine is connected.</td></tr>`;
   document.getElementById("main").innerHTML = html + `</table></div>`;
 }
 function people() {
-  let html = `<div class="card"><table class="compact"><tr><th>who</th><th>models</th><th>Macs</th></tr>`;
+  let html = `<div class="card"><table class="compact"><tr><th>who</th><th>models</th><th>machines</th></tr>`;
   for (const p of DATA.people) {
     html += `<tr class="person" data-login="${esc(p.login)}"><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}${p.enabled === false ? ` <span class="tag">off</span>` : ""}</td>` +
       `<td>${p.models.map(m => `<span class="tag">${esc(modelName(m))}</span>`).join("") || `<span class="muted">default</span>`}</td>` +
-      `<td>${p.macs.map(m => `<span class="tag">${esc(macName(m))}</span>`).join("") || `<span class="muted">every connected Mac</span>`}</td></tr>`;
+      `<td>${p.macs.map(m => `<span class="tag">${esc(macName(m))}</span>`).join("") || `<span class="muted">every connected machine</span>`}</td></tr>`;
   }
-  if (!DATA.people.length) html += `<tr><td colspan="3" class="muted">Nobody has a setup yet: everyone gets ${esc(modelName(DATA.default_model))} on every connected Mac.</td></tr>`;
+  if (!DATA.people.length) html += `<tr><td colspan="3" class="muted">Nobody has a setup yet: everyone gets ${esc(modelName(DATA.default_model))} on every connected machine.</td></tr>`;
   document.getElementById("main").innerHTML = html + `</table></div>`;
   document.querySelectorAll("tr.person").forEach(tr => tr.onclick = () => { author = tr.dataset.login; tab = "Pushes"; draw(); });
 }
@@ -397,7 +397,7 @@ function draw() {
   document.getElementById("tabs").innerHTML = TABS.map(t => `<button class="${t === tab ? "on" : ""}">${t}</button>`).join("");
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { tab = b.textContent; draw(); });
   document.getElementById("controls").hidden = tab !== "Overview";
-  ({ "Overview": overview, "Pushes": pushes, "Macs": pool, "People": people })[tab]();
+  ({ "Overview": overview, "Pushes": pushes, "Machines": pool, "People": people })[tab]();
 }
 signIn().then(draw);
 </script>
