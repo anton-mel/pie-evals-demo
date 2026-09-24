@@ -26,7 +26,7 @@ PAGE = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>pie evals</title>
+<title>Stats</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   * { box-sizing: border-box; }
@@ -52,7 +52,8 @@ PAGE = """<!doctype html>
   .tile .name { font-weight: 600; font-size: 14px; }
   .tile .now { font-size: 13px; color: #424a53; margin: 2px 0 6px; }
   .chart { position: relative; height: 120px; }
-  .phase { font-size: 13px; font-weight: 600; color: #656d76; text-transform: uppercase; letter-spacing: .04em; margin: 16px 0 8px; }
+  .phase { font-size: 13px; font-weight: 600; color: #656d76; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 8px; }
+  .tiles + .phase { margin-top: 20px; }
   @media (max-width: 700px) { .row { grid-template-columns: 1fr; } }
   table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eaeef2; vertical-align: top; }
@@ -72,7 +73,7 @@ PAGE = """<!doctype html>
 </head>
 <body>
 <header><div class="bar">
-  <span class="brand">pie evals</span>
+  <span class="brand">Stats</span>
   <nav id="tabs"></nav>
   <span class="grow"></span>
   <select id="unit"><option value="v">tok/s</option><option value="tflops">TFLOP/s</option></select>
@@ -115,7 +116,7 @@ function overview() {
   const list = macs(), key = unitSel.value;
   if (!list.length) { document.getElementById("main").innerHTML = `<div class="card muted">No results for this model yet.</div>`; return; }
   const fmt = v => key === "v" ? Math.round(v).toLocaleString() : v.toFixed(2);
-  let html = `<div class="muted">${unitName()} on each push · one line per Mac</div>`;
+  let html = "";
   for (const phase of ["Prefill", "Decode"]) {
     html += `<div class="phase">${phase}</div><div class="tiles">`;
     DATA.metrics.forEach((m, i) => {
