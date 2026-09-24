@@ -99,10 +99,13 @@ PAGE = """<!doctype html>
   tr.push { cursor: pointer; } tr.push:hover { background: #f6f8fa; }
   .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; }
   .auto { font-size: 14px; color: #424a53; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .auto .tag { margin: 0; background: #fff; border: 1px solid #d0d7de; padding: 2px 10px; color: #1f2328; }
+  .auto .tag, .pill.small, .filter select { box-sizing: border-box; height: 28px; display: inline-flex; align-items: center; margin: 0;
+    font-size: 13px; line-height: 1; border: 1px solid #d0d7de; border-radius: 999px; background-color: #fff; color: #1f2328; }
+  .auto .tag { padding: 0 12px; }
   .auto .tag.off { background: #fff8c5; border-color: #eac54f; }
   .on-word { color: #656d76; }
-  .pill.small { height: 28px; padding: 0 12px; font-size: 13px; margin-left: 4px; }
+  .pill.small { padding: 0 12px; gap: 6px; margin-left: 4px; }
+  .filter select { padding: 0 30px 0 12px; }
   .filter { font-size: 14px; color: #424a53; display: inline-flex; align-items: center; gap: 6px; }
   .pager { display: flex; justify-content: center; align-items: center; gap: 6px; padding: 14px 0 0; flex-wrap: wrap; }
   .pager .pill { padding: 0 12px; min-width: 32px; justify-content: center; }
