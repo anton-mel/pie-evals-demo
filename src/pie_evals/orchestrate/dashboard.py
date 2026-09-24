@@ -107,6 +107,7 @@ PAGE = """<!doctype html>
     font-size: 13px; line-height: 1; border: 1px solid #d0d7de; border-radius: 999px; background-color: #fff; color: #1f2328; }
   .auto .tag { padding: 0 12px; }
   .auto .tag.off { background: #fff8c5; border-color: #eac54f; }
+  .tag.on { background: #dafbe1; color: #1a7f37; }
   .on-word { color: #656d76; }
   h2.group { font-size: 15px; font-weight: 600; color: #1f2328; margin: 0 0 8px 2px; }
   h2.group .muted { font-weight: 400; margin-left: 4px; }
@@ -338,14 +339,14 @@ function pool() {
 function people() {
   const ago = d => { if (!d) return "–"; const h = (Date.now() - new Date(d)) / 36e5; return h < 1 ? "just now" : h < 24 ? `${Math.round(h)}h ago` : `${Math.round(h / 24)}d ago`; };
   const time = m => !m ? "–" : m >= 60 ? `${(m / 60).toFixed(1)} h` : `${Math.round(m)} min`;
-  let html = `<div class="card"><table class="compact"><tr><th>who</th><th>access</th><th class="num">today</th><th class="num">last 30 days</th><th class="num">total</th><th class="num">last active</th></tr>`;
+  let html = `<div class="card"><table class="compact"><tr><th>who</th><th>access</th><th>CI</th><th class="num">today</th><th class="num">last 30 days</th><th class="num">total</th><th class="num">last active</th></tr>`;
   for (const p of DATA.people) {
     html += `<tr class="person" data-login="${esc(p.login)}"><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}</td>` +
-      `<td class="muted">${esc(p.role || "–")}</td><td class="num">${time(p.today)}</td><td class="num">${time(p.month)}</td><td class="num">${time(p.total)}</td>` +
+      `<td class="muted">${esc(p.role || "–")}</td><td>${p.ci ? `<span class="tag on">on</span>` : `<span class="muted">off</span>`}</td><td class="num">${time(p.today)}</td><td class="num">${time(p.month)}</td><td class="num">${time(p.total)}</td>` +
       `<td class="num muted">${ago(p.last)}</td></tr>`;
   }
-  if (!DATA.people.length) html += `<tr><td colspan="6" class="muted">Nobody has signed in yet.</td></tr>`;
-  document.getElementById("main").innerHTML = html + `</table><div class="muted" style="margin-top:8px">Everyone who has signed in, and the machine time their benchmarks used.</div></div>`;
+  if (!DATA.people.length) html += `<tr><td colspan="7" class="muted">Nobody yet.</td></tr>`;
+  document.getElementById("main").innerHTML = html + `</table><div class="muted" style="margin-top:8px">CI: whether their pushes to pie main are benchmarked. Time: machine time their benchmarks used.</div></div>`;
   document.querySelectorAll("tr.person").forEach(tr => tr.onclick = () => { author = tr.dataset.login; tab = "Pushes"; draw(); });
 }
 
@@ -524,13 +525,16 @@ def usage(repo: str, authors: dict[str, str], *, now: datetime | None = None) ->
 
 
 def people(repo: str, authors: dict[str, str], users_dir: Path) -> list[dict]:
-    members = {f.stem for f in users_dir.glob("*.json")} if users_dir.is_dir() else set()
-    if not members:
-        return []
+    ci: dict[str, bool] = {}
+    for f in sorted(users_dir.glob("*.json")) if users_dir.is_dir() else []:
+        try:
+            ci[f.stem] = json.loads(f.read_text()).get("enabled") is True
+        except json.JSONDecodeError:
+            continue
     roles = {c["login"]: c.get("role_name", "") for page in _paginate(f"repos/{repo}/collaborators?affiliation=all&per_page=100") for c in page}
     used = usage(repo, authors)
     none = {"today": 0.0, "month": 0.0, "total": 0.0, "last": ""}
-    rows = [{"login": who, "role": roles.get(who, ""), **used.get(who, none)} for who in members]
+    rows = [{"login": who, "role": roles.get(who, ""), "ci": ci.get(who, False), **used.get(who, none)} for who in set(roles) | set(ci) | set(used)]
     return sorted(rows, key=lambda p: (-p["month"], -p["total"], p["login"].lower()))
 
 

@@ -109,8 +109,7 @@ def test_people_machine_time_today_month_total(tmp_path, monkeypatch):
     assert {k: (round(v["today"]), round(v["month"]), round(v["total"])) for k, v in used.items()} == {"author": (6, 6, 6), "friend": (0, 30, 90)}
     users = tmp_path / "users"
     users.mkdir()
-    for who in ("friend", "idle"):
-        (users / f"{who}.json").write_text('{"enabled": false}')
+    (users / "friend.json").write_text('{"enabled": true}')
+    (users / "idle.json").write_text('{"enabled": false}')
     rows = dashboard.people("o/evals", {"a" * 40: "author"}, users)
-    assert [(r["login"], r["role"]) for r in rows] == [("friend", "admin"), ("idle", "write")]
-    assert dashboard.people("o/evals", {}, tmp_path / "nobody") == []
+    assert [(r["login"], r["role"], r["ci"]) for r in rows] == [("friend", "admin", True), ("author", "write", False), ("idle", "write", False)]
