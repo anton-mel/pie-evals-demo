@@ -38,19 +38,14 @@ unsupported:
     reason: "attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the kimi_k3 forward pass is hybrid"
   - when: {program_category: kv_policy, family: nemotron_h}
     reason: "attention-only KV policies are not valid on a folded recurrent state (pie: use pie:inferlet/forward-hybrid); the nemotron_h forward pass is hybrid"
-  # tp>1 on engine-cuda works only where the family's import can shard (gemma4 has a shipped tp2 SKU); the rest is pie #633
-  - when: {engine: pie, backend: cuda, tp: ">1", family: qwen3_5}
-    reason: "pie #633: the qwen3_5 import lands no sharded planes, so its tp-2 rows fail at load on engine-cuda (nightlies 35929921089/35942190398)"
-  - when: {engine: pie, backend: cuda, tp: ">1", family: qwen3_6}
-    reason: "pie #633: the qwen3_6 import lands no sharded planes, so its tp-2 rows fail at load on engine-cuda (nightlies 35929921089/35942190398)"
-  - when: {engine: pie, backend: cuda, tp: ">1", family: qwen3_6_moe}
-    reason: "pie #633: the qwen3_6_moe import lands no sharded planes, so its tp-2 rows fail at load on engine-cuda (nightlies 35929921089/35942190398)"
-  - when: {engine: pie, backend: cuda, tp: ">1", family: gpt_oss}
-    reason: "pie #633: the gpt_oss import lands no sharded planes, so its tp-2 rows fail at load on engine-cuda (nightlies 35929921089/35942190398)"
-  - when: {engine: pie, backend: cuda, tp: ">1", family: kimi_k3}
-    reason: "pie #633: the kimi_k3 import lands no sharded planes, so its tp-2 rows fail at load on engine-cuda (nightlies 35929921089/35942190398)"
-  - when: {engine: pie, backend: cuda, tp: ">1", family: glm5_next}
-    reason: "pie #633: the glm5_next import lands no sharded planes, so its tp-2 rows fail at load on engine-cuda (nightlies 35929921089/35942190398)"
+  # no tp-2 row loads on engine-cuda today — miniature or released (gemma4-e4b's shipped tp2 SKU
+  # fails the same way): the imports land no sharded planes (pie #633, nightlies 35929921089/35942190398)
+  - when: {engine: pie, backend: cuda, tp: ">1"}
+    reason: "pie #633: the import contracts land no sharded planes, so every tp-2 row fails at load on engine-cuda"
+  # SGLang 0.5.20 cannot run gemma-4: every cell dies in its own code with
+  # "view size is not compatible with input tensor's size and stride" / "shape '[-1, 1024]' is invalid" (L40S, 4090, 5090, A100 x2)
+  - when: {engine: sglang, family: gemma4}
+    reason: "SGLang 0.5.20 gemma-4 crashes in its attention/view path on every card tried; revisit at the next pin"
   - when: {engine: pie, backend: cuda, spec_dec: dflash2}
     reason: "CUDA engine exposes no draft head (Metal only) — wiki speculative-decoding/"
   - when: {scheme: fp8, arch: apple7}
