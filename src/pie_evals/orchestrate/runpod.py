@@ -163,6 +163,7 @@ PIE_MIRROR=$V/pie.git
 PIE_HOME=$V/.pie
 HF_HOME=$V/.hf
 HF_HUB_CACHE=$V/.hf/hub
+HF_HUB_DISABLE_XET=1
 UV_CACHE_DIR=$V/.uv
 npm_config_cache=$V/.npm
 PIE_EVALS_CACHE=$V/pie-evals-cache
