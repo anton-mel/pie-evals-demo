@@ -323,13 +323,13 @@ function pool() {
   document.getElementById("main").innerHTML = html + `</table></div>`;
 }
 function people() {
-  let html = `<div class="card"><table class="compact"><tr><th>who</th><th>models</th><th>machines</th></tr>`;
+  let html = `<div class="card"><table class="compact"><tr><th>who</th><th>machines connected</th></tr>`;
   for (const p of DATA.people) {
-    html += `<tr class="person" data-login="${esc(p.login)}"><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}${p.enabled === false ? ` <span class="tag">off</span>` : ""}</td>` +
-      `<td>${p.models.map(m => `<span class="tag">${esc(modelName(m))}</span>`).join("") || `<span class="muted">default</span>`}</td>` +
-      `<td>${p.macs.map(m => `<span class="tag">${esc(macName(m))}</span>`).join("") || `<span class="muted">every connected machine</span>`}</td></tr>`;
+    const own = p.machines.map(id => DATA.pool.find(m => m.id === id)).filter(Boolean);
+    html += `<tr class="person" data-login="${esc(p.login)}"><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}${p.enabled === false ? ` <span class="tag">pushes off</span>` : ""}</td>` +
+      `<td>${own.map(m => `<span class="tag"><span class="dot ${m.status}"></span>${esc(m.name)}</span>`).join("") || `<span class="muted">none</span>`}</td></tr>`;
   }
-  if (!DATA.people.length) html += `<tr><td colspan="3" class="muted">Nobody has a setup yet: everyone gets ${esc(modelName(DATA.default_model))} on every connected machine.</td></tr>`;
+  if (!DATA.people.length) html += `<tr><td colspan="2" class="muted">Nobody yet.</td></tr>`;
   document.getElementById("main").innerHTML = html + `</table></div>`;
   document.querySelectorAll("tr.person").forEach(tr => tr.onclick = () => { author = tr.dataset.login; tab = "Pushes"; draw(); });
 }
@@ -439,9 +439,11 @@ def _pool(live: list[dict] | None, matrix: Matrix, last: dict[str, str]) -> list
             continue
         pid = next((lab for lab in labels if lab in matrix.platforms), None)
         spec = matrix.platforms.get(pid) if pid else None
+        owner = next((lab[len("owner-"):] for lab in labels if lab.startswith("owner-")), "")
         pool.append({
             "name": spec.accelerator if spec else r["name"],
             "id": pid or "",
+            "owner": owner,
             "memory_gib": int(spec.memory_gib) if spec else None,
             "status": "busy" if r["status"] == "online" and r.get("busy") else "idle" if r["status"] == "online" else "offline",
             "last": last.get(pid, ""),
@@ -463,15 +465,18 @@ def mac_models(matrix: Matrix) -> list[dict]:
     return sorted(seen.values(), key=lambda m: m["name"])
 
 
-def people(users_dir: Path) -> list[dict]:
-    out = []
+def people(users_dir: Path, pool: list[dict]) -> list[dict]:
+    out: dict[str, dict] = {}
     for f in sorted(users_dir.glob("*.json")) if users_dir.is_dir() else []:
         try:
             d = json.loads(f.read_text())
         except json.JSONDecodeError:
             continue
-        out.append({"login": f.stem, "models": list(d.get("models") or []), "macs": list(d.get("macs") or []), "enabled": d.get("enabled") is not False})
-    return out
+        out[f.stem] = {"login": f.stem, "enabled": d.get("enabled") is not False, "machines": []}
+    for m in pool:
+        if m.get("owner"):
+            out.setdefault(m["owner"], {"login": m["owner"], "enabled": True, "machines": []})["machines"].append(m["id"])
+    return sorted(out.values(), key=lambda p: p["login"].lower())
 
 
 def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, pie_repo: str,
@@ -523,7 +528,7 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
         "repo": repo, "pie_repo": pie_repo, "default_model": DEFAULT_MODEL,
         "metrics": [{"phase": p, "name": n} for p, n, *_ in METRICS],
         "commits": commits, "history": all_commits, "results": results, "models": models,
-        "pool": _pool(live, matrix, last), "people": people(users_dir),
+        "pool": (pool := _pool(live, matrix, last)), "people": people(users_dir, pool),
     }
 
 

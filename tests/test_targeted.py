@@ -83,13 +83,13 @@ def test_site_has_pushes_pool_and_people(tmp_path, matrix, monkeypatch):
     users = tmp_path / "users"
     users.mkdir()
     (users / "friend.json").write_text('{"models": ["qwen3.5-0.8b-bf16"], "macs": ["m5-max-48g"]}')
-    live = [{"name": "a-mac", "status": "online", "busy": True, "labels": [{"name": "self-hosted"}, {"name": "macOS"}, {"name": "m5-max-48g"}]},
+    live = [{"name": "a-mac", "status": "online", "busy": True, "labels": [{"name": "self-hosted"}, {"name": "macOS"}, {"name": "m5-max-48g"}, {"name": "owner-maker"}]},
             {"name": "a-pod", "status": "online", "busy": False, "labels": [{"name": "self-hosted"}, {"name": "Linux"}, {"name": "l40s-x1"}]}]
     data = dashboard.build(st, matrix, live, repo="o/evals", pie_repo="o/pie", users_dir=users, lookup_commits=False)
     assert [c["sha"] for c in data["commits"]] == ["c0", "c1"]
     assert [(m["id"], m["status"]) for m in data["pool"]] == [("m5-max-48g", "busy")]
     assert set(data["results"]["m5-max-48g"]["models"]["qwen3.5-0.8b-bf16"]) == {0, 2, 3}
-    assert data["people"] == [{"login": "friend", "models": ["qwen3.5-0.8b-bf16"], "macs": ["m5-max-48g"], "enabled": True}]
+    assert data["people"] == [{"login": "friend", "enabled": True, "machines": []}, {"login": "maker", "enabled": True, "machines": ["m5-max-48g"]}]
     assert any(m["id"] == "qwen3.5-0.8b-bf16" and m["has_results"] for m in data["models"])
     assert dashboard.render(st, matrix, tmp_path / "site", live, repo="o/evals", users_dir=users, lookup_commits=False) == 2
     assert "openCommit" in (tmp_path / "site" / "index.html").read_text()
