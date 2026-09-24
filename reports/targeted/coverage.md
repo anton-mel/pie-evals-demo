@@ -2,22 +2,16 @@
 
 | status | cells |
 |---|---|
-| pass | 6 |
+| pass | 12 |
 | fail | 0 |
 | declared_unsupported | 0 |
 | not_run | 18 |
-| noisy | 6 |
+| noisy | 0 |
 
 ## Gaps (expected supported, but not passing)
 
 | engine | platform | artifact | workload | program | mode | status | error | message |
 |---|---|---|---|---|---|---|---|---|
-| pie | m5-max-48g | qwen3.5-0.8b-bf16 | control-aa | text-completion-bench | tp1 | noisy |  |  |
-| pie | m5-max-48g | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
-| pie | m5-max-48g | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
-| pie | m5-max-48g | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
-| pie | m5-max-48g | qwen3.5-0.8b-bf16 | lc-1k-128 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
-| pie | m5-max-48g | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | m1-max-32g | qwen3.5-0.8b-bf16 | control-aa | text-completion-bench | tp1 | not_run |  |  |
 | pie | m1-max-32g | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
 | pie | m1-max-32g | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp1 | not_run |  |  |
@@ -46,4 +40,4 @@
 
 | family | m1-max-32g | m2-max | m4-pro-48g | m5-max-48g | rtx4090-x1 |
 |---|---|---|---|---|---|
-| qwen3_5 | 0/6 | 0/6 | 0/6 | 0/6 | 6/6 |
+| qwen3_5 | 0/6 | 0/6 | 0/6 | 6/6 | 6/6 |
