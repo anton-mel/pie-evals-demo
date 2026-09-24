@@ -14,6 +14,9 @@ on:
       max_jobs: { type: string, required: false, default: "" }
       max_jobs_per_platform: { type: string, required: false, default: "" }
       build_platform: { type: string, required: false, default: "" }
+      persist: { type: boolean, required: false, default: true }
+    outputs:
+      platforms: { value: "${{ jobs.expand.outputs.platforms }}" }
 
 jobs:
   expand:
@@ -21,6 +24,8 @@ jobs:
     outputs:
       matrix: ${{ steps.jobs.outputs.matrix }}
       kill_minutes: ${{ steps.jobs.outputs.kill_minutes }}
+      needs_pods: ${{ steps.jobs.outputs.needs_pods }}
+      platforms: ${{ steps.jobs.outputs.platforms }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
@@ -32,7 +37,7 @@ jobs:
         env: { RUNPOD_API_KEY: "${{ secrets.RUNPOD_API_KEY }}" }
       - name: job specs
         id: jobs
-        env: { GH_TOKEN: "${{ github.token }}" }
+        env: { GH_TOKEN: "${{ secrets.GH_RUNNER_PAT || github.token }}" }
         run: |
           PLAT_ARGS=""
           for p in $(echo "${{ inputs.platforms }}" | tr ',' ' '); do PLAT_ARGS="$PLAT_ARGS --platform $p"; done
@@ -43,6 +48,8 @@ jobs:
           [ -n "${{ inputs.max_jobs_per_platform }}" ] && PLAT_ARGS="$PLAT_ARGS --max-jobs-per-platform ${{ inputs.max_jobs_per_platform }}"
           .venv/bin/pie-evals jobs --tier "${{ inputs.tier }}" --pie-commit "${{ inputs.pie_commit }}" --out jobs --skip-unavailable $PLAT_ARGS
           echo "matrix=$(cat jobs/gh-matrix.json)" >> "$GITHUB_OUTPUT"
+          echo "needs_pods=$(jq -r '[.include[] | select(.runpod)] | length > 0' jobs/gh-matrix.json)" >> "$GITHUB_OUTPUT"
+          echo "platforms=$(jq -r '[.include[].platform] | unique | join(",")' jobs/gh-matrix.json)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with: { name: jobs, path: jobs/ }
 
@@ -51,6 +58,7 @@ jobs:
   # instead of each building it.
   build-launch:
     needs: expand
+    if: needs.expand.outputs.needs_pods == 'true'
     runs-on: ubuntu-latest
     outputs: { pod_id: "${{ steps.pod.outputs.pod_id }}", platform: "${{ steps.pod.outputs.platform }}" }
     steps:
@@ -89,7 +97,7 @@ jobs:
         env: { HF_TOKEN: "${{ secrets.HF_TOKEN }}" }
   build-teardown:
     needs: [build-launch, build]
-    if: always()
+    if: always() && needs.build-launch.result != 'skipped'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -102,7 +110,7 @@ jobs:
   # then a second job lands on it. Macs are resident runners and skip the launch.
   launch:
     needs: [expand, build]
-    if: ${{ fromJson(needs.expand.outputs.matrix).include[0] != null }}
+    if: ${{ always() && needs.expand.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') && fromJson(needs.expand.outputs.matrix).include[0] != null }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -178,7 +186,7 @@ jobs:
           # the node clones from the mirror and restores the cached build. Macs: a resident checkout under $HOME.
           echo "PIE_ROOT=${PIE_ROOT:-$HOME/pie}" >> "$GITHUB_ENV"
       - name: run
-        run: .venv/bin/pie-evals-node run --job "jobs/${{ matrix.job_id }}.json" --pie-root "$PIE_ROOT" --out "out/${{ matrix.job_id }}"
+        run: .venv/bin/pie-evals-node run --job "jobs/${{ matrix.job_id }}.json" --pie-root "$PIE_ROOT" --out "out/${{ matrix.job_id }}" ${{ runner.os == 'macOS' && '--download' || '' }}
         env: { HF_TOKEN: "${{ secrets.HF_TOKEN }}" }  # a pod without the volume fetches checkpoints itself; anonymous pulls hit 429
         # on RunPod every cache path comes from the runner's .env (written by the startup script)
       - uses: actions/upload-artifact@v4
@@ -223,6 +231,7 @@ jobs:
         id: report
         run: .venv/bin/pie-evals report --tier "${{ inputs.tier }}" --out reports
       - name: commit store + reports
+        if: inputs.persist
         run: |
           git config user.name "pie-evals-bot"; git config user.email "pie-evals-bot@users.noreply.github.com"
           mkdir -p store/records reports
@@ -230,5 +239,5 @@ jobs:
           git diff --cached --quiet || git commit -m "store: ${{ inputs.tier }} run ${{ github.run_id }}"
           git pull --rebase --quiet origin main && git push --quiet origin HEAD:main
       - name: fail on regression
-        if: steps.report.outputs.regressions != '0'
+        if: inputs.persist && steps.report.outputs.regressions != '0'
         run: echo "::error::${{ steps.report.outputs.regressions }} confirmed regressions — see reports/${{ inputs.tier }}/regressions.md"; exit 1

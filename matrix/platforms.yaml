@@ -180,3 +180,12 @@ platforms:
     interconnect: uma
     runner_labels: [self-hosted, macos, m4-pro-48g]
     tiers: [smoke, nightly, weekly]
+  - id: m5-max-48g
+    os: macos
+    backend: metal
+    accelerator: Apple M5 Max
+    arch: apple10
+    memory_gib: 48
+    interconnect: uma
+    runner_labels: [self-hosted, macos, m5-max-48g]
+    tiers: [smoke, nightly, weekly]

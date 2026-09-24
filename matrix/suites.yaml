@@ -63,6 +63,16 @@ suites:
     max_jobs_per_platform: 120
     enforce_budget: true
     exclude: []
+  targeted:
+    max_jobs_per_platform: 1
+    enforce_budget: true
+    include:
+      - engine: pie
+        program: text-completion-bench
+        artifact: qwen3.5-0.8b-bf16
+        tp: 1
+        workload: [control-aa, ss-128-64, lc-1k-128, lc-2k-128, c8, c32]
+        platform: [m1-max-32g, m2-max, m4-pro-48g, m5-max-48g, rtx4090-x1]
 
 # Escalation: when a smoke cell of a family is flagged (regression confirmed),
 # every nightly cell of that family on the same platform is promoted into the

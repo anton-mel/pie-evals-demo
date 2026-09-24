@@ -342,7 +342,7 @@ class NodeRunner:
         t0 = time.monotonic()
         cell = cell.model_copy(update={"engine_version": engine_version})
         cell_out = self.out / "cells" / cell.cell_id
-        common = common_args_for(cell.workload, warmup=2 if self.job.tier == Tier.SMOKE else 3) + list(cell.program.bench_args)
+        common = common_args_for(cell.workload, warmup=2 if self.job.tier in (Tier.SMOKE, Tier.TARGETED) else 3) + list(cell.program.bench_args)
         policy = self.job.repetition
         rounds: list[float] = []
         results = []

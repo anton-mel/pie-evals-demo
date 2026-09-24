@@ -78,6 +78,7 @@ class Tier(StrEnumBase):
     SMOKE = "smoke"
     NIGHTLY = "nightly"
     WEEKLY = "weekly"
+    TARGETED = "targeted"
 
 
 class CellStatus(StrEnumBase):
