@@ -37,11 +37,11 @@ PAGE = """<!doctype html>
   .brand { font-weight: 700; font-size: 17px; display: inline-flex; align-items: center; gap: 3px; }
   .logo { width: 22px; height: 22px; }
   nav { display: flex; gap: 8px; flex-wrap: wrap; }
-  nav button, .pill, .signout, .signin, select, button.act {
+  nav button, .pill, .signin, select, button.act {
     box-sizing: border-box; height: 32px; display: inline-flex; align-items: center; gap: 6px;
     border: 1px solid #d0d7de; border-radius: 999px; padding: 0 14px; background: #fff; color: #424a53;
     font: inherit; font-size: 14px; line-height: 1; cursor: pointer; }
-  nav button:hover, .pill:hover, .signout:hover, select:hover { background: #f6f8fa; }
+  nav button:hover, .pill:hover, select:hover { background: #f6f8fa; }
   nav button.on { background: #1f2328; border-color: #1f2328; color: #fff; }
   .grow { flex: 1; }
   main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 48px; }
@@ -51,7 +51,6 @@ PAGE = """<!doctype html>
   .card { background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
   h2 { font-size: 16px; margin: 0 0 12px; }
   .muted { color: #656d76; font-size: 13px; }
-  .big { font-size: 26px; font-weight: 600; }
   .up { color: #1a7f37; } .down { color: #cf222e; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -90,17 +89,25 @@ PAGE = """<!doctype html>
   #who { display: flex; align-items: center; gap: 8px; }
   .pill { padding: 0 12px 0 4px; color: #1f2328; }
   .pill .avatar { margin: 0; }
-  .signout:hover, .pill:hover { background: #f6f8fa; }
   .modal { position: fixed; inset: 0; background: rgba(31, 35, 40, .45); display: flex; align-items: flex-start; justify-content: center; padding: 8vh 16px; z-index: 10; }
   .modal[hidden] { display: none; }
   .sheet { position: relative; background: #fff; border-radius: 10px; width: min(640px, 100%); max-height: 84vh; overflow: auto; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
   .sheet .card { border: 0; margin: 0; }
-  .subtabs { display: flex; gap: 8px; margin: -4px 32px 16px 0; }
-  .picklist { max-height: 220px; overflow: auto; border: 1px solid #eaeef2; border-radius: 6px; padding: 4px 8px; margin-bottom: 12px; }
-  label.clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tag.new { background: #fff8c5; }
   pre.cmd { background: #f6f8fa; border: 1px solid #d8dee4; border-radius: 6px; padding: 10px; white-space: pre-wrap; word-break: break-all; font-size: 12px; }
   .x { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 22px; line-height: 1; cursor: pointer; color: #656d76; }
+  tr.push { cursor: pointer; } tr.push:hover { background: #f6f8fa; }
+  .auto { margin: 0 0 12px; font-size: 14px; color: #424a53; }
+  button.link { border: 0; background: none; color: #0969da; font: inherit; cursor: pointer; padding: 0 0 0 6px; }
+  #who { position: relative; }
+  .menu { position: absolute; right: 0; top: 40px; background: #fff; border: 1px solid #d0d7de; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 6px; z-index: 20; min-width: 160px; display: flex; flex-direction: column; }
+  .menu button { border: 0; background: none; font: inherit; font-size: 14px; text-align: left; padding: 8px 12px; border-radius: 8px; cursor: pointer; color: #1f2328; }
+  .menu button:hover { background: #f6f8fa; }
+  .gridwrap { overflow-x: auto; margin: 12px 0; }
+  table.grid td, table.grid th { padding: 5px 8px; font-size: 13px; }
+  table.grid .c { text-align: center; }
+  .ok { color: #1a7f37; font-weight: 700; }
+  .label { font-size: 13px; font-weight: 600; color: #424a53; margin: 8px 0 4px; }
 </style>
 </head>
 <body>
@@ -119,14 +126,16 @@ PAGE = """<!doctype html>
 <script>
 const DATA = __DATA__;
 const TABS = ["Overview", "Pushes", "Macs", "People"];
-const COLORS = ["#0969da", "#bf8700", "#8250df"];
+const COLORS = ["#0969da", "#bf8700", "#8250df", "#1a7f37", "#cf222e"];
+const NL = String.fromCharCode(10);
+const esc = x => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 const modelName = id => (DATA.models.find(m => m.id === id) || { name: id }).name;
-const macName = id => (DATA.pool.find(m => m.id === id) || { name: id }).name;
-let tab = "Overview", charts = [], me = null;
+const macName = id => (DATA.pool.find(m => m.id === id) || DATA.results[id] || { name: id }).name;
+let tab = "Overview", charts = [], me = null, mine = null, recent = null;
 const token = () => { try { return localStorage.getItem("pie-evals-token"); } catch { return null; } };
 
 const modelSel = document.getElementById("model");
-modelSel.innerHTML = DATA.models.filter(m => m.has_results).map(m => `<option value="${m.id}">${m.name}</option>`).join("");
+modelSel.innerHTML = DATA.models.filter(m => m.has_results).map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join("");
 modelSel.value = DATA.default_model; modelSel.onchange = draw;
 const unitSel = document.getElementById("unit"); unitSel.onchange = draw;
 const unitName = () => unitSel.value === "v" ? "tok/s" : "TFLOP/s";
@@ -136,6 +145,13 @@ function series(mac, metric) {
   return DATA.commits.filter(c => byCommit[c.sha]).map(c => ({ sha: c.sha, ...byCommit[c.sha] }));
 }
 const macs = () => Object.keys(DATA.results).filter(m => DATA.results[m].models[modelSel.value]);
+function ran(sha) {
+  const out = new Set();
+  for (const [mac, r] of Object.entries(DATA.results))
+    for (const [model, metrics] of Object.entries(r.models))
+      if (Object.values(metrics).some(byCommit => byCommit[sha])) out.add(`${mac}|${model}`);
+  return out;
+}
 
 function overview() {
   const list = macs(), key = unitSel.value;
@@ -168,140 +184,177 @@ function overview() {
       options: { responsive: true, maintainAspectRatio: false,
                  plugins: { legend: { display: list.length > 1, position: "bottom", labels: { boxWidth: 8, font: { size: 11 } } } },
                  scales: { x: { ticks: { font: { size: 10 }, maxRotation: 0, autoSkip: true } }, y: { ticks: { font: { size: 10 } } } },
-                 onClick: (e, el) => { if (el.length) window.open(`https://github.com/${DATA.pie_repo}/commit/` + labels[el[0].index]); } } }));
+                 onClick: (e, el) => { if (el.length) openCommit(labels[el[0].index]); } } }));
   });
 }
 
+function summary() {
+  if (!mine) return `${esc(modelName(DATA.default_model))} on every connected Mac`;
+  if (mine.enabled === false) return "nothing (switched off)";
+  const models = (mine.models || []).map(modelName).join(", ") || esc(modelName(DATA.default_model));
+  const where = (mine.macs || []).length ? mine.macs.map(macName).join(", ") : "every connected Mac";
+  return `${esc(models)} on ${esc(where)}`;
+}
+function allCommits() {
+  const by = new Map(DATA.commits.map(c => [c.sha, { ...c }]));
+  for (const c of recent || []) if (!by.has(c.sha)) by.set(c.sha, c);
+  return [...by.values()].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+}
 function pushes() {
-  let html = `<div class="card"><h2>Recent pushes</h2><table class="compact"><colgroup><col><col style="width:140px"><col style="width:96px"></colgroup>` +
-             `<tr><th>commit</th><th>author</th><th>date</th></tr>`;
-  [...DATA.commits].reverse().forEach(c => {
-    html += `<tr><td class="clip" title="${c.message.replace(/"/g, "&quot;")}"><a href="https://github.com/${DATA.pie_repo}/commit/${c.sha}" target="_blank">${c.sha.slice(0, 7)}</a> ${c.message}</td>` +
-            `<td class="clip">${c.author}</td><td>${c.date}</td></tr>`;
-  });
+  const head = me
+    ? `<div class="auto">Your pushes run <b>${summary()}</b> <button class="link" id="edit">Change</button></div>`
+    : `<div class="auto muted"><a href="#" id="sig">Sign in</a> to choose what runs on your pushes and to add runs to any commit.</div>`;
+  let html = head + `<div class="card"><table class="compact"><colgroup><col><col style="width:140px"><col style="width:96px"><col style="width:120px"></colgroup>` +
+             `<tr><th>commit</th><th>author</th><th>date</th><th>benchmarks</th></tr>`;
+  for (const c of allCommits()) {
+    const n = ran(c.sha).size;
+    html += `<tr class="push" data-sha="${c.sha}"><td class="clip" title="${esc(c.message)}"><code>${c.sha.slice(0, 7)}</code> ${esc(c.message)}</td>` +
+            `<td class="clip">${esc(c.author)}</td><td>${c.date}</td>` +
+            `<td>${n ? `<span class="tag">${n} run${n > 1 ? "s" : ""}</span>` : `<span class="tag new">not measured</span>`}</td></tr>`;
+  }
   document.getElementById("main").innerHTML = html + `</table></div>`;
+  document.querySelectorAll("tr.push").forEach(tr => tr.onclick = () => openCommit(tr.dataset.sha));
+  const e = document.getElementById("edit"), s = document.getElementById("sig");
+  if (e) e.onclick = editMine;
+  if (s) s.onclick = ev => { ev.preventDefault(); openSignIn(); };
+  if (me && recent === null) loadRecent();
+}
+async function loadRecent() {
+  recent = [];
+  try {
+    const got = await gh(`repos/${DATA.pie_repo}/commits?sha=main&per_page=30`) || [];
+    recent = got.map(c => ({ sha: c.sha, message: c.commit.message.split(NL)[0], author: c.author?.login || c.commit.author.name, date: c.commit.committer.date.slice(0, 10) }));
+  } catch { recent = []; }
+  if (tab === "Pushes") draw();
+}
+
+function openCommit(sha) {
+  const c = allCommits().find(x => x.sha === sha) || { sha, message: "", author: "", date: "" };
+  const done = ran(sha), cols = [...new Set([...DATA.pool.map(m => m.id), ...Object.keys(DATA.results)])];
+  let grid = `<table class="grid"><tr><th>model</th>${cols.map(m => `<th class="c">${esc(macName(m))}</th>`).join("")}</tr>`;
+  for (const m of DATA.models) {
+    grid += `<tr><td>${esc(m.name)}</td>` + cols.map(mac => done.has(`${mac}|${m.id}`)
+      ? `<td class="c"><span class="ok" title="measured">✓</span></td>`
+      : me && DATA.pool.some(p => p.id === mac) ? `<td class="c"><input type="checkbox" data-mac="${mac}" data-model="${m.id}"></td>` : `<td class="c muted">–</td>`).join("") + `</tr>`;
+  }
+  grid += `</table>`;
+  sheet(`<h2><a href="https://github.com/${DATA.pie_repo}/commit/${sha}" target="_blank"><code>${sha.slice(0, 7)}</code></a> ${esc(c.message)}</h2>` +
+    `<div class="muted">${esc(c.author)} · ${c.date} · ✓ already measured</div><div class="gridwrap">${grid}</div>` +
+    (me ? `<button class="act" id="run">Run selected</button> <span id="msg" class="muted"></span>`
+        : `<div class="muted"><a href="#" id="sig2">Sign in</a> to add runs to this commit.</div>`));
+  const s2 = document.getElementById("sig2");
+  if (s2) s2.onclick = ev => { ev.preventDefault(); openSignIn(); };
+  const run = document.getElementById("run");
+  if (run) run.onclick = async () => {
+    const byMac = {};
+    document.querySelectorAll("#sheet input[data-mac]:checked").forEach(x => (byMac[x.dataset.mac] ||= []).push(x.dataset.model));
+    const msg = document.getElementById("msg");
+    if (!Object.keys(byMac).length) { msg.textContent = "Tick what to add."; return; }
+    msg.textContent = "Starting…";
+    try {
+      for (const [mac, models] of Object.entries(byMac))
+        await gh(`repos/${DATA.repo}/actions/workflows/pie-eval.yml/dispatches`, { method: "POST",
+          body: JSON.stringify({ ref: "main", inputs: { pie_commit: sha, models: models.join(","), macs: mac } }) });
+      msg.innerHTML = `Started. <a href="https://github.com/${DATA.repo}/actions/workflows/pie-eval.yml" target="_blank">Follow</a>`;
+    } catch (e) { msg.textContent = "Could not start: " + e.message; }
+  };
+}
+
+async function editMine() {
+  const cur = mine || { models: [DATA.default_model], macs: [], enabled: true };
+  const pick = (name, items, checked) => items.map(x => `<label class="check"><input type="checkbox" name="${name}" value="${x.id}" ${checked.includes(x.id) ? "checked" : ""}> ${esc(x.name)}</label>`).join("");
+  sheet(`<h2>What runs on your pushes</h2><p class="muted">Every commit you land on pie main runs this.</p>` +
+    `<label class="check"><input type="checkbox" name="enabled" ${cur.enabled === false ? "" : "checked"}> benchmark my pushes</label>` +
+    `<div class="row"><div><div class="label">Models</div>${pick("model", DATA.models, cur.models || [])}</div>` +
+    `<div><div class="label">Macs</div><label class="check"><input type="checkbox" name="all" ${(cur.macs || []).length ? "" : "checked"}> every connected Mac</label>` +
+    `${pick("mac", DATA.pool, cur.macs || [])}</div></div><button class="act" id="save">Save</button> <span id="msg" class="muted"></span>`);
+  const picked = n => [...document.querySelectorAll(`#sheet input[name=${n}]:checked`)].map(x => x.value);
+  document.getElementById("save").onclick = async () => {
+    const data = { models: picked("model"), macs: picked("all").length ? [] : picked("mac"), enabled: picked("enabled").length > 0 };
+    const msg = document.getElementById("msg"); msg.textContent = "Saving…";
+    try {
+      const path = `repos/${DATA.repo}/contents/users/${me.login}.json`, now = await gh(path);
+      await gh(path, { method: "PUT", body: JSON.stringify({
+        message: `users: ${me.login} ${data.enabled ? "runs " + (data.models.join(", ") || "the default") : "skips benchmarks"}`,
+        content: btoa(JSON.stringify(data, null, 2) + NL), ...(now ? { sha: now.sha } : {}) }) });
+      mine = data; closeSheet(); draw();
+    } catch (e) { msg.textContent = "Could not save: " + e.message; }
+  };
 }
 
 function pool() {
-  let html = `<div class="card"><h2>Connected Macs</h2><table><tr><th>Mac</th><th>memory</th><th>status</th><th>last run</th></tr>`;
-  for (const m of DATA.pool) html += `<tr><td>${m.name} <span class="muted">${m.id}</span></td><td>${m.memory_gib ? m.memory_gib + " GB" : ""}</td><td><span class="dot ${m.status}"></span>${m.status}</td><td>${m.last}</td></tr>`;
+  let html = `<div class="card"><table><tr><th>Mac</th><th>memory</th><th>status</th><th>last run</th></tr>`;
+  for (const m of DATA.pool) html += `<tr><td>${esc(m.name)} <span class="muted">${m.id}</span></td><td>${m.memory_gib ? m.memory_gib + " GB" : ""}</td><td><span class="dot ${m.status}"></span>${m.status}</td><td>${m.last}</td></tr>`;
   if (!DATA.pool.length) html += `<tr><td colspan="4" class="muted">No Mac is connected.</td></tr>`;
   document.getElementById("main").innerHTML = html + `</table></div>`;
 }
-
 function people() {
-  let html = `<div class="card"><h2>People</h2><table><tr><th>who</th><th>models</th><th>Macs</th></tr>`;
+  let html = `<div class="card"><table><tr><th>who</th><th>models</th><th>Macs</th></tr>`;
   for (const p of DATA.people) {
-    html += `<tr><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${p.login}</td>` +
-      `<td>${p.models.map(m => `<span class="tag">${modelName(m)}</span>`).join("") || `<span class="muted">default</span>`}</td>` +
-      `<td>${p.macs.map(m => `<span class="tag">${macName(m)}</span>`).join("") || `<span class="muted">every connected Mac</span>`}</td></tr>`;
+    html += `<tr><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}${p.enabled === false ? ` <span class="tag">off</span>` : ""}</td>` +
+      `<td>${p.models.map(m => `<span class="tag">${esc(modelName(m))}</span>`).join("") || `<span class="muted">default</span>`}</td>` +
+      `<td>${p.macs.map(m => `<span class="tag">${esc(macName(m))}</span>`).join("") || `<span class="muted">every connected Mac</span>`}</td></tr>`;
   }
-  if (!DATA.people.length) html += `<tr><td colspan="3" class="muted">Nobody has a setup yet: everyone gets ${modelName(DATA.default_model)} on every connected Mac.</td></tr>`;
+  if (!DATA.people.length) html += `<tr><td colspan="3" class="muted">Nobody has a setup yet: everyone gets ${esc(modelName(DATA.default_model))} on every connected Mac.</td></tr>`;
   document.getElementById("main").innerHTML = html + `</table></div>`;
 }
 
 async function gh(path, opts = {}) {
   const r = await fetch(`https://api.github.com/${path}`, { ...opts, headers: { Authorization: `Bearer ${token()}`, Accept: "application/vnd.github+json", ...(opts.headers || {}) } });
   if (!r.ok && r.status !== 404) throw new Error(`${r.status} ${await r.text()}`);
-  return r.status === 404 ? null : r.json();
+  if (r.status === 404 || r.status === 204) return null;
+  return r.json();
 }
-function openSheet() { document.getElementById("modal").hidden = false; setup(); }
+function sheet(html) { document.getElementById("sheet").innerHTML = `<div class="card">${html}</div>`; document.getElementById("modal").hidden = false; }
 function closeSheet() { document.getElementById("modal").hidden = true; }
 document.getElementById("close").onclick = closeSheet;
 document.getElementById("modal").onclick = e => { if (e.target.id === "modal") closeSheet(); };
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
-let section = "My commits";
-const pickList = (name, items, checked) => items.map(x => `<label class="check"><input type="checkbox" name="${name}" value="${x.id}" ${checked.includes(x.id) ? "checked" : ""}> ${x.name}${x.hint ? ` <span class="muted">${x.hint}</span>` : ""}</label>`).join("");
-const picked = name => [...document.querySelectorAll(`#sheet input[name=${name}]:checked`)].map(x => x.value);
-const macItems = () => DATA.pool.map(m => ({ id: m.id, name: m.name, hint: m.id }));
-function macChoice(cur) {
-  return `<label class="check"><input type="checkbox" name="all" ${cur.length ? "" : "checked"}> every connected Mac</label>${pickList("mac", macItems(), cur)}`;
-}
-async function setup() {
-  const main = document.getElementById("sheet");
-  if (!me) {
-    main.innerHTML = `<div class="card"><h2>Sign in with GitHub</h2><p class="muted">Paste a fine-grained GitHub token for <b>${DATA.repo}</b> with <b>Contents</b> and <b>Actions</b> read & write. It stays in this browser.</p>` +
-      `<input id="tok" type="password" placeholder="github_pat_…" size="40"> <button class="act" id="go">Sign in</button> <span id="err" class="down"></span></div>`;
-    document.getElementById("go").onclick = async () => {
-      try { localStorage.setItem("pie-evals-token", document.getElementById("tok").value.trim()); } catch {}
-      await signIn(); if (me) setup(); else document.getElementById("err").textContent = "That token did not work.";
-    };
-    return;
-  }
-  const sections = ["My commits", "Run now", "Add a Mac"];
-  main.innerHTML = `<div class="card"><nav class="subtabs">${sections.map(x => `<button class="${x === section ? "on" : ""}">${x}</button>`).join("")}</nav><div id="body"></div></div>`;
-  main.querySelectorAll(".subtabs button").forEach(b => b.onclick = () => { section = b.textContent; setup(); });
-  const body = document.getElementById("body");
-  if (section === "My commits") return myCommits(body);
-  if (section === "Run now") return runNow(body);
-  return addMac(body);
-}
-async function myCommits(body) {
-  const file = await gh(`repos/${DATA.repo}/contents/users/${me.login}.json`);
-  const cur = file ? JSON.parse(atob(file.content)) : { models: [DATA.default_model], macs: [], enabled: true };
-  body.innerHTML = `<p class="muted">What runs when a commit by <b>${me.login}</b> lands on pie main.</p>` +
-    `<label class="check"><input type="checkbox" name="enabled" ${cur.enabled === false ? "" : "checked"}> benchmark my commits</label>` +
-    `<div class="row"><div><h2>Models</h2>${pickList("model", DATA.models, cur.models || [])}</div><div><h2>Macs</h2>${macChoice(cur.macs || [])}</div></div>` +
-    `<button class="act" id="save">Save</button> <span id="msg" class="muted"></span>`;
-  document.getElementById("save").onclick = async () => {
-    const data = { models: picked("model"), macs: picked("all").length ? [] : picked("mac"), enabled: picked("enabled").length > 0 };
-    const msg = document.getElementById("msg"); msg.textContent = "Saving…";
-    try {
-      const now = await gh(`repos/${DATA.repo}/contents/users/${me.login}.json`);
-      await gh(`repos/${DATA.repo}/contents/users/${me.login}.json`, { method: "PUT", body: JSON.stringify({
-        message: `users: ${me.login} ${data.enabled ? "runs " + (data.models.join(", ") || "the default") : "skips benchmarks"}`,
-        content: btoa(JSON.stringify(data, null, 2) + "\\n"), ...(now ? { sha: now.sha } : {}) }) });
-      msg.textContent = data.enabled ? "Saved. Your next push to main runs this." : "Saved. Your pushes are not benchmarked.";
-    } catch (e) { msg.textContent = "Could not save: " + e.message; }
+document.addEventListener("keydown", e => { if (e.key === "Escape") { closeSheet(); closeMenu(); } });
+
+function openSignIn() {
+  sheet(`<h2>Sign in with GitHub</h2><p class="muted">Paste a fine-grained GitHub token for <b>${DATA.repo}</b> with <b>Contents</b> and <b>Actions</b> read & write. It stays in this browser.</p>` +
+    `<input id="tok" type="password" placeholder="github_pat_…" size="40"> <button class="act" id="go">Sign in</button> <span id="err" class="down"></span>`);
+  document.getElementById("go").onclick = async () => {
+    try { localStorage.setItem("pie-evals-token", document.getElementById("tok").value.trim()); } catch {}
+    await signIn();
+    if (me) { closeSheet(); draw(); } else document.getElementById("err").textContent = "That token did not work.";
   };
 }
-async function runNow(body) {
-  body.innerHTML = `<p class="muted">Loading recent pie commits…</p>`;
-  let recent = [];
-  try { recent = await gh(`repos/${DATA.pie_repo}/commits?sha=main&per_page=30`) || []; } catch (e) { body.innerHTML = `<p class="down">${e.message}</p>`; return; }
-  const measured = new Set(DATA.commits.map(c => c.sha));
-  body.innerHTML = `<p class="muted">Benchmark chosen pie commits now: catch up on ones that were skipped, or add models and Macs to ones already measured.</p>` +
-    `<h2>Commits</h2><div class="picklist">${recent.map(c => `<label class="check clip"><input type="checkbox" name="commit" value="${c.sha}"> ` +
-      `<code>${c.sha.slice(0, 7)}</code> ${c.commit.message.split("\\n")[0]} ${measured.has(c.sha) ? `<span class="tag">measured</span>` : `<span class="tag new">not measured</span>`}</label>`).join("")}</div>` +
-    `<div class="row"><div><h2>Models</h2>${pickList("model", DATA.models, [DATA.default_model])}</div><div><h2>Macs</h2>${macChoice([])}</div></div>` +
-    `<button class="act" id="run">Run</button> <span id="msg" class="muted"></span>`;
-  document.getElementById("run").onclick = async () => {
-    const commits = picked("commit"), models = picked("model"), macs = picked("all").length ? [] : picked("mac");
-    const msg = document.getElementById("msg");
-    if (!commits.length || !models.length) { msg.textContent = "Pick at least one commit and one model."; return; }
-    msg.textContent = "Starting…";
-    try {
-      for (const sha of commits) {
-        await gh(`repos/${DATA.repo}/actions/workflows/pie-eval.yml/dispatches`, { method: "POST",
-          body: JSON.stringify({ ref: "main", inputs: { pie_commit: sha, models: models.join(","), macs: macs.join(",") } }) });
-      }
-      msg.innerHTML = `Started ${commits.length} run${commits.length > 1 ? "s" : ""}. <a href="https://github.com/${DATA.repo}/actions/workflows/pie-eval.yml" target="_blank">Follow them</a>`;
-    } catch (e) { msg.textContent = "Could not start: " + e.message; }
-  };
-}
-function addMac(body) {
+function addMac() {
   const cmd = `PLATFORM_ID=<id> ./infra/mac/setup-runner.sh "$(gh api -X POST repos/${DATA.repo}/actions/runners/registration-token -q .token)"`;
-  body.innerHTML = `<p class="muted">Connect a Mac so it can take benchmark runs. On that Mac, in a checkout of <b>${DATA.repo}</b>, run:</p>` +
-    `<pre class="cmd">${cmd.replace(/</g, "&lt;")}</pre><button class="act" id="copy">Copy</button> <span id="msg" class="muted"></span>` +
-    `<p class="muted"><code>&lt;id&gt;</code> is the Mac's entry in <code>matrix/platforms.yaml</code>, for example <code>m5-max-48g</code>. ` +
-    `Creating the registration token needs admin on ${DATA.repo}; without it, ask an admin for a token. The Mac shows up under Macs once it is connected.</p>`;
+  sheet(`<h2>Add a Mac</h2><p class="muted">On the Mac, in a checkout of <b>${DATA.repo}</b>, run:</p><pre class="cmd">${esc(cmd)}</pre>` +
+    `<button class="act" id="copy">Copy</button> <span id="msg" class="muted"></span>` +
+    `<p class="muted"><code>&lt;id&gt;</code> is the Mac's entry in <code>matrix/platforms.yaml</code>, for example <code>m5-max-48g</code>. The token needs admin on ${DATA.repo}.</p>`);
   document.getElementById("copy").onclick = async () => {
     try { await navigator.clipboard.writeText(cmd); document.getElementById("msg").textContent = "Copied."; } catch { document.getElementById("msg").textContent = "Select and copy the command."; }
   };
 }
+
+function closeMenu() { document.querySelector(".menu")?.remove(); }
+document.addEventListener("click", e => { if (!e.target.closest("#who")) closeMenu(); });
 async function signIn() {
-  me = null;
-  if (token()) { try { me = await gh("user"); } catch { me = null; } }
+  me = null; mine = null; recent = null;
+  if (token()) {
+    try { me = await gh("user"); } catch { me = null; }
+    if (me) {
+      try { const f = await gh(`repos/${DATA.repo}/contents/users/${me.login}.json`); mine = f ? JSON.parse(atob(f.content)) : null; } catch { mine = null; }
+    }
+  }
   renderWho();
 }
 function renderWho() {
-  document.getElementById("who").innerHTML = me
-    ? `<a href="#" id="me" class="pill"><img class="avatar" src="${me.avatar_url}">${me.login}</a><a href="#" id="out" class="signout">Sign out</a>`
-    : `<a href="#" id="in" class="signin"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>Sign in with GitHub</a>`;
-  const o = document.getElementById("out"), i = document.getElementById("in"), m = document.getElementById("me");
-  if (o) o.onclick = e => { e.preventDefault(); try { localStorage.removeItem("pie-evals-token"); } catch {} me = null; renderWho(); closeSheet(); };
-  if (i) i.onclick = e => { e.preventDefault(); openSheet(); };
-  if (m) m.onclick = e => { e.preventDefault(); openSheet(); };
+  const who = document.getElementById("who");
+  who.innerHTML = me
+    ? `<button class="pill" id="me"><img class="avatar" src="${me.avatar_url}">${esc(me.login)}</button>`
+    : `<button class="signin" id="in"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>Sign in with GitHub</button>`;
+  const i = document.getElementById("in"), m = document.getElementById("me");
+  if (i) i.onclick = openSignIn;
+  if (m) m.onclick = () => {
+    if (document.querySelector(".menu")) return closeMenu();
+    who.insertAdjacentHTML("beforeend", `<div class="menu"><button id="add">Add a Mac</button><button id="out">Sign out</button></div>`);
+    document.getElementById("add").onclick = () => { closeMenu(); addMac(); };
+    document.getElementById("out").onclick = () => { closeMenu(); try { localStorage.removeItem("pie-evals-token"); } catch {} me = null; mine = null; recent = null; renderWho(); draw(); };
+  };
 }
 
 function draw() {
@@ -365,7 +418,7 @@ def people(users_dir: Path) -> list[dict]:
             d = json.loads(f.read_text())
         except json.JSONDecodeError:
             continue
-        out.append({"login": f.stem, "models": list(d.get("models") or []), "macs": list(d.get("macs") or [])})
+        out.append({"login": f.stem, "models": list(d.get("models") or []), "macs": list(d.get("macs") or []), "enabled": d.get("enabled") is not False})
     return out
 
 

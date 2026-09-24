@@ -89,7 +89,7 @@ def test_site_has_pushes_pool_and_people(tmp_path, matrix, monkeypatch):
     assert [c["sha"] for c in data["commits"]] == ["c0", "c1"]
     assert [(m["id"], m["status"]) for m in data["pool"]] == [("m5-max-48g", "busy")]
     assert set(data["results"]["m5-max-48g"]["models"]["qwen3.5-0.8b-bf16"]) == {0, 2, 3}
-    assert data["people"] == [{"login": "friend", "models": ["qwen3.5-0.8b-bf16"], "macs": ["m5-max-48g"]}]
+    assert data["people"] == [{"login": "friend", "models": ["qwen3.5-0.8b-bf16"], "macs": ["m5-max-48g"], "enabled": True}]
     assert any(m["id"] == "qwen3.5-0.8b-bf16" and m["has_results"] for m in data["models"])
     assert dashboard.render(st, matrix, tmp_path / "site", live, repo="o/evals", users_dir=users, lookup_commits=False) == 2
-    assert "openSheet" in (tmp_path / "site" / "index.html").read_text()
+    assert "openCommit" in (tmp_path / "site" / "index.html").read_text()
