@@ -2,11 +2,11 @@
 
 | status | cells |
 |---|---|
-| pass | 516 |
-| fail | 576 |
+| pass | 527 |
+| fail | 580 |
 | declared_unsupported | 7898 |
-| not_run | 4171 |
-| noisy | 159 |
+| not_run | 4157 |
+| noisy | 158 |
 
 ## Gaps (expected supported, but not passing)
 
@@ -165,7 +165,11 @@
 | pie | a100-x2 | qwen3.6-27b-mlx4 | ss-128-64 | classifier-free-guidance | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
 | pie | a100-x2 | qwen3.6-35b-a3b-mini5 | ss-128-64 | rs-speculative-decoding | tp2,rs | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
 | pie | a100-x2 | qwen3.6-35b-a3b-mlx4 | ss-128-64 | rs-speculative-decoding | tp2,rs | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
+| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | c256 | text-completion-bench | tp1 | fail |  |  |
+| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | kv-oversub | text-completion-bench | tp1 | fail |  |  |
 | pie | l40s-x1 | gemma-4-31b-mlx4 | control-aa | text-completion-bench | tp1 | fail | crash | all 8 requests failed: g0 take: channel is poisoned: pipeline: forward failed: direct launch rejected: invalid submissio |
+| pie | l40s-x1 | gemma-4-31b-mlx4 | lc-8k-128 | text-completion-bench | tp1 | fail | crash | does not fit beside the short shapes: pie serve exited before ready: RuntimeError: start: boot embedded worker: creating |
+| pie | l40s-x1 | gemma-4-31b-mlx4 | lc-32k-128 | text-completion-bench | tp1 | fail | crash | does not fit beside the short shapes: pie serve exited before ready: RuntimeError: start: boot embedded worker: creating |
 | pie | l40s-x1 | gemma-4-31b-mlx4 | lc-1k-128 | trackb-h2o | tp1 | fail | crash | pie serve exited before ready: pyo3_runtime.PanicException: value 55 is weight 16, a split-plane bank; it resolves throu |
 | pie | l40s-x1 | gemma-4-31b-mlx4 | lc-1k-128 | trackb-snapkv | tp1 | fail | crash | pie serve exited before ready: pyo3_runtime.PanicException: value 55 is weight 16, a split-plane bank; it resolves throu |
 | pie | l40s-x1 | gemma-4-31b-mlx4 | lc-1k-128 | snapkv-eviction | tp1 | fail | crash | pie serve exited before ready: pyo3_runtime.PanicException: value 55 is weight 16, a split-plane bank; it resolves throu |
@@ -640,6 +644,7 @@
 | sglang | a100-x2 | qwen3.5-0.8b-bf16 | c32 | text-completion-bench | tp2 | noisy |  |  |
 | sglang | a100-x2 | qwen3.5-0.8b-bf16 | mixed-256 | text-completion-bench | tp2 | noisy |  |  |
 | sglang | a100-x2 | qwen3.5-0.8b-bf16 | c8 | cacheback-speculative-decoding | tp2,ngram | noisy |  |  |
+| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | c8 | text-completion-bench | tp1 | noisy |  |  |
 | pie | l40s-x1 | gemma-4-31b-mlx4 | ss-128-64 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x1 | gemma-4-31b-mlx4 | ss-512-256 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x1 | gemma-4-31b-mlx4 | c8 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
@@ -648,8 +653,6 @@
 | pie | l40s-x1 | gemma-4-31b-mlx4 | c256 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x1 | gemma-4-31b-mlx4 | lc-1k-128 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x1 | gemma-4-31b-mlx4 | lc-2k-128 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
-| pie | l40s-x1 | gemma-4-31b-mlx4 | lc-8k-128 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
-| pie | l40s-x1 | gemma-4-31b-mlx4 | lc-32k-128 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x1 | gemma-4-31b-mlx4 | prefix-1k-x64 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x1 | gemma-4-31b-mlx4 | mixed-256 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x1 | gemma-4-31b-mlx4 | kv-oversub | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
@@ -1566,20 +1569,6 @@
 | pie | h100-pcie-x1 | qwen3.6-35b-a3b-mlx4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
 | pie | h100-pcie-x1 | qwen3.6-35b-a3b-mlx4 | ss-128-64 | rs-speculative-decoding | tp1,rs | not_run |  |  |
 | pie | h100-pcie-x1 | qwen3.6-35b-a3b-mlx4 | ss-128-64 | classifier-free-guidance | tp1 | not_run |  |  |
-| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | control-aa | text-completion-bench | tp1 | not_run |  |  |
-| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | ss-128-64 | text-completion-bench | tp1 | not_run |  |  |
-| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | ss-512-256 | text-completion-bench | tp1 | not_run |  |  |
-| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | c8 | text-completion-bench | tp1 | not_run |  |  |
-| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | c32 | text-completion-bench | tp1 | not_run |  |  |
-| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | c64 | text-completion-bench | tp1 | not_run |  |  |
-| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | c256 | text-completion-bench | tp1 | not_run |  |  |
-| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | lc-1k-128 | text-completion-bench | tp1 | not_run |  |  |
-| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | lc-2k-128 | text-completion-bench | tp1 | not_run |  |  |
-| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | lc-8k-128 | text-completion-bench | tp1 | not_run |  |  |
-| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | lc-32k-128 | text-completion-bench | tp1 | not_run |  |  |
-| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | prefix-1k-x64 | text-completion-bench | tp1 | not_run |  |  |
-| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | mixed-256 | text-completion-bench | tp1 | not_run |  |  |
-| pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | kv-oversub | text-completion-bench | tp1 | not_run |  |  |
 | pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | lc-1k-128 | trackb-h2o | tp1 | not_run |  |  |
 | pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | lc-1k-128 | trackb-snapkv | tp1 | not_run |  |  |
 | pie | l40s-x1 | gemma-4-26b-a4b-mlx4 | lc-1k-128 | snapkv-eviction | tp1 | not_run |  |  |
@@ -4955,7 +4944,7 @@
 | deepseek_v4 | · | · | · | · | · | 0/23 | 0/23 | 0/23 | 0/23 | · | · | · | · | · |
 | deepseek_v41 | · | · | · | · | · | 0/23 | 0/23 | 0/23 | 0/23 | · | · | · | · | · |
 | gemma4 | 0/40 | 0/40 | 0/40 | 7/40 | 3/40 | 0/48 | 0/48 | 0/48 | 0/48 | 0/40 | 6/40 | 0/40 | 5/40 | 0/40 |
-| gemma4_moe | 0/21 | 0/21 | 0/21 | 0/21 | 0/21 | 0/25 | 0/25 | 0/25 | 0/25 | 0/21 | 0/21 | 0/21 | 1/21 | 0/21 |
+| gemma4_moe | 0/21 | 0/21 | 0/21 | 11/21 | 0/21 | 0/25 | 0/25 | 0/25 | 0/25 | 0/21 | 0/21 | 0/21 | 1/21 | 0/21 |
 | glm5_next | 0/14 | 0/14 | 0/14 | 0/14 | 4/14 | 0/18 | 0/18 | 0/18 | 0/18 | 6/14 | 11/14 | 0/14 | 0/14 | 0/14 |
 | gpt_oss | 0/59 | 0/59 | 0/59 | 29/59 | 10/59 | 0/71 | 0/71 | 0/71 | 0/71 | 0/59 | 21/59 | 0/59 | 24/59 | 13/59 |
 | kimi_k3 | 0/14 | 0/14 | 0/14 | 12/14 | 0/14 | 0/18 | 0/18 | 0/18 | 0/18 | 6/14 | 6/14 | 0/14 | · | 0/14 |
