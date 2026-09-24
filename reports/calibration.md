@@ -2,7 +2,7 @@
 
 | workload | declared | observed median (min) | n |
 |---|---|---|---|
-| control-aa | 0.5 | 0.2 | 78 |
+| control-aa | 0.5 | 0.2 | 79 |
 | ss-128-64 | 0.5 | 0.3 | 199 |
 | ss-512-256 | 1.0 | 0.9 | 87 |
 | c8 | 1.0 | 0.6 | 135 |
