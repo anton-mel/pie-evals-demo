@@ -3,10 +3,10 @@
 | status | cells |
 |---|---|
 | pass | 99 |
-| fail | 31 |
+| fail | 34 |
 | declared_unsupported | 681 |
 | not_run | 186 |
-| noisy | 16 |
+| noisy | 13 |
 
 ## Gaps (expected supported, but not passing)
 
@@ -15,23 +15,26 @@
 | pie | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | trackb-h2o | tp1 | fail | crash | all 4 requests failed: bind failed: intrinsic attn_score is not advertised by the engine serving this model (`ModelProfi |
 | pie | l40s-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | trackb-snapkv | tp1 | fail | crash | all 4 requests failed: prefill submit @0: bind failed: intrinsic attn_score is not advertised by the engine serving this |
 | pie | l40s-x1 | kimi-k3-mini8 | control-aa | text-completion-bench | tp1 | fail | crash | all 8 requests failed: g0 take: channel is poisoned: pipeline: forward failed: direct launch rejected: invalid submissio |
-| pie | l40s-x2 | glm-5.3-flash-mini8 | control-aa | text-completion-bench | tp2 | fail | hang | timed out (hang is only ever observed via timeout) |
-| pie | l40s-x2 | gpt-oss-20b-mxfp4-mini5 | control-aa | text-completion-bench | tp2 | fail | hang | timed out (hang is only ever observed via timeout) |
-| pie | l40s-x2 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | text-completion-bench | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | gpt-oss-20b-mxfp4-mini5 | c8 | text-completion-bench | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | gpt-oss-20b-mxfp4-mini5 | lc-2k-128 | text-completion-bench | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | kimi-k3-mini8 | control-aa | text-completion-bench | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | kimi-k3-mini8 | ss-128-64 | text-completion-bench | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | kimi-k3-mini8 | c8 | text-completion-bench | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | kimi-k3-mini8 | lc-2k-128 | text-completion-bench | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | qwen3.5-0.8b-bf16 | control-aa | text-completion-bench | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp2 | fail | doesnt_fit | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | qwen3.6-35b-a3b-mini5 | control-aa | text-completion-bench | tp2 | fail | hang | timed out (hang is only ever observed via timeout) |
-| pie | l40s-x2 | qwen3.6-35b-a3b-mini5 | ss-128-64 | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | qwen3.6-35b-a3b-mini5 | c8 | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
-| pie | l40s-x2 | qwen3.6-35b-a3b-mini5 | lc-2k-128 | text-completion-bench | tp2 | fail | crash | pie serve exited before ready: RuntimeError: start: boot embedded worker: creating cuda TP engine group for model "defau |
+| pie | l40s-x2 | glm-5.3-flash-mini8 | control-aa | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | glm-5.3-flash-mini8 | ss-128-64 | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | glm-5.3-flash-mini8 | c8 | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | glm-5.3-flash-mini8 | lc-2k-128 | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | gpt-oss-20b-mxfp4-mini5 | control-aa | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | gpt-oss-20b-mxfp4-mini5 | ss-128-64 | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | gpt-oss-20b-mxfp4-mini5 | c8 | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | gpt-oss-20b-mxfp4-mini5 | lc-2k-128 | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | kimi-k3-mini8 | control-aa | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | kimi-k3-mini8 | ss-128-64 | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | kimi-k3-mini8 | c8 | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | kimi-k3-mini8 | lc-2k-128 | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | control-aa | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | ss-128-64 | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | c8 | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | qwen3.5-0.8b-bf16 | lc-2k-128 | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | qwen3.6-35b-a3b-mini5 | control-aa | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | qwen3.6-35b-a3b-mini5 | ss-128-64 | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | qwen3.6-35b-a3b-mini5 | c8 | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
+| pie | l40s-x2 | qwen3.6-35b-a3b-mini5 | lc-2k-128 | text-completion-bench | tp2 | fail | load_fail | pie build failed: Command '['git', '-c', 'http.version=HTTP/1.1', '-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedT |
 | pie | pro6000-x1 | gemma-4-e4b-bf16 | lc-1k-128 | trackb-h2o | tp1 | fail | crash | all 4 requests failed: KeyError: 'num_prompt_tokens' |
 | pie | pro6000-x1 | gemma-4-e4b-bf16 | lc-1k-128 | trackb-snapkv | tp1 | fail | crash | all 4 requests failed: KeyError: 'num_prompt_tokens' |
 | pie | pro6000-x1 | gpt-oss-20b-mxfp4-mini5 | lc-1k-128 | trackb-h2o | tp1 | fail | crash | all 4 requests failed: bind failed: intrinsic attn_score is not advertised by the engine serving this model (`ModelProfi |
@@ -48,9 +51,6 @@
 | pie | l40s-x1 | kimi-k3-mini8 | lc-1k-128 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x1 | kimi-k3-mini8 | lc-2k-128 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | l40s-x1 | kimi-k3-mini8 | prefix-1k-x64 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
-| pie | l40s-x2 | glm-5.3-flash-mini8 | ss-128-64 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
-| pie | l40s-x2 | glm-5.3-flash-mini8 | c8 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
-| pie | l40s-x2 | glm-5.3-flash-mini8 | lc-2k-128 | text-completion-bench | tp2 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
 | pie | pro6000-x1 | gemma-4-e4b-bf16 | c8 | text-completion-bench | tp1 | noisy |  |  |
 | pie | pro6000-x1 | qwen3.5-0.8b-bf16 | prefix-1k-x64 | text-completion-bench | tp1 | noisy |  |  |
 | pie | rtx4090-x1 | glm-5.3-flash-mini8 | ss-128-64 | text-completion-bench | tp1 | noisy | harness_invalid | control A/A failed on this process; numbers not read |
