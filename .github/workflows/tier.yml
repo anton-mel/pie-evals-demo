@@ -161,8 +161,10 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.gate.outputs.matrix) }}
     runs-on: ${{ matrix.labels }}
-    # hard kill = job budget × kill_factor (policy in matrix/suites.yaml); the pod self-destructs at the same mark
-    timeout-minutes: 90   # = job_budget_minutes x kill_factor in matrix/suites.yaml; the runner watchdog and pod self-destruct enforce the exact value
+    # hard kill = job budget × kill_factor (policy in matrix/suites.yaml): the runner watchdog and the pod
+    # self-destruct fire at kill_minutes; the job outlives them by a margin so the records get uploaded
+    # (nightly 35959142812: a flat 90 fired before the 120-minute watchdog and four shards left nothing)
+    timeout-minutes: ${{ fromJSON(needs.expand.outputs.kill_minutes) + 15 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
