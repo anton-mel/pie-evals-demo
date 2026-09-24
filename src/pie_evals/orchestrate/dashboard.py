@@ -353,7 +353,7 @@ function people() {
       `<td class="num muted">${ago(p.last)}</td></tr>`;
   }
   if (!DATA.people.length) html += `<tr><td colspan="4" class="muted">Nobody yet.</td></tr>`;
-  document.getElementById("main").innerHTML = html + `</table><div class="muted" style="margin-top:8px">Benchmark ci: whether their pushes to pie main are benchmarked.</div></div>`;
+  document.getElementById("main").innerHTML = html + `</table></div>`;
   document.querySelectorAll("tr.person").forEach(tr => tr.onclick = () => { author = tr.dataset.login; tab = "Pushes"; draw(); });
 }
 
