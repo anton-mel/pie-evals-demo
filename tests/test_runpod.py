@@ -65,6 +65,8 @@ def test_create_pod_unpins_a_data_center_the_rest_schema_rejects(monkeypatch):
     h = runpod.create_pod(m.platforms["pro6000-x1"], repo="o/r", runner_pat="PAT", kill_minutes=90, volumes={"EUR-IS-1": "v1"}, api_key="k", log=lambda *_: None)
     assert h.id == "pod123" and h.data_center is None
     assert posts[0]["dataCenterIds"] == ["US-MO-2"] and "dataCenterIds" not in posts[1]
+    # without the volume everything lands on the container disk: it is sized for it
+    assert posts[1]["containerDiskInGb"] == runpod.NO_VOLUME_DISK_GB
 
 
 def test_reap_uses_name_timestamp(monkeypatch):
