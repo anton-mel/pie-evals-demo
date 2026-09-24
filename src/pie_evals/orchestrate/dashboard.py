@@ -108,6 +108,12 @@ PAGE = """<!doctype html>
   .auto .tag { padding: 0 12px; }
   .auto .tag.off { background: #fff8c5; border-color: #eac54f; }
   .on-word { color: #656d76; }
+  .group { margin: 0 0 8px; }
+  .card + .group { margin-top: 20px; }
+  .pill.static { cursor: default; color: #1f2328; font-weight: 600; padding: 0 6px 0 14px; }
+  .pill.static:hover { background: #fff; }
+  .count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px;
+    border-radius: 999px; background: #eaeef2; color: #424a53; font-size: 12px; font-weight: 600; box-sizing: border-box; }
   .kicker { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: #656d76; margin-right: 4px; }
   .pill.small { padding: 0 12px; gap: 6px; margin-left: 4px; }
   .filter select { padding: 0 30px 0 12px; }
@@ -323,7 +329,8 @@ function pool() {
   let html = "";
   for (const kind of [...new Set(["self-hosted", ...DATA.pool.map(m => m.kind)])]) {
     const list = DATA.pool.filter(m => m.kind === kind);
-    html += `<div class="phase">${esc(kind)}</div><div class="card"><table class="compact"><tr><th>machine</th><th>memory</th><th>status</th><th>last run</th></tr>`;
+    const title = kind === "self-hosted" ? "Self-hosted" : kind;
+    html += `<div class="group"><span class="pill static">${esc(title)}<span class="count">${list.length}</span></span></div><div class="card"><table class="compact"><tr><th>machine</th><th>memory</th><th>status</th><th>last run</th></tr>`;
     for (const m of list) html += `<tr><td>${esc(m.name)} <span class="muted">${m.id}</span></td>` +
       `<td>${m.memory_gib ? m.memory_gib + " GB" : ""}</td><td><span class="dot ${m.status}"></span>${m.status}</td><td>${m.last}</td></tr>`;
     if (!list.length) html += `<tr><td colspan="4" class="muted">None connected.</td></tr>`;
