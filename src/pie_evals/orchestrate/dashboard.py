@@ -115,8 +115,9 @@ PAGE = """<!doctype html>
   button.link { border: 0; background: none; color: #0969da; font: inherit; cursor: pointer; padding: 0 0 0 6px; }
   #who { position: relative; }
   .menu { position: absolute; right: 0; top: 40px; background: #fff; border: 1px solid #d0d7de; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 6px; z-index: 20; min-width: 160px; display: flex; flex-direction: column; }
-  .menu button { border: 0; background: none; font: inherit; font-size: 14px; text-align: left; padding: 8px 12px; border-radius: 8px; cursor: pointer; color: #1f2328; }
+  .menu button { display: flex; align-items: center; gap: 10px; border: 0; background: none; font: inherit; font-size: 14px; text-align: left; padding: 8px 12px; border-radius: 8px; cursor: pointer; color: #1f2328; }
   .menu button:hover { background: #f6f8fa; }
+  .menu button svg { color: #656d76; flex: none; }
   .gridwrap { overflow-x: auto; margin: 12px 0; }
   table.grid td, table.grid th { padding: 5px 8px; font-size: 13px; }
   table.grid .c { text-align: center; }
@@ -399,7 +400,7 @@ function renderWho() {
   if (i) i.onclick = openSignIn;
   if (m) m.onclick = () => {
     if (document.querySelector(".menu")) return closeMenu();
-    who.insertAdjacentHTML("beforeend", `<div class="menu"><button id="add">Add a Mac</button><button id="out">Sign out</button></div>`);
+    who.insertAdjacentHTML("beforeend", `<div class="menu"><button id="add"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M1.75 2.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25ZM0 2.75C0 1.784.784 1 1.75 1h12.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 14.25 12H9.458l.5 1.5h1.292a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1 0-1.5h1.292l.5-1.5H1.75A1.75 1.75 0 0 1 0 10.25Zm7.042 9.25-.5 1.5h2.916l-.5-1.5Z"/></svg>Add a Mac</button><button id="out"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 2.75C2 1.784 2.784 1 3.75 1h2.5a.75.75 0 0 1 0 1.5h-2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h2.5a.75.75 0 0 1 0 1.5h-2.5A1.75 1.75 0 0 1 2 13.25Zm10.44 4.5-1.97-1.97a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l3.25 3.25a.75.75 0 0 1 0 1.06l-3.25 3.25a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.97-1.97H6.75a.75.75 0 0 1 0-1.5Z"/></svg>Sign out</button></div>`);
     document.getElementById("add").onclick = () => { closeMenu(); addMac(); };
     document.getElementById("out").onclick = () => { closeMenu(); try { localStorage.removeItem("pie-evals-token"); } catch {} me = null; mine = null; renderWho(); draw(); };
   };
