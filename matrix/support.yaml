@@ -60,6 +60,8 @@ unsupported:
     reason: "SGLang does not load MLX quantized checkpoints"
   - when: {engine: llamacpp, os: linux}
     reason: "runner image has no nvcc; no CUDA llama.cpp build on pods yet"
+  - when: {engine: pie, artifact: gemma-4-26b-a4b-mlx4, tp: ">1"}
+    reason: "gemma4-26b-a4b's 2112-wide dense intermediate halves to 1056, not whole u4g64 groups, so its down plane cannot band (pie #674)"
   - when: {engine: llamacpp, tp: ">1"}
     reason: "llama.cpp layer-split is not tensor parallel; compared at tp1 only"
   - when: {engine: mlxlm, tp: ">1"}
