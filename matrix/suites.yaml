@@ -13,7 +13,7 @@
 #     as not_run with the reason, never dropped.
 #   * `max_jobs_per_platform` caps how many pods a tier may fan out to.
 job_budget_minutes: 60
-kill_factor: 1.5
+kill_factor: 2.0   # the pod timer starts at boot; the gate waits up to 8 min for the slowest launch and a cold pod preps ~10 min before the 60-min job (1.5 killed ten l40s-x2 shards of nightly 35942190398 mid-job)
 
 # Removed from EVERY tier (not unsupported — just never scheduled here):
 global_exclude:
