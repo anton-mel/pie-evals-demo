@@ -424,6 +424,16 @@ def test_sglang_cuda_graph_max_bs_tracks_concurrency(tmp_path):
     assert "--sglang-disable-hybrid-swa-memory" in argv
 
 
+def test_sglang_heavy_checkpoint_gets_the_fraction_it_needs(tmp_path):
+    # kimi-k3 mini (18.4 GiB) on a 32 GB 5090: sglang refused the KV cache under 0.9
+    plat = platform(count=1)
+    plat = plat.model_copy(update={"memory_gib": 32.0})
+    eng = make(SglangEngine, plat=plat, art=artifact(expected_gib=18.4), workload=WORKLOADS["ss-128-64"])
+    assert flag_value(argv_for(eng, WORKLOADS["ss-128-64"], tmp_path), "--gpu-mem-util") == "0.95"
+    eng = make(SglangEngine, plat=plat, art=artifact(expected_gib=1.6), workload=WORKLOADS["ss-128-64"])
+    assert flag_value(argv_for(eng, WORKLOADS["ss-128-64"], tmp_path), "--gpu-mem-util") == "0.9"
+
+
 # ---- llama.cpp ---------------------------------------------------------------
 
 
