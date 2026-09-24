@@ -39,6 +39,9 @@ PAGE = """<!doctype html>
   nav button.on { background: #eaeef2; color: #1f2328; font-weight: 600; }
   .grow { flex: 1; }
   main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 48px; }
+  .controls { max-width: 1000px; margin: 0 auto; padding: 16px 16px 0; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; color: #424a53; font-size: 14px; }
+  .controls[hidden] { display: none; }
+  .controls select { margin-left: 6px; }
   .card { background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
   h2 { font-size: 16px; margin: 0 0 12px; }
   .muted { color: #656d76; font-size: 13px; }
@@ -89,10 +92,12 @@ PAGE = """<!doctype html>
   <span class="brand">Pie Stats</span>
   <nav id="tabs"></nav>
   <span class="grow"></span>
-  <select id="unit"><option value="v">tok/s</option><option value="tflops">TFLOP/s</option></select>
-  <select id="model"></select>
   <span id="who"></span>
 </div></header>
+<div class="controls" id="controls">
+  <label>model <select id="model"></select></label>
+  <label>show <select id="unit"><option value="v">tok/s</option><option value="tflops">TFLOP/s</option></select></label>
+</div>
 <main id="main"></main>
 <div id="modal" class="modal" hidden><div class="sheet"><button class="x" id="close" aria-label="close">×</button><div id="sheet"></div></div></div>
 <script>
@@ -239,8 +244,7 @@ function draw() {
   charts.forEach(c => c.destroy()); charts = [];
   document.getElementById("tabs").innerHTML = TABS.map(t => `<button class="${t === tab ? "on" : ""}">${t}</button>`).join("");
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { tab = b.textContent; draw(); });
-  modelSel.style.visibility = tab === "Overview" ? "visible" : "hidden";
-  unitSel.style.visibility = tab === "Overview" ? "visible" : "hidden";
+  document.getElementById("controls").hidden = tab !== "Overview";
   ({ "Overview": overview, "Pushes": pushes, "Macs": pool, "People": people })[tab]();
 }
 signIn().then(draw);
