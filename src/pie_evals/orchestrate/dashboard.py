@@ -238,7 +238,7 @@ function overview() {
     }
   }
   if (!any) html += `<div class="card muted">No benchmarks ran on this commit.</div>`;
-  main.innerHTML = html + `<div class="muted">Change is against the last earlier commit measured on the same machine, model and benchmark; hover a value to see it.</div>`;
+  main.innerHTML = html;
 }
 
 function openRuns(sha) {
