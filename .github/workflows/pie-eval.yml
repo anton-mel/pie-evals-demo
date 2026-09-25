@@ -25,6 +25,7 @@ jobs:
       models: ${{ steps.p.outputs.models }}
       macs: ${{ steps.p.outputs.macs }}
       skip: ${{ steps.p.outputs.skip }}
+      workloads: ${{ steps.p.outputs.workloads }}
     steps:
       - uses: actions/checkout@v4
       - id: p
@@ -38,11 +39,12 @@ jobs:
           info=$(gh api "repos/$PIE_REPO/commits/$COMMIT" 2>/dev/null || echo '{}')
           author=$(jq -r '.author.login // empty' <<<"$info")
           line=$(jq -r '.commit.message // ""' <<<"$info" | grep -iE '^evals:' | tail -1 || true)
-          models=""; macs=""; source=config.json; skip=true
+          models=""; macs=""; workloads=""; source=config.json; skip=true
           if [ -f config.json ]; then
             models=$(jq -r '.models // [] | join(",")' config.json); macs=$(jq -r '.machines // [] | join(",")' config.json)
+            workloads=$(jq -r '.benchmarks // [] | join(",")' config.json)
           fi
-          [ -n "$models" ] && [ -n "$macs" ] && skip=false
+          [ -n "$models" ] && [ -n "$macs" ] && [ -n "$workloads" ] && skip=false
           if [ -n "$line" ]; then
             m=$(grep -oE 'models=[^ ]+' <<<"$line" | cut -d= -f2 || true); k=$(grep -oE 'macs=[^ ]+' <<<"$line" | cut -d= -f2 || true)
             [ -n "$m" ] && models=$m; [ -n "$k" ] && macs=$k; source="commit message"; skip=false
@@ -51,9 +53,9 @@ jobs:
           [ -n "$IN_MACS" ] && { macs=$IN_MACS; source=manual; }
           [ "${{ github.event_name }}" = workflow_dispatch ] && skip=false
           [ -n "$models" ] || models=$DEFAULT_MODELS
-          [[ "$models$macs" =~ ^[a-z0-9.,-]*$ ]] || { echo "::error::bad models '$models' or macs '$macs'"; exit 1; }
+          [[ "$models$macs$workloads" =~ ^[a-z0-9.,-]*$ ]] || { echo "::error::bad models '$models' or macs '$macs'"; exit 1; }
           echo "author=${author:-unknown} setup=$source models=$models macs=${macs:-every connected Mac} skip=$skip" | tee -a "$GITHUB_STEP_SUMMARY"
-          { echo "commit=$COMMIT"; echo "models=$models"; echo "macs=$macs"; echo "skip=$skip"; } >> "$GITHUB_OUTPUT"
+          { echo "commit=$COMMIT"; echo "models=$models"; echo "macs=$macs"; echo "workloads=$workloads"; echo "skip=$skip"; } >> "$GITHUB_OUTPUT"
 
   run:
     needs: start
@@ -64,4 +66,5 @@ jobs:
       pie_commit: ${{ needs.start.outputs.commit }}
       artifacts: ${{ needs.start.outputs.models }}
       platforms: ${{ needs.start.outputs.macs }}
+      workloads: ${{ needs.start.outputs.workloads }}
     secrets: inherit

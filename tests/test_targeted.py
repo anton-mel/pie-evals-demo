@@ -85,7 +85,10 @@ def test_site_has_pushes_pool_and_people(tmp_path, matrix, monkeypatch):
     data = dashboard.build(st, matrix, live, repo="o/evals", pie_repo="o/pie", lookup_commits=False)
     assert [c["sha"] for c in data["commits"]] == ["c0", "c1"]
     assert [(m["id"], m["kind"], m["status"]) for m in data["pool"]] == [("m5-max-48g", "self-hosted", "busy"), ("l40s-x1", "RunPod", "idle")]
-    assert set(data["results"]["m5-max-48g"]["models"]["qwen3.5-0.8b-bf16"]) == {0, 2, 3}
+    names = [m["name"] for m in data["metrics"]]
+    got = {names[i] for i in data["results"]["m5-max-48g"]["models"]["qwen3.5-0.8b-bf16"]}
+    assert got == {"128-token prompt", "2k-token prompt", "1 request, 128 context", "1 request, 2k context"}
+    assert [b["id"] for b in data["benchmarks"]] == ["ss-128-64", "lc-1k-128", "lc-2k-128", "c8", "c32"]
     assert data["people"] == []
     assert any(m["id"] == "qwen3.5-0.8b-bf16" and m["has_results"] for m in data["models"])
     assert dashboard.render(st, matrix, tmp_path / "site", live, repo="o/evals", lookup_commits=False) == 2

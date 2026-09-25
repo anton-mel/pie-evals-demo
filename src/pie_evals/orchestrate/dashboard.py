@@ -11,14 +11,6 @@ from . import flops
 from .matrix import Matrix
 from .store import Store
 
-METRICS = [
-    ("Prefill", "128-token prompt", "ss-128-64", "prefill_tok_s", "prefill_tflops"),
-    ("Prefill", "1k-token prompt", "lc-1k-128", "prefill_tok_s", "prefill_tflops"),
-    ("Prefill", "2k-token prompt", "lc-2k-128", "prefill_tok_s", "prefill_tflops"),
-    ("Decode", "1 request", "ss-128-64", "decode_tok_s", "decode_tflops"),
-    ("Decode", "8 requests at once", "c8", "output_tok_s", "decode_tflops"),
-    ("Decode", "32 requests at once", "c32", "output_tok_s", "decode_tflops"),
-]
 DEFAULT_MODEL = "qwen3.5-0.8b-bf16"
 
 PAGE = """<!doctype html>
@@ -153,6 +145,8 @@ PAGE = """<!doctype html>
 </div></header>
 <div class="controls" id="controls">
   <label>model <select id="model"></select></label>
+  <label>prefill <select id="fprefill"></select></label>
+  <label>decode <select id="fdecode"></select></label>
   <label>show <select id="unit"><option value="v">tok/s</option><option value="tflops">TFLOP/s</option></select></label>
 </div>
 <main id="main"></main>
@@ -175,6 +169,13 @@ const modelSel = document.getElementById("model");
 modelSel.innerHTML = DATA.models.filter(m => m.has_results).map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join("");
 modelSel.value = DATA.default_model; modelSel.onchange = draw;
 const unitSel = document.getElementById("unit"); unitSel.onchange = draw;
+const phaseSel = {};
+for (const [phase, id] of [["Prefill", "fprefill"], ["Decode", "fdecode"]]) {
+  phaseSel[phase] = document.getElementById(id);
+  phaseSel[phase].innerHTML = `<option value="">all</option>` + DATA.metrics.map((m, i) => [m, i]).filter(([m]) => m.phase === phase)
+    .map(([m, i]) => `<option value="${i}">${esc(m.name)}</option>`).join("");
+  phaseSel[phase].onchange = draw;
+}
 const unitName = () => unitSel.value === "v" ? "tok/s" : "TFLOP/s";
 
 function series(mac, metric) {
@@ -198,7 +199,7 @@ function overview() {
   for (const phase of ["Prefill", "Decode"]) {
     html += `<div class="phase">${phase}</div><div class="tiles">`;
     DATA.metrics.forEach((m, i) => {
-      if (m.phase !== phase) return;
+      if (m.phase !== phase || (phaseSel[phase].value !== "" && +phaseSel[phase].value !== i)) return;
       const now = list.map((mac, k) => {
         const s = series(mac, i).filter(p => p[key] != null), last = s[s.length - 1];
         return last ? `<span style="color:${COLORS[k % COLORS.length]}">${fmt(last[key])}</span>` : "";
@@ -320,6 +321,8 @@ async function cicd() {
   for (const m of RUNNABLE) html += `<tr><td>${esc(m.name)}</td><td class="muted">${m.id}</td><td>${m.memory_gib ? m.memory_gib + " GB" : "–"}</td>` +
     `<td><span class="dot ${m.status}"></span>${m.status}</td><td class="num">${sw("machines", m.id, on(config.machines, m.id))}</td></tr>`;
   if (!RUNNABLE.length) html += `<tr><td colspan="5" class="muted">No machine is connected.</td></tr>`;
+  html += `</table></div><div class="card"><table class="compact"><tr><th>benchmark</th><th class="num">about</th><th class="num">run</th></tr>`;
+  for (const b of DATA.benchmarks) html += `<tr><td>${esc(b.name)}</td><td class="num muted">${b.minutes} min</td><td class="num">${sw("benchmarks", b.id, on(config.benchmarks, b.id))}</td></tr>`;
   main.innerHTML = html + `</table></div><div class="muted" id="saved">${by}</div>`;
   let saving = Promise.resolve();
   main.querySelectorAll("input.switch").forEach(x => x.onchange = () => {
@@ -498,6 +501,30 @@ def _pool(live: list[dict] | None, matrix: Matrix, last: dict[str, dict]) -> lis
     return sorted(pool, key=lambda m: (m["kind"] != "self-hosted", m["name"]))
 
 
+def _tokens(n: int) -> str:
+    return f"{n // 1024}k" if n >= 1024 and n % 1024 == 0 else str(n)
+
+
+def benchmarks(matrix: Matrix) -> tuple[list[dict], list[tuple]]:
+    workloads = {c.workload.id: c.workload for c in matrix.cells_for(Tier.TARGETED)
+                 if str(c.workload.kind) in ("single_stream", "long_context", "concurrency")}
+    order = sorted(workloads.values(), key=lambda w: (int(w.params.get("concurrency") or 1), int(w.params.get("prefill") or 0)))
+    tests, metrics, prompts = [], [], set()
+    for w in order:
+        n, prompt, out = int(w.params.get("concurrency") or 1), int(w.params.get("prefill") or 0), int(w.params.get("decode") or 0)
+        label = f"{_tokens(prompt)}-token prompt, {out} tokens out" + (f", {n} requests at once" if n > 1 else "")
+        tests.append({"id": w.id, "name": label, "minutes": w.est_minutes})
+        if n == 1:
+            if prompt not in prompts:
+                prompts.add(prompt)
+                metrics.append(("Prefill", f"{_tokens(prompt)}-token prompt", w.id, "prefill_tok_s", "prefill_tflops"))
+            metrics.append(("Decode", f"1 request, {_tokens(prompt)} context", w.id, "decode_tok_s", "decode_tflops"))
+        else:
+            metrics.append(("Decode", f"{n} requests at once", w.id, "output_tok_s", "decode_tflops"))
+    metrics.sort(key=lambda m: m[0] != "Prefill")
+    return tests, metrics
+
+
 def mac_models(matrix: Matrix) -> list[dict]:
     seen: dict[str, dict] = {}
     for c in matrix.expand():
@@ -545,6 +572,7 @@ def people(repo: str, authors: dict[str, str]) -> list[dict]:
 
 
 def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, pie_repo: str, lookup_commits: bool = True) -> dict:
+    tests, metrics = benchmarks(matrix)
     t = store.table(Tier.TARGETED)
     rows = [r for r in t.to_pylist() if r["status"] == str(CellStatus.PASS) and r["pie_commit"]] if t.num_rows else []
     rows.sort(key=lambda r: r["started_at"])
@@ -560,7 +588,7 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
         mac = results.setdefault(r["platform"], {"name": r["accelerator"], "models": defaultdict(lambda: defaultdict(dict))})
         cell = json.loads(r["record_json"])["cell"]
         tf = None
-        for i, (_, _, wl, field, tf_field) in enumerate(METRICS):
+        for i, (_, _, wl, field, tf_field) in enumerate(metrics):
             if wl == r["workload"] and r.get(field) is not None:
                 if tf is None:
                     tf = flops.tflops(r, cell["workload"]["params"], flops.model_config(cell["artifact"]["base_model"]))
@@ -590,7 +618,7 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
         m["has_results"] = m["id"] in have
     return {
         "repo": repo, "pie_repo": pie_repo, "default_model": DEFAULT_MODEL,
-        "metrics": [{"phase": p, "name": n} for p, n, *_ in METRICS],
+        "metrics": [{"phase": p, "name": n} for p, n, *_ in metrics], "benchmarks": tests,
         "commits": commits, "history": all_commits, "results": results, "models": models,
         "pool": _pool(live, matrix, last),
         "people": people(repo, {c["sha"]: c["author"] for c in [*known.values(), *commits]}) if lookup_commits else [],

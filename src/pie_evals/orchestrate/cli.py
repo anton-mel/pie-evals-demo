@@ -69,6 +69,7 @@ def check(obj):
 @click.option("--engine", "engines", multiple=True)
 @click.option("--program", "programs", multiple=True, help="restrict to these program ids")
 @click.option("--artifact", "artifacts", multiple=True, help="restrict to these artifact ids")
+@click.option("--workload", "workloads", multiple=True, help="restrict to these workload ids (the control A/A always stays)")
 @click.option("--max-jobs", type=int, default=None, help="cap the number of jobs (shards) written, baseline-bearing first")
 @click.option("--max-jobs-per-platform", type=int, default=None, help="cap per platform, so a capped dispatch spans every platform")
 @click.option("--out", type=click.Path(), default="jobs")
@@ -78,7 +79,7 @@ def check(obj):
 @click.option("--skip-recorded", is_flag=True, help="drop cells the store already holds at this pie commit (a re-dispatch after lost launches)")
 @click.option("--run-label", default=None, help="extra runner label on every pod shard and its pod, so a run's pods take only its own jobs")
 @click.pass_obj
-def jobs(obj, tier, pie_commit, platforms, engines, programs, artifacts, max_jobs, max_jobs_per_platform, out, label, skip_unavailable, repo, skip_recorded, run_label):
+def jobs(obj, tier, pie_commit, platforms, engines, programs, artifacts, workloads, max_jobs, max_jobs_per_platform, out, label, skip_unavailable, repo, skip_recorded, run_label):
     """Write one JobSpec JSON per platform shard, plus a GitHub Actions matrix file."""
     from .jobs import available_platforms, plan_pods, recorded_cell_keys
 
@@ -99,6 +100,8 @@ def jobs(obj, tier, pie_commit, platforms, engines, programs, artifacts, max_job
         cells = [c for c in cells if c.program.id in programs]
     if artifacts:
         cells = [c for c in cells if c.artifact.id in artifacts]
+    if workloads:
+        cells = [c for c in cells if c.workload.id in workloads or str(c.workload.kind) == "control_aa"]
     if skip_recorded and pie_commit:
         done = recorded_cell_keys(st, Tier(tier), pie_commit, {e.id: e.pin for e in m.engines.values() if getattr(e, "pin", None)})
         before = len(cells)
