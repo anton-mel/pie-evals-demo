@@ -130,7 +130,7 @@ PAGE = """<!doctype html>
   .auto .tag.off { background: #fff8c5; border-color: #eac54f; }
   .on-word { color: #656d76; }
   .pill.small { padding: 0 12px; gap: 6px; margin-left: 4px; }
-  tr.divider td { text-align: center; }
+  tr.divider td { text-align: center; color: #656d76; }
   .pager { display: flex; justify-content: center; align-items: center; gap: 6px; padding: 14px 0 0; flex-wrap: wrap; }
   .pager .pill { padding: 0 12px; min-width: 32px; justify-content: center; }
   .pager .pill.on { background: #1f2328; border-color: #1f2328; color: #fff; }
