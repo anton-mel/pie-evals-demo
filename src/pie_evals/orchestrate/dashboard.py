@@ -306,13 +306,12 @@ async function cicd() {
   } catch (e) { main.innerHTML = `<div class="card down">${esc(e.message)}</div>`; return; }
   const on = (list, id) => (list || []).includes(id);
   const sw = (kind, id, checked) => `<input type="checkbox" class="switch" data-kind="${kind}" value="${id}" ${checked ? "checked" : ""}>`;
-  const gib = g => g == null ? "–" : `${g} GB`, ctx = c => c == null ? "–" : `${(c / 1024).toFixed(0)}k`;
+  const gib = g => g == null ? "–" : `${g} GB`;
   const by = last ? `changed by ${esc(last.author?.login || last.commit.author.name)} · ${fmtDate(last.commit.committer.date)}` : "";
   let html = `<div class="auto" style="margin-bottom:12px"><span>Every push to pie main runs the models and machines switched on below.</span>` +
     `<span class="muted" id="saved">${by}</span></div>`;
-  html += `<div class="card"><table class="compact"><tr><th>model</th><th>publisher</th><th>family</th><th>format</th><th>source</th><th class="num">size</th><th class="num">context</th><th class="num">run</th></tr>`;
-  for (const m of DATA.models) html += `<tr><td>${esc(m.name)}</td><td class="muted">${esc(m.publisher)}</td><td>${esc(m.family)}</td><td>${esc(m.scheme)}</td>` +
-    `<td class="muted">${esc(m.format)}</td><td class="num">${gib(m.gib)}</td><td class="num">${ctx(m.context)}</td><td class="num">${sw("models", m.id, on(config.models, m.id))}</td></tr>`;
+  html += `<div class="card"><table class="compact"><tr><th>model</th><th class="num">size</th><th class="num">run</th></tr>`;
+  for (const m of DATA.models) html += `<tr><td>${esc(m.name)}</td><td class="num">${gib(m.gib)}</td><td class="num">${sw("models", m.id, on(config.models, m.id))}</td></tr>`;
   html += `</table></div><div class="card"><table class="compact"><tr><th>machine</th><th>id</th><th>memory</th><th>status</th><th class="num">run</th></tr>`;
   for (const m of RUNNABLE) html += `<tr><td>${esc(m.name)}</td><td class="muted">${m.id}</td><td>${m.memory_gib ? m.memory_gib + " GB" : "–"}</td>` +
     `<td><span class="dot ${m.status}"></span>${m.status}</td><td class="num">${sw("machines", m.id, on(config.machines, m.id))}</td></tr>`;
