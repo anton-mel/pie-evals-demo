@@ -321,8 +321,8 @@ async function cicd() {
   for (const m of RUNNABLE) html += `<tr><td>${esc(m.name)}</td><td class="muted">${m.id}</td><td>${m.memory_gib ? m.memory_gib + " GB" : "–"}</td>` +
     `<td><span class="dot ${m.status}"></span>${m.status}</td><td class="num">${sw("machines", m.id, on(config.machines, m.id))}</td></tr>`;
   if (!RUNNABLE.length) html += `<tr><td colspan="5" class="muted">No machine is connected.</td></tr>`;
-  html += `</table></div><div class="card"><table class="compact"><tr><th>benchmark</th><th class="num">about</th><th class="num">run</th></tr>`;
-  for (const b of DATA.benchmarks) html += `<tr><td>${esc(b.name)}</td><td class="num muted">${b.minutes} min</td><td class="num">${sw("benchmarks", b.id, on(config.benchmarks, b.id))}</td></tr>`;
+  html += `</table></div><div class="card"><table class="compact"><tr><th>benchmark</th><th class="num">run</th></tr>`;
+  for (const b of DATA.benchmarks) html += `<tr><td>${esc(b.name)}</td><td class="num">${sw("benchmarks", b.id, on(config.benchmarks, b.id))}</td></tr>`;
   main.innerHTML = html + `</table></div><div class="muted" id="saved">${by}</div>`;
   let saving = Promise.resolve();
   main.querySelectorAll("input.switch").forEach(x => x.onchange = () => {
@@ -513,7 +513,7 @@ def benchmarks(matrix: Matrix) -> tuple[list[dict], list[tuple]]:
     for w in order:
         n, prompt, out = int(w.params.get("concurrency") or 1), int(w.params.get("prefill") or 0), int(w.params.get("decode") or 0)
         label = f"{_tokens(prompt)}-token prompt, {out} tokens out" + (f", {n} requests at once" if n > 1 else "")
-        tests.append({"id": w.id, "name": label, "minutes": w.est_minutes})
+        tests.append({"id": w.id, "name": label})
         if n == 1:
             if prompt not in prompts:
                 prompts.add(prompt)
