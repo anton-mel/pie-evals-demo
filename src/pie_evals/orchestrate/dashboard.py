@@ -351,7 +351,7 @@ function pushes() {
   for (const c of ALL.slice(page * PER_PAGE, (page + 1) * PER_PAGE)) {
     html += `<tr class="push" data-sha="${c.sha}"><td class="clip" title="${esc(c.message)}"><code>${c.sha.slice(0, 7)}</code> ${esc(c.message)}${isMeasured.has(c.sha) ? ` <span class="dot on" title="measured"></span>` : ""}</td>` +
             `<td class="clip">${esc(c.author)}</td><td>${fmtDate(c.date)}</td><td class="muted">${fmtTime(c.date)}</td></tr>`;
-    if (c.sha === DATA.since) html += `<tr class="divider"><td colspan="4">CI changed</td></tr>`;
+    if (c.sha === DATA.since) html += `<tr class="divider"><td colspan="4">&nbsp;</td></tr>`;
   }
   document.getElementById("main").innerHTML = html + `</table>${pager(pages)}</div>`;
   document.querySelectorAll("tr.push").forEach(tr => tr.onclick = () => {
