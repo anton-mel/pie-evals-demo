@@ -33,6 +33,7 @@ from pie_evals.schema import PlatformSpec
 REST = "https://rest.runpod.io/v1"
 DEFAULT_IMAGE = "pieproject/runpod-ci-runner:latest"
 VOLUME = "/workspace"
+NO_VOLUME_DISK_GB = 250
 
 
 @dataclass
@@ -162,6 +163,7 @@ PIE_MIRROR=$V/pie.git
 PIE_HOME=$V/.pie
 HF_HOME=$V/.hf
 HF_HUB_CACHE=$V/.hf/hub
+HF_HUB_DISABLE_XET=1
 UV_CACHE_DIR=$V/.uv
 npm_config_cache=$V/.npm
 PIE_EVALS_CACHE=$V/pie-evals-cache
@@ -296,6 +298,10 @@ def create_pod(
             body["volumeMountPath"] = VOLUME
     data = None
     for attempt in range(1, 6):  # RunPod answers 500 "Something went wrong" transiently
+        if not body.get("networkVolumeId"):
+            # no volume: checkpoints, the pie build and the baseline venvs all land on the
+            # container disk (an H100 pod filled 40 GB and every shard died at job setup)
+            body["containerDiskInGb"] = max(int(body["containerDiskInGb"]), NO_VOLUME_DISK_GB)
         try:
             data = _req("POST", "/pods", body, key)
             break

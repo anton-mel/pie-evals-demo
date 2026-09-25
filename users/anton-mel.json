@@ -1,0 +1,17 @@
+{
+  "models": [
+    "qwen3.5-0.8b-bf16"
+  ],
+  "machines": [
+    "m5-max-48g"
+  ],
+  "benchmarks": [
+    "ss-128-64",
+    "lc-1k-128",
+    "lc-2k-128",
+    "c8",
+    "c32"
+  ],
+  "macs": [],
+  "enabled": true
+}

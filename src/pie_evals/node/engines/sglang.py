@@ -54,6 +54,13 @@ class SglangEngine(Engine):
         args: list[str] = ["--tp-size", str(max(1, int(self.mode.tp)))]
         gmu = r.get("gpu_mem_util", 0.90)
         if gmu is not None:
+            # SGLang counts the loaded weights against mem_fraction_static and refuses when
+            # they leave no KV room under it (kimi-k3 mini, 18.4 GiB on a 32 GB 5090: "raise
+            # --mem-fraction-static above 0.935"); a heavy checkpoint gets the fraction it needs
+            weights = float(self.artifact.expected_gib or 0.0)
+            card = float(self.platform.memory_gib or 0.0) / max(1, int(self.mode.tp))
+            if weights and card and weights / card > 0.5:
+                gmu = max(float(gmu), 0.95)
             args += ["--gpu-mem-util", str(gmu)]  # -> mem_fraction_static
         args += ["--max-model-len", str(max_model_len_for(workload))]  # -> context_length
 
