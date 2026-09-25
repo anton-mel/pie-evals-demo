@@ -40,6 +40,7 @@ PAGE = """<!doctype html>
   .controls[hidden] { display: none; }
   .up { color: #1a7f37; } .down { color: #b3261e; }
   .controls select { margin-left: 6px; }
+  .controls #addruns { margin-left: auto; }
   .card { background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
   h2 { font-size: 16px; margin: 0 0 12px; }
   .muted { color: #656d76; font-size: 13px; }
@@ -66,6 +67,7 @@ PAGE = """<!doctype html>
   table.compact th, table.compact td { padding: 3px 8px; line-height: 1.4; }
   td.clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .dot.on { background: #1a7f37; margin: 0 0 1px 6px; }
   .idle { background: #1a7f37; } .busy { background: #bf8700; } .offline { background: #cf222e; }
   .tag { display: inline-block; background: #eaeef2; border-radius: 10px; padding: 0 8px; margin: 0 4px 4px 0; font-size: 13px; }
   .avatar { width: 22px; height: 22px; border-radius: 50%; vertical-align: middle; margin-right: 6px; }
@@ -144,123 +146,173 @@ PAGE = """<!doctype html>
   <span id="who"></span>
 </div></header>
 <div class="controls" id="controls">
-  <label>model <select id="model"></select></label>
-  <label>prefill <select id="fprefill"></select></label>
-  <label>decode <select id="fdecode"></select></label>
-  <label>show <select id="unit"><option value="v">tok/s</option><option value="tflops">TFLOP/s</option></select></label>
   <label>commit <select id="commit"></select></label>
+  <label>show <select id="unit"><option value="">tok/s</option><option value="_tflops">TFLOP/s</option></select></label>
+  <span class="grow"></span>
+  <button class="pill" id="addruns">+ Add runs</button>
 </div>
 <main id="main"></main>
 <div id="modal" class="modal" hidden><div class="sheet"><button class="x" id="close" aria-label="close">×</button><div id="sheet"></div></div></div>
 <script>
 const DATA = __DATA__;
 const TABS = ["Overview", "Configure", "History", "Machines", "People"];
-const COLORS = ["#0969da", "#bf8700", "#8250df", "#1a7f37", "#cf222e"];
 const NL = String.fromCharCode(10);
 const REPO_NAME = DATA.repo.split("/").pop();
 const esc = x => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
-const modelName = id => (DATA.models.find(m => m.id === id) || { name: id }).name;
 const RUNNABLE = [...new Map(DATA.pool.filter(m => m.os === "macos").map(m => [m.id, m])).values()];
+const modelName = id => (DATA.models.find(m => m.id === id) || { name: id }).name;
 const macName = id => (DATA.pool.find(m => m.id === id) || DATA.results[id] || { name: id }).name;
-let tab = "Overview", me = null, page = 0;
 const PER_PAGE = 25;
+let tab = "Overview", back = "Overview", me = null, page = 0, denied = "";
 const token = () => { try { return localStorage.getItem("pie-evals-token"); } catch { return null; } };
-
-const modelSel = document.getElementById("model");
-modelSel.innerHTML = DATA.models.filter(m => m.has_results).map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join("");
-modelSel.value = DATA.default_model; modelSel.onchange = draw;
-const unitSel = document.getElementById("unit"); unitSel.onchange = draw;
-const commitSel = document.getElementById("commit"); commitSel.onchange = draw;
-const phaseSel = {};
-for (const [phase, id] of [["Prefill", "fprefill"], ["Decode", "fdecode"]]) {
-  phaseSel[phase] = document.getElementById(id);
-  phaseSel[phase].innerHTML = `<option value="">all</option>` + DATA.metrics.map((m, i) => [m, i]).filter(([m]) => m.phase === phase)
-    .map(([m, i]) => `<option value="${i}">${esc(m.name)}</option>`).join("");
-  phaseSel[phase].onchange = draw;
-}
-const unitName = () => unitSel.value === "v" ? "tok/s" : "TFLOP/s";
-
-function series(mac, metric) {
-  const byCommit = (DATA.results[mac]?.models[modelSel.value] || {})[metric] || {};
-  return DATA.commits.filter(c => byCommit[c.sha]).map(c => ({ sha: c.sha, ...byCommit[c.sha] }));
-}
-const macs = () => Object.keys(DATA.results).filter(m => DATA.results[m].models[modelSel.value]);
-function ran(sha) {
-  const out = new Set();
-  for (const [mac, r] of Object.entries(DATA.results))
-    for (const [model, metrics] of Object.entries(r.models))
-      if (Object.values(metrics).some(byCommit => byCommit[sha])) out.add(`${mac}|${model}`);
-  return out;
-}
-
-function measured() {
-  return DATA.commits.filter(c => macs().some(mac => DATA.metrics.some((m, i) =>
-    (((DATA.results[mac]?.models[modelSel.value] || {})[i] || {})[c.sha]))));
-}
-
-function overview() {
-  const list = macs(), key = unitSel.value;
-  if (!list.length) { document.getElementById("main").innerHTML = `<div class="card muted">No results for this model yet.</div>`; return; }
-  const runs = measured();
-  if (!runs.length) { document.getElementById("main").innerHTML = `<div class="card muted">No runs for this model yet.</div>`; return; }
-  const order = runs.slice().reverse();
-  commitSel.innerHTML = order.map(c => `<option value="${c.sha}">${c.sha.slice(0, 7)} — ${esc((c.message || "").slice(0, 48))}</option>`).join("");
-  if (!order.some(c => c.sha === commitSel.value)) commitSel.value = order[0].sha;
-  const at = runs.findIndex(c => c.sha === commitSel.value);
-  const now = runs[at], before = at > 0 ? runs[at - 1] : null;
-  const fmt = v => key === "v" ? Math.round(v).toLocaleString() : v.toFixed(2);
-  const value = (mac, i, sha) => (((DATA.results[mac]?.models[modelSel.value] || {})[i] || {})[sha] || {})[key];
-
-  let html = `<div class="card"><h2 style="margin:0 0 4px"><a href="https://github.com/${DATA.pie_repo}/commit/${now.sha}" target="_blank"><code>${now.sha.slice(0, 7)}</code></a> ${esc(now.message || "")}</h2>` +
-             `<div class="muted">${esc(now.author || "")} · ${fmtDate(now.date)} ${fmtTime(now.date)} · ` +
-             (before ? `compared with <a href="#" class="sha" data-sha="${before.sha}"><code>${before.sha.slice(0, 7)}</code></a>` : "no earlier run to compare") +
-             `</div></div>`;
-  for (const phase of ["Prefill", "Decode"]) {
-    html += `<div class="phase">${phase}</div><div class="tiles">`;
-    DATA.metrics.forEach((m, i) => {
-      if (m.phase !== phase || (phaseSel[phase].value !== "" && +phaseSel[phase].value !== i)) return;
-      const cells = list.map((mac, k) => {
-        const got = value(mac, i, now.sha);
-        if (got == null) return "";
-        const was = before ? value(mac, i, before.sha) : null;
-        const change = was ? (got - was) / was * 100 : null;
-        const tone = change == null ? "" : change >= 0 ? "up" : "down";
-        return `<div><span style="color:${COLORS[k % COLORS.length]}">${fmt(got)}</span> ${unitName()}` +
-               (change == null ? "" : ` <span class="${tone}">${change >= 0 ? "+" : ""}${change.toFixed(1)}%</span>` +
-                                      ` <span class="muted">was ${fmt(was)}</span>`) + `</div>`;
-      }).filter(Boolean).join("");
-      html += `<div class="tile"><div class="name">${m.name}</div><div class="now">${cells || "–"}</div></div>`;
-    });
-    html += `</div>`;
-  }
-  document.getElementById("main").innerHTML = html;
-  document.querySelectorAll(".sha").forEach(a => a.onclick = e => { e.preventDefault(); openCommit(a.dataset.sha); });
-}
 
 const when = d => d ? new Date(d) : null;
 const fmtDate = d => { const t = when(d); return t && !isNaN(t) ? `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}` : ""; };
 const fmtTime = d => { const t = when(d); return t && !isNaN(t) && d.length > 10 ? `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}` : ""; };
 function relTime(d) {
-  const t = new Date(d), secs = (t - Date.now()) / 1000, rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  const secs = (new Date(d) - Date.now()) / 1000, rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
   for (const [unit, n] of [["year", 31536000], ["month", 2592000], ["week", 604800], ["day", 86400], ["hour", 3600], ["minute", 60]])
     if (Math.abs(secs) >= n) return rtf.format(Math.round(secs / n), unit);
   return "just now";
 }
 const ALL = [...DATA.commits, ...DATA.history].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-const allCommits = () => ALL;
+const commitOf = sha => ALL.find(c => c.sha === sha) || { sha, message: "", author: "", date: "" };
+const parentOf = sha => { const i = ALL.findIndex(c => c.sha === sha); return i >= 0 ? ALL[i + 1] : null; };
+const measured = [...DATA.commits].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+let sel = measured[0]?.sha || "";
+
+const commitSel = document.getElementById("commit"), unitSel = document.getElementById("unit");
+commitSel.innerHTML = measured.map(c => `<option value="${c.sha}">${c.sha.slice(0, 7)} · ${esc(c.message.slice(0, 60))}</option>`).join("");
+commitSel.onchange = () => { sel = commitSel.value; draw(); };
+unitSel.onchange = draw;
+document.getElementById("addruns").onclick = () => openRuns(sel);
+
+function valueAt(mac, model, wl, sha) { return DATA.results[mac]?.models[model]?.[wl]?.[sha]; }
+function before(mac, model, wl, sha) {
+  const order = [...DATA.commits].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+  for (let i = order.findIndex(c => c.sha === sha) - 1; i >= 0; i--) {
+    const v = valueAt(mac, model, wl, order[i].sha);
+    if (v) return { sha: order[i].sha, ...v };
+  }
+  return null;
+}
+function cell(now, was, key) {
+  const v = now?.[key];
+  if (v == null) return `<td class="num muted">–</td><td></td>`;
+  const fmt = x => key.endsWith("tflops") ? x.toFixed(2) : Math.round(x).toLocaleString();
+  const b = was?.[key];
+  const change = b ? (v / b - 1) * 100 : null;
+  const chip = change == null ? "" : `<span class="${change > 0.5 ? "up" : change < -0.5 ? "down" : "muted"}">${change > 0 ? "+" : ""}${change.toFixed(1)}%</span>`;
+  const tip = b ? ` title="before: ${fmt(b)} at ${was.sha.slice(0, 7)}"` : "";
+  return `<td class="num"${tip}>${fmt(v)}</td><td class="num">${chip}</td>`;
+}
+
+function overview() {
+  const main = document.getElementById("main");
+  if (!sel) { main.innerHTML = `<div class="card muted">Nothing has been benchmarked yet.</div>`; return; }
+  const c = commitOf(sel), unit = unitSel.value, label = unit ? "TFLOP/s" : "tok/s";
+  let html = `<div class="muted" style="margin-bottom:12px"><a href="https://github.com/${DATA.pie_repo}/commit/${sel}" target="_blank"><code>${sel.slice(0, 7)}</code></a> ` +
+    `${esc(c.message)} · ${esc(c.author)} · ${fmtDate(c.date)} ${fmtTime(c.date)}</div>`;
+  let any = false;
+  for (const [mac, r] of Object.entries(DATA.results)) {
+    for (const [model, byTest] of Object.entries(r.models)) {
+      const tests = DATA.benchmarks.filter(b => byTest[b.id]?.[sel]);
+      if (!tests.length) continue;
+      any = true;
+      html += `<div class="card"><h2>${esc(r.name)} · ${esc(modelName(model))}</h2><table class="compact fixed">` +
+        `<colgroup><col><col style="width:110px"><col style="width:80px"><col style="width:110px"><col style="width:80px"></colgroup>` +
+        `<tr><th>benchmark</th><th class="num">prefill ${label}</th><th class="num">change</th><th class="num">decode ${label}</th><th class="num">change</th></tr>`;
+      for (const b of tests) {
+        const now = byTest[b.id][sel], was = before(mac, model, b.id, sel);
+        html += `<tr><td class="clip">${esc(b.name)}</td>${cell(now, was, "prefill" + unit)}${cell(now, was, "decode" + unit)}</tr>`;
+      }
+      html += `</table></div>`;
+    }
+  }
+  if (!any) html += `<div class="card muted">No benchmarks ran on this commit.</div>`;
+  main.innerHTML = html + `<div class="muted">Change is against the last earlier commit measured on the same machine, model and benchmark; hover a value to see it.</div>`;
+}
+
+function openRuns(sha) {
+  if (!me) return openSignIn();
+  const c = commitOf(sha), parent = parentOf(sha);
+  const row = (kind, x, on) => `<label class="toggle"><span>${esc(x.name)}</span><input type="checkbox" class="switch" data-kind="${kind}" value="${x.id}" ${on ? "checked" : ""}></label>`;
+  sheet(`<h2>Add runs to <code>${sha.slice(0, 7)}</code></h2><p class="muted">${esc(c.message)}</p>` +
+    `<div class="label">Models</div>${DATA.models.map(m => row("models", m, false)).join("")}` +
+    `<div class="label">Machines</div>${RUNNABLE.map(m => row("machines", m, true)).join("") || `<div class="muted">No machine is connected.</div>`}` +
+    `<div class="label">Benchmarks</div>${DATA.benchmarks.map(b => row("benchmarks", b, true)).join("")}` +
+    (parent ? `<label class="toggle"><span>Also measure the commit before (<code>${parent.sha.slice(0, 7)}</code>) to compare</span><input type="checkbox" class="switch" id="parent" checked></label>` : "") +
+    `<div style="margin-top:12px"><button class="act" id="run">Run</button> <span id="msg" class="muted"></span></div>`);
+  document.getElementById("run").onclick = async () => {
+    const pick = k => [...document.querySelectorAll(`#sheet input[data-kind=${k}]:checked`)].map(x => x.value);
+    const inputs = { models: pick("models").join(","), macs: pick("machines").join(","), benchmarks: pick("benchmarks").join(",") };
+    const msg = document.getElementById("msg");
+    if (!inputs.models || !inputs.macs || !inputs.benchmarks) { msg.textContent = "Pick at least one model, machine and benchmark."; return; }
+    const shas = [sha, ...(document.getElementById("parent")?.checked ? [parent.sha] : [])];
+    msg.textContent = "Starting…";
+    try {
+      for (const s of shas)
+        await gh(`repos/${DATA.repo}/actions/workflows/pie-eval.yml/dispatches`, { method: "POST", body: JSON.stringify({ ref: "main", inputs: { pie_commit: s, ...inputs } }) });
+      msg.innerHTML = `Started ${shas.length} run${shas.length > 1 ? "s" : ""}. <a href="https://github.com/${DATA.repo}/actions/workflows/pie-eval.yml" target="_blank">Follow</a>`;
+    } catch (e) { msg.textContent = "Could not start: " + e.message; }
+  };
+}
+
+async function configure() {
+  const main = document.getElementById("main");
+  main.innerHTML = `<div class="card muted">Loading…</div>`;
+  const path = `repos/${DATA.repo}/contents/users/${me.login}.json`;
+  let setup = { models: [], machines: [], benchmarks: [] }, sha = null, last = null;
+  try {
+    const file = await gh(path);
+    if (file) { setup = { ...setup, ...JSON.parse(atob(file.content)) }; sha = file.sha; }
+    last = (await gh(`repos/${DATA.repo}/commits?path=users/${me.login}.json&per_page=1`) || [])[0];
+  } catch (e) { main.innerHTML = `<div class="card down">${esc(e.message)}</div>`; return; }
+  const sw = (kind, id) => `<input type="checkbox" class="switch" data-kind="${kind}" value="${id}" ${(setup[kind] || []).includes(id) ? "checked" : ""}>`;
+  const gib = g => g == null ? "–" : `${g} GB`;
+  let html = `<div class="card"><table class="compact"><tr><th>model</th><th class="num">size</th><th class="num">run</th></tr>`;
+  for (const m of DATA.models) html += `<tr><td>${esc(m.name)}</td><td class="num">${gib(m.gib)}</td><td class="num">${sw("models", m.id)}</td></tr>`;
+  html += `</table></div><div class="card"><table class="compact"><tr><th>machine</th><th>id</th><th>memory</th><th>status</th><th class="num">run</th></tr>`;
+  for (const m of RUNNABLE) html += `<tr><td>${esc(m.name)}</td><td class="muted">${m.id}</td><td>${m.memory_gib ? m.memory_gib + " GB" : "–"}</td>` +
+    `<td><span class="dot ${m.status}"></span>${m.status}</td><td class="num">${sw("machines", m.id)}</td></tr>`;
+  if (!RUNNABLE.length) html += `<tr><td colspan="5" class="muted">No machine is connected.</td></tr>`;
+  html += `</table></div><div class="card"><table class="compact"><tr><th>benchmark</th><th class="num">run</th></tr>`;
+  for (const b of DATA.benchmarks) html += `<tr><td>${esc(b.name)}</td><td class="num">${sw("benchmarks", b.id)}</td></tr>`;
+  const by = last ? `Last updated <span title="${fmtDate(last.commit.committer.date)} ${fmtTime(last.commit.committer.date)}">${relTime(last.commit.committer.date)}</span>` : "Not set up yet: your pushes run nothing";
+  main.innerHTML = html + `</table></div><div class="muted" id="saved">${by}</div>`;
+  let saving = Promise.resolve();
+  main.querySelectorAll("input.switch").forEach(x => x.onchange = () => {
+    const kind = x.dataset.kind, list = new Set(setup[kind] || []);
+    x.checked ? list.add(x.value) : list.delete(x.value);
+    setup = { ...setup, [kind]: [...list] };
+    const note = document.getElementById("saved"); note.textContent = "Saving…";
+    saving = saving.then(async () => {
+      try {
+        const res = await gh(path, { method: "PUT", body: JSON.stringify({
+          message: `users: ${me.login} ${x.checked ? "runs" : "stops"} ${x.value}`,
+          content: btoa(JSON.stringify(setup, null, 2) + NL), ...(sha ? { sha } : {}) }) });
+        sha = res.content.sha;
+        note.textContent = "Last updated just now";
+      } catch (e) { note.textContent = "Could not save: " + e.message; x.checked = !x.checked; }
+    });
+  });
+}
+
 function pushes() {
-  const commits = allCommits();
   let html = `<div class="card"><table class="compact fixed"><colgroup><col><col style="width:140px"><col style="width:96px"><col style="width:60px"></colgroup>` +
              `<tr><th>commit</th><th>author</th><th>date</th><th>time</th></tr>`;
-  const pages = Math.max(1, Math.ceil(commits.length / PER_PAGE));
+  const pages = Math.max(1, Math.ceil(ALL.length / PER_PAGE));
   page = Math.min(page, pages - 1);
-  const shown = commits.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
-  for (const c of shown) {
-    html += `<tr class="push" data-sha="${c.sha}"><td class="clip" title="${esc(c.message)}"><code>${c.sha.slice(0, 7)}</code> ${esc(c.message)}</td>` +
+  const isMeasured = new Set(DATA.commits.map(c => c.sha));
+  for (const c of ALL.slice(page * PER_PAGE, (page + 1) * PER_PAGE)) {
+    html += `<tr class="push" data-sha="${c.sha}"><td class="clip" title="${esc(c.message)}"><code>${c.sha.slice(0, 7)}</code> ${esc(c.message)}${isMeasured.has(c.sha) ? ` <span class="dot on" title="measured"></span>` : ""}</td>` +
             `<td class="clip">${esc(c.author)}</td><td>${fmtDate(c.date)}</td><td class="muted">${fmtTime(c.date)}</td></tr>`;
   }
   document.getElementById("main").innerHTML = html + `</table>${pager(pages)}</div>`;
-  document.querySelectorAll("tr.push").forEach(tr => tr.onclick = () => openCommit(tr.dataset.sha));
+  document.querySelectorAll("tr.push").forEach(tr => tr.onclick = () => {
+    if (isMeasured.has(tr.dataset.sha)) { sel = tr.dataset.sha; commitSel.value = sel; tab = "Overview"; draw(); }
+    else openRuns(tr.dataset.sha);
+  });
   document.querySelectorAll(".pager button[data-page]").forEach(b => b.onclick = () => { page = +b.dataset.page; draw(); window.scrollTo(0, 0); });
 }
 function pager(pages) {
@@ -276,81 +328,6 @@ function pager(pages) {
          `<button class="pill" data-page="${Math.min(pages - 1, page + 1)}" ${page === pages - 1 ? "disabled" : ""}>Next ›</button></div>`;
 }
 
-function openCommit(sha) {
-  const c = allCommits().find(x => x.sha === sha) || { sha, message: "", author: "", date: "" };
-  const done = ran(sha), cols = [...new Set([...RUNNABLE.map(m => m.id), ...Object.keys(DATA.results)])];
-  let grid = `<table class="grid"><tr><th>model</th>${cols.map(m => `<th class="c">${esc(macName(m))}</th>`).join("")}</tr>`;
-  for (const m of DATA.models) {
-    grid += `<tr><td>${esc(m.name)}</td>` + cols.map(mac => done.has(`${mac}|${m.id}`)
-      ? `<td class="c"><span class="ok" title="measured">✓</span></td>`
-      : me && RUNNABLE.some(p => p.id === mac) ? `<td class="c"><input type="checkbox" data-mac="${mac}" data-model="${m.id}"></td>` : `<td class="c muted">–</td>`).join("") + `</tr>`;
-  }
-  grid += `</table>`;
-  sheet(`<h2><a href="https://github.com/${DATA.pie_repo}/commit/${sha}" target="_blank"><code>${sha.slice(0, 7)}</code></a> ${esc(c.message)}</h2>` +
-    `<div class="muted">${esc(c.author)} · ${fmtDate(c.date)} ${fmtTime(c.date)} · ✓ already measured</div><div class="gridwrap">${grid}</div>` +
-    (me ? `<button class="act" id="run">Run selected</button> <span id="msg" class="muted"></span>`
-        : `<div class="muted"><a href="#" id="sig2">Sign in</a> to add runs to this commit.</div>`));
-  const s2 = document.getElementById("sig2");
-  if (s2) s2.onclick = ev => { ev.preventDefault(); openSignIn(); };
-  const run = document.getElementById("run");
-  if (run) run.onclick = async () => {
-    const byMac = {};
-    document.querySelectorAll("#sheet input[data-mac]:checked").forEach(x => (byMac[x.dataset.mac] ||= []).push(x.dataset.model));
-    const msg = document.getElementById("msg");
-    if (!Object.keys(byMac).length) { msg.textContent = "Tick what to add."; return; }
-    msg.textContent = "Starting…";
-    try {
-      for (const [mac, models] of Object.entries(byMac))
-        await gh(`repos/${DATA.repo}/actions/workflows/pie-eval.yml/dispatches`, { method: "POST",
-          body: JSON.stringify({ ref: "main", inputs: { pie_commit: sha, models: models.join(","), macs: mac } }) });
-      msg.innerHTML = `Started. <a href="https://github.com/${DATA.repo}/actions/workflows/pie-eval.yml" target="_blank">Follow</a>`;
-    } catch (e) { msg.textContent = "Could not start: " + e.message; }
-  };
-}
-
-let config = null, configSha = null;
-async function cicd() {
-  const main = document.getElementById("main");
-  main.innerHTML = `<div class="card muted">Loading…</div>`;
-  const path = `repos/${DATA.repo}/contents/config.json`;
-  let last = null;
-  try {
-    const file = await gh(path);
-    config = file ? JSON.parse(atob(file.content)) : { models: [], machines: [] };
-    configSha = file?.sha || null;
-    last = (await gh(`repos/${DATA.repo}/commits?path=config.json&per_page=1`) || [])[0];
-  } catch (e) { main.innerHTML = `<div class="card down">${esc(e.message)}</div>`; return; }
-  const on = (list, id) => (list || []).includes(id);
-  const sw = (kind, id, checked) => `<input type="checkbox" class="switch" data-kind="${kind}" value="${id}" ${checked ? "checked" : ""}>`;
-  const gib = g => g == null ? "–" : `${g} GB`;
-  const by = last ? `Last updated <span title="${fmtDate(last.commit.committer.date)} ${fmtTime(last.commit.committer.date)}">${relTime(last.commit.committer.date)}</span>` : "Not configured yet";
-  let html = `<div class="card"><table class="compact"><tr><th>model</th><th class="num">size</th><th class="num">run</th></tr>`;
-  for (const m of DATA.models) html += `<tr><td>${esc(m.name)}</td><td class="num">${gib(m.gib)}</td><td class="num">${sw("models", m.id, on(config.models, m.id))}</td></tr>`;
-  html += `</table></div><div class="card"><table class="compact"><tr><th>machine</th><th>id</th><th>memory</th><th>status</th><th class="num">run</th></tr>`;
-  for (const m of RUNNABLE) html += `<tr><td>${esc(m.name)}</td><td class="muted">${m.id}</td><td>${m.memory_gib ? m.memory_gib + " GB" : "–"}</td>` +
-    `<td><span class="dot ${m.status}"></span>${m.status}</td><td class="num">${sw("machines", m.id, on(config.machines, m.id))}</td></tr>`;
-  if (!RUNNABLE.length) html += `<tr><td colspan="5" class="muted">No machine is connected.</td></tr>`;
-  html += `</table></div><div class="card"><table class="compact"><tr><th>benchmark</th><th class="num">run</th></tr>`;
-  for (const b of DATA.benchmarks) html += `<tr><td>${esc(b.name)}</td><td class="num">${sw("benchmarks", b.id, on(config.benchmarks, b.id))}</td></tr>`;
-  main.innerHTML = html + `</table></div><div class="muted" id="saved">${by}</div>`;
-  let saving = Promise.resolve();
-  main.querySelectorAll("input.switch").forEach(x => x.onchange = () => {
-    const kind = x.dataset.kind, list = new Set(config[kind] || []);
-    x.checked ? list.add(x.value) : list.delete(x.value);
-    config = { ...config, [kind]: [...list] };
-    const note = document.getElementById("saved"); note.textContent = "Saving…";
-    saving = saving.then(async () => {
-      try {
-        const res = await gh(path, { method: "PUT", body: JSON.stringify({
-          message: `config: ${x.checked ? "run" : "stop"} ${x.value} (${me.login})`,
-          content: btoa(JSON.stringify(config, null, 2) + NL), ...(configSha ? { sha: configSha } : {}) }) });
-        configSha = res.content.sha;
-        note.textContent = "Last updated just now";
-      } catch (e) { note.textContent = "Could not save: " + e.message; x.checked = !x.checked; }
-    });
-  });
-}
-
 function pool() {
   let html = "";
   for (const kind of [...new Set(["self-hosted", ...DATA.pool.map(m => m.kind)])]) {
@@ -359,27 +336,22 @@ function pool() {
             `<colgroup><col><col style="width:90px"><col style="width:100px"><col style="width:150px"><col style="width:90px"><col style="width:150px"></colgroup>` +
             `<tr><th>machine</th><th>memory</th><th>status</th><th>last run</th><th>commit</th><th>author</th></tr>`;
     for (const m of list) {
-      const c = m.last.commit ? ALL.find(x => x.sha === m.last.commit) : null;
+      const c = m.last.commit ? commitOf(m.last.commit) : null;
       html += `<tr><td class="clip">${esc(m.name)} <span class="muted">${m.id}</span></td>` +
         `<td>${m.memory_gib ? m.memory_gib + " GB" : ""}</td><td><span class="dot ${m.status}"></span>${m.status}</td>` +
         `<td>${m.last.at ? `${fmtDate(m.last.at)} <span class="muted">${fmtTime(m.last.at)}</span>` : "–"}</td>` +
-        `<td>${m.last.commit ? `<a href="#" class="sha" data-sha="${m.last.commit}"><code>${m.last.commit.slice(0, 7)}</code></a>` : "–"}</td>` +
-        `<td class="clip">${c?.author ? esc(c.author) : "–"}</td></tr>`;
+        `<td>${m.last.commit ? `<code>${m.last.commit.slice(0, 7)}</code>` : "–"}</td><td class="clip">${c?.author ? esc(c.author) : "–"}</td></tr>`;
     }
     if (!list.length) html += `<tr><td colspan="6" class="muted">None connected.</td></tr>`;
     html += `</table></div>`;
   }
   document.getElementById("main").innerHTML = html;
-  document.querySelectorAll("a.sha").forEach(a => a.onclick = e => { e.preventDefault(); openCommit(a.dataset.sha); });
 }
 function people() {
   const ago = d => { if (!d) return "–"; const h = (Date.now() - new Date(d)) / 36e5; return h < 1 ? "just now" : h < 24 ? `${Math.round(h)}h ago` : `${Math.round(h / 24)}d ago`; };
   let html = `<div class="card"><table class="compact"><tr><th>who</th><th>access</th><th class="num">last active</th></tr>`;
-  for (const p of DATA.people) {
-    html += `<tr><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}</td>` +
-      `<td class="muted">${esc(p.role || "–")}</td>` +
-      `<td class="num muted">${ago(p.last)}</td></tr>`;
-  }
+  for (const p of DATA.people)
+    html += `<tr><td><img class="avatar" src="https://github.com/${p.login}.png?size=44">${esc(p.login)}</td><td class="muted">${esc(p.role || "–")}</td><td class="num muted">${ago(p.last)}</td></tr>`;
   if (!DATA.people.length) html += `<tr><td colspan="3" class="muted">Nobody yet.</td></tr>`;
   document.getElementById("main").innerHTML = html + `</table></div>`;
 }
@@ -396,11 +368,7 @@ document.getElementById("close").onclick = closeSheet;
 document.getElementById("modal").onclick = e => { if (e.target.id === "modal") closeSheet(); };
 document.addEventListener("keydown", e => { if (e.key === "Escape") { closeSheet(); closeMenu(); } });
 
-let back = "Overview";
-function openSignIn() {
-  if (tab !== "Sign in") back = tab;
-  tab = "Sign in"; closeSheet(); draw();
-}
+function openSignIn() { if (tab !== "Sign in") back = tab; tab = "Sign in"; closeSheet(); draw(); }
 function signInPage() {
   document.getElementById("main").innerHTML = `<div class="signin-wrap"><div class="card signin-page"><svg width="40" height="40" class="gh-mark" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><h2>Sign in with GitHub</h2><p class="muted">Paste a GitHub token with access to ${REPO_NAME}.</p>` +
     `<input id="tok" type="password" placeholder="Paste GitHub access token"><button class="act" id="go">Sign in</button><div id="err" class="err"></div></div></div>`;
@@ -415,21 +383,17 @@ function signInPage() {
 }
 function closeMenu() { document.querySelector(".menu")?.remove(); }
 document.addEventListener("click", e => { if (!e.target.closest("#who")) closeMenu(); });
-let denied = "";
 async function signIn() {
   me = null; denied = "";
-  if (token()) {
-    try { me = await gh("user"); } catch { me = null; denied = "That token did not work."; }
-    if (me) {
-      let repo = null;
-      try { repo = await gh(`repos/${DATA.repo}`); } catch { repo = null; }
-      if (!repo?.permissions?.push) {
-        denied = `${me.login} does not have write access to ${REPO_NAME}. Ask an admin to add you.`;
-        me = null;
-        try { localStorage.removeItem("pie-evals-token"); } catch {}
-      }
-    }
-    if (me) {
+  if (!token()) return renderWho();
+  try { me = await gh("user"); } catch { me = null; denied = "That token did not work."; }
+  if (me) {
+    let repo = null;
+    try { repo = await gh(`repos/${DATA.repo}`); } catch { repo = null; }
+    if (!repo?.permissions?.push) {
+      denied = `${me.login} does not have write access to ${REPO_NAME}. Ask an admin to add you.`;
+      me = null;
+      try { localStorage.removeItem("pie-evals-token"); } catch {}
     }
   }
   renderWho();
@@ -455,7 +419,7 @@ function draw() {
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { tab = b.textContent; draw(); });
   document.getElementById("controls").hidden = tab !== "Overview";
   document.getElementById("in")?.classList.toggle("on", tab === "Sign in");
-  ({ "Overview": overview, "Configure": cicd, "History": pushes, "Machines": pool, "People": people, "Sign in": signInPage })[tab]();
+  ({ "Overview": overview, "Configure": configure, "History": pushes, "Machines": pool, "People": people, "Sign in": signInPage })[tab]();
 }
 signIn().then(draw);
 </script>
@@ -513,24 +477,16 @@ def _tokens(n: int) -> str:
     return f"{n // 1024}k" if n >= 1024 and n % 1024 == 0 else str(n)
 
 
-def benchmarks(matrix: Matrix) -> tuple[list[dict], list[tuple]]:
+def benchmarks(matrix: Matrix) -> list[dict]:
     workloads = {c.workload.id: c.workload for c in matrix.cells_for(Tier.TARGETED)
                  if str(c.workload.kind) in ("single_stream", "long_context", "concurrency")}
     order = sorted(workloads.values(), key=lambda w: (int(w.params.get("concurrency") or 1), int(w.params.get("prefill") or 0)))
-    tests, metrics, prompts = [], [], set()
+    tests = []
     for w in order:
         n, prompt, out = int(w.params.get("concurrency") or 1), int(w.params.get("prefill") or 0), int(w.params.get("decode") or 0)
         label = f"{_tokens(prompt)}-token prompt, {out} tokens out" + (f", {n} requests at once" if n > 1 else "")
-        tests.append({"id": w.id, "name": label})
-        if n == 1:
-            if prompt not in prompts:
-                prompts.add(prompt)
-                metrics.append(("Prefill", f"{_tokens(prompt)}-token prompt", w.id, "prefill_tok_s", "prefill_tflops"))
-            metrics.append(("Decode", f"1 request, {_tokens(prompt)} context", w.id, "decode_tok_s", "decode_tflops"))
-        else:
-            metrics.append(("Decode", f"{n} requests at once", w.id, "output_tok_s", "decode_tflops"))
-    metrics.sort(key=lambda m: m[0] != "Prefill")
-    return tests, metrics
+        tests.append({"id": w.id, "name": label, "concurrency": n})
+    return tests
 
 
 def mac_models(matrix: Matrix) -> list[dict]:
@@ -580,7 +536,8 @@ def people(repo: str, authors: dict[str, str]) -> list[dict]:
 
 
 def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, pie_repo: str, lookup_commits: bool = True) -> dict:
-    tests, metrics = benchmarks(matrix)
+    tests = benchmarks(matrix)
+    concurrency = {b["id"]: b["concurrency"] for b in tests}
     t = store.table(Tier.TARGETED)
     rows = [r for r in t.to_pylist() if r["status"] == str(CellStatus.PASS) and r["pie_commit"]] if t.num_rows else []
     rows.sort(key=lambda r: r["started_at"])
@@ -593,15 +550,16 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
         if r["pie_commit"] not in order:
             order.append(r["pie_commit"])
         last[r["platform"]] = {"at": r["started_at"].strftime("%Y-%m-%dT%H:%M:%SZ"), "commit": r["pie_commit"]}
+        if r["workload"] not in concurrency:
+            continue
         mac = results.setdefault(r["platform"], {"name": r["accelerator"], "models": defaultdict(lambda: defaultdict(dict))})
         cell = json.loads(r["record_json"])["cell"]
-        tf = None
-        for i, (_, _, wl, field, tf_field) in enumerate(metrics):
-            if wl == r["workload"] and r.get(field) is not None:
-                if tf is None:
-                    tf = flops.tflops(r, cell["workload"]["params"], flops.model_config(cell["artifact"]["base_model"]))
-                mac["models"][r["artifact"]][i][r["pie_commit"]] = {"v": r[field], "tflops": tf[tf_field]}
-                have.add(r["artifact"])
+        tf = flops.tflops(r, cell["workload"]["params"], flops.model_config(cell["artifact"]["base_model"]))
+        single = concurrency[r["workload"]] == 1
+        mac["models"][r["artifact"]][r["workload"]][r["pie_commit"]] = {
+            "prefill": r["prefill_tok_s"] if single else None, "prefill_tflops": tf["prefill_tflops"],
+            "decode": r["decode_tok_s"] if single else r["output_tok_s"], "decode_tflops": tf["decode_tflops"]}
+        have.add(r["artifact"])
 
     known = {c["sha"]: c for c in (history(pie_repo) if lookup_commits else [])}
     commits = []
@@ -626,7 +584,7 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
         m["has_results"] = m["id"] in have
     return {
         "repo": repo, "pie_repo": pie_repo, "default_model": DEFAULT_MODEL,
-        "metrics": [{"phase": p, "name": n} for p, n, *_ in metrics], "benchmarks": tests,
+        "benchmarks": tests,
         "commits": commits, "history": all_commits, "results": results, "models": models,
         "pool": _pool(live, matrix, last),
         "people": people(repo, {c["sha"]: c["author"] for c in [*known.values(), *commits]}) if lookup_commits else [],

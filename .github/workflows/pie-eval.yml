@@ -10,8 +10,9 @@ on:
   workflow_dispatch:
     inputs:
       pie_commit: { description: "pie commit", required: true }
-      models: { description: "comma-separated model ids (empty: the author's setup)", required: false, default: "" }
-      macs: { description: "comma-separated Mac ids (empty: the author's setup)", required: false, default: "" }
+      models: { description: "comma-separated model ids (empty: the default model)", required: false, default: "" }
+      macs: { description: "comma-separated Mac ids (empty: every connected Mac)", required: false, default: "" }
+      benchmarks: { description: "comma-separated workload ids (empty: every targeted benchmark)", required: false, default: "" }
 
 env:
   PIE_REPO: ${{ vars.PIE_REPO || 'pie-project/pie' }}
@@ -34,27 +35,28 @@ jobs:
           COMMIT: ${{ github.event.client_payload.pie_commit || github.event.inputs.pie_commit }}
           IN_MODELS: ${{ github.event.inputs.models }}
           IN_MACS: ${{ github.event.inputs.macs }}
+          IN_WORKLOADS: ${{ github.event.inputs.benchmarks }}
         run: |
           [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::pie_commit must be a full sha, got '$COMMIT'"; exit 1; }
           info=$(gh api "repos/$PIE_REPO/commits/$COMMIT" 2>/dev/null || echo '{}')
           author=$(jq -r '.author.login // empty' <<<"$info")
           line=$(jq -r '.commit.message // ""' <<<"$info" | grep -iE '^evals:' | tail -1 || true)
-          models=""; macs=""; workloads=""; source=config.json; skip=true
-          if [ -f config.json ]; then
-            models=$(jq -r '.models // [] | join(",")' config.json); macs=$(jq -r '.machines // [] | join(",")' config.json)
-            workloads=$(jq -r '.benchmarks // [] | join(",")' config.json)
+          models=""; macs=""; workloads=""; source="no setup"; skip=true
+          if [ -n "$author" ] && [ -f "users/$author.json" ]; then
+            f="users/$author.json"; source=$f
+            models=$(jq -r '.models // [] | join(",")' "$f"); macs=$(jq -r '.machines // [] | join(",")' "$f"); workloads=$(jq -r '.benchmarks // [] | join(",")' "$f")
+            [ -n "$models" ] && [ -n "$macs" ] && [ -n "$workloads" ] && skip=false
           fi
-          [ -n "$models" ] && [ -n "$macs" ] && [ -n "$workloads" ] && skip=false
           if [ -n "$line" ]; then
             m=$(grep -oE 'models=[^ ]+' <<<"$line" | cut -d= -f2 || true); k=$(grep -oE 'macs=[^ ]+' <<<"$line" | cut -d= -f2 || true)
             [ -n "$m" ] && models=$m; [ -n "$k" ] && macs=$k; source="commit message"; skip=false
           fi
-          [ -n "$IN_MODELS" ] && { models=$IN_MODELS; source=manual; }
-          [ -n "$IN_MACS" ] && { macs=$IN_MACS; source=manual; }
-          [ "${{ github.event_name }}" = workflow_dispatch ] && skip=false
+          if [ "${{ github.event_name }}" = workflow_dispatch ]; then
+            models=$IN_MODELS; macs=$IN_MACS; workloads=$IN_WORKLOADS; source=manual; skip=false
+          fi
           [ -n "$models" ] || models=$DEFAULT_MODELS
           [[ "$models$macs$workloads" =~ ^[a-z0-9.,-]*$ ]] || { echo "::error::bad models '$models' or macs '$macs'"; exit 1; }
-          echo "author=${author:-unknown} setup=$source models=$models macs=${macs:-every connected Mac} skip=$skip" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "author=${author:-unknown} setup=$source models=$models macs=${macs:-every connected Mac} benchmarks=${workloads:-all} skip=$skip" | tee -a "$GITHUB_STEP_SUMMARY"
           { echo "commit=$COMMIT"; echo "models=$models"; echo "macs=$macs"; echo "workloads=$workloads"; echo "skip=$skip"; } >> "$GITHUB_OUTPUT"
 
   run:
