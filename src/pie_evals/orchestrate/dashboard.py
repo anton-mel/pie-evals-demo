@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import subprocess
 from collections import defaultdict
@@ -188,7 +189,8 @@ const measured = [...DATA.commits].sort((a, b) => (b.date || "").localeCompare(a
 let sel = measured[0]?.sha || "";
 
 const unitSel = { value: "" };
-const CI = (DATA.ci_changes || []).slice().sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+const STREAMS = (DATA.streams || []).map(st => ({ sha: st.name, date: st.started_at, message: st.name, path: "stream" }));
+const CI = (STREAMS.length ? STREAMS : (DATA.ci_changes || []).slice()).sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 const groupOf = date => CI.filter(c => (c.date || "") <= (date || "")).length;
 const ciOf = at => at > 0 ? CI[at - 1] : null;
 document.querySelectorAll("#unit button").forEach(b => b.onclick = () => {
@@ -295,7 +297,37 @@ async function configure() {
   html += `</table></div><div class="card"><table class="compact"><tr><th>benchmark</th><th class="num">run</th></tr>`;
   for (const b of DATA.benchmarks) html += `<tr><td>${esc(b.name)}</td><td class="num">${sw("benchmarks", b.id)}</td></tr>`;
   const by = last ? `Last updated <span title="${fmtDate(last.commit.committer.date)} ${fmtTime(last.commit.committer.date)}">${relTime(last.commit.committer.date)}</span>` : "Not set up yet: pushes run nothing";
-  main.innerHTML = html + `</table></div><div class="muted" id="saved">${by}</div>`;
+  const streams = setup.streams || [];
+  const current = streams[streams.length - 1];
+  html += `</table></div><div class="card"><h2>Streams</h2>` +
+    `<div class="muted">A stream is a run of commits measured with the same benchmarks. Start a new one after changing what runs, so the Overview never compares across a change.</div>` +
+    `<table class="compact"><tr><th>stream</th><th>started</th><th>benchmarks</th><th>by</th></tr>`;
+  for (const st of [...streams].reverse())
+    html += `<tr><td>${esc(st.name)}</td><td>${fmtDate(st.started_at)} <span class="muted">${fmtTime(st.started_at)}</span></td>` +
+            `<td class="clip">${st.benchmarks.length} benchmark${st.benchmarks.length === 1 ? "" : "s"}</td><td class="clip">${esc(st.by || "")}</td></tr>`;
+  if (!streams.length) html += `<tr><td colspan="4" class="muted">No stream yet: the Overview groups by config changes instead.</td></tr>`;
+  html += `</table><div class="label"><button id="newstream">Create New Stream</button></div></div>`;
+  main.innerHTML = html + `<div class="muted" id="saved">${by}</div>`;
+  const write = async (message, next) => {
+    const res = await gh(path, { method: "PUT", body: JSON.stringify({
+      message, content: btoa(JSON.stringify(next, null, 2) + NL), ...(sha ? { sha } : {}) }) });
+    sha = res.content.sha;
+    setup = next;
+  };
+  const button = document.getElementById("newstream");
+  if (button) button.onclick = async () => {
+    if (!me) { alert("Sign in to start a stream."); return; }
+    const name = prompt("Name this stream", `stream ${streams.length + 1}`);
+    if (!name) return;
+    const note = document.getElementById("saved"); note.textContent = "Starting…";
+    const stream = { name, started_at: new Date().toISOString().slice(0, 19) + "Z",
+                     benchmarks: [...(setup.benchmarks || [])], models: [...(setup.models || [])], by: me.login };
+    try {
+      await write(`config: start stream ${name} (${me.login})`, { ...setup, streams: [...streams, stream] });
+      note.textContent = "Stream started";
+      draw();
+    } catch (e) { note.textContent = "Could not start: " + e.message; }
+  };
   let saving = Promise.resolve();
   main.querySelectorAll("input.switch").forEach(x => x.onchange = () => {
     const kind = x.dataset.kind, list = new Set(setup[kind] || []);
@@ -462,6 +494,17 @@ def _gh(path: str) -> dict | list | None:
 CI_PATHS = ("matrix/suites.yaml", "config.json")
 
 
+def streams(repo: str) -> list[dict]:
+    file = _gh(f"repos/{repo}/contents/config.json")
+    if not isinstance(file, dict) or "content" not in file:
+        return []
+    try:
+        setup = json.loads(base64.b64decode(file["content"]).decode())
+    except (ValueError, UnicodeDecodeError):
+        return []
+    return [st for st in setup.get("streams", []) if st.get("started_at")]
+
+
 def ci_changes(repo: str) -> list[dict]:
     seen: dict[str, dict] = {}
     for path in CI_PATHS:
@@ -626,6 +669,7 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
         "benchmarks": tests,
         "commits": commits, "history": all_commits, "results": results, "models": models,
         "ci_changes": ci_changes(repo) if lookup_commits else [],
+        "streams": streams(repo) if lookup_commits else [],
         "pool": _pool(live, matrix, last),
         "people": people(repo, {c["sha"]: c["author"] for c in [*known.values(), *commits]}) if lookup_commits else [],
     }
