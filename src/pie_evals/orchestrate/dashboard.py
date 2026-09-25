@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import subprocess
 from collections import defaultdict
@@ -20,6 +21,7 @@ PAGE = """<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>benchmarks</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2067.89%2067.89'%3E%3Cpath%20d='M52.96,11.53l-43.52,6.4c-3.85.57-5.64,5.08-3.22,8.13l27.3,34.49c2.41,3.05,7.22,2.34,8.65-1.27l16.21-40.89c1.43-3.61-1.58-7.42-5.43-6.86Z'%20fill='none'%20stroke='%23000'%20stroke-miterlimit='10'%20stroke-width='8'/%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   * { box-sizing: border-box; }
   body { font: 15px/1.5 -apple-system, system-ui, sans-serif; margin: 0; color: #1f2328; background: #f6f8fa; }
@@ -150,6 +152,7 @@ PAGE = """<!doctype html>
   table.grid .c { text-align: center; }
   .ok { color: #1a7f37; font-weight: 700; }
   .label { font-size: 13px; font-weight: 600; color: #424a53; margin: 8px 0 4px; }
+  .chart-wrap { position: relative; height: 220px; margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -210,6 +213,68 @@ function before(mac, model, wl, sha) {
   }
   return null;
 }
+// Streams: each config.json save marks "since" = HEAD at that moment, so
+// DATA.streams (oldest -> newest) are the CI-setup boundaries. A commit
+// belongs to the stream whose boundary is the latest one at or before it.
+function streamRange(sha) {
+  const d = commitOf(sha).date || "";
+  const bounds = [...new Set((DATA.streams || []).map(s => commitOf(s).date || "").filter(Boolean))].sort();
+  let start = bounds.length ? bounds[0] : "";
+  for (const b of bounds) if (b <= d) start = b; else break;
+  const end = bounds.find(b => b > start) || null;
+  return { start, end };
+}
+function commitsInStream(sha) {
+  const { start, end } = streamRange(sha);
+  return [...DATA.commits].filter(c => (c.date || "") >= start && (!end || (c.date || "") < end))
+                           .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+}
+
+const PALETTE = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"];
+const trendCharts = [];
+function trendSection(sel, unit) {
+  trendCharts.splice(0).forEach(c => c.destroy());
+  const commits = commitsInStream(sel);
+  if (commits.length < 2) return { html: "", cards: [] };
+  const cards = [];
+  let html = `<div class="phase">Trend · ${commits.length} commits on this CI setup</div>`;
+  for (const b of DATA.benchmarks) {
+    const pairs = [];
+    for (const [mac, r] of Object.entries(DATA.results))
+      for (const [model, byTest] of Object.entries(r.models)) {
+        const series = byTest[b.id];
+        if (series && commits.some(c => series[c.sha])) pairs.push({ macName: r.name, modelName: modelName(model), series });
+      }
+    if (!pairs.length) continue;
+    cards.push({ b, pairs });
+    html += `<div class="card"><h2>${esc(b.name)}</h2><div class="chart-wrap"><canvas id="trend-${esc(b.id)}"></canvas></div></div>`;
+  }
+  return { html, cards, commits };
+}
+function drawTrendCharts(trend, unit) {
+  for (const { b, pairs } of trend.cards) {
+    const canvas = document.getElementById(`trend-${b.id}`);
+    if (!canvas) continue;
+    trendCharts.push(new Chart(canvas, {
+      type: "line",
+      data: {
+        labels: trend.commits.map(x => x.sha.slice(0, 7)),
+        datasets: pairs.map((p, i) => ({
+          label: `${p.macName} · ${p.modelName}`,
+          data: trend.commits.map(x => p.series[x.sha]?.["decode" + unit] ?? null),
+          borderColor: PALETTE[i % PALETTE.length], backgroundColor: PALETTE[i % PALETTE.length],
+          borderWidth: 2, pointRadius: 4, tension: 0, spanGaps: true,
+        })),
+      },
+      options: {
+        plugins: { legend: { display: pairs.length > 1, position: "bottom", labels: { boxWidth: 10, font: { size: 11 } } } },
+        scales: { y: { beginAtZero: false } },
+        onClick: (e, els) => { if (els.length) { sel = trend.commits[els[0].index].sha; draw(); } },
+      },
+    }));
+  }
+}
+
 function cell(now, was, key) {
   const v = now?.[key];
   if (v == null) return `<td class="num muted">–</td><td></td>`;
@@ -247,8 +312,10 @@ function overview() {
     }
   }
   if (!any) html += `<div class="card muted">No benchmarks ran on this commit.</div>`;
-  main.innerHTML = html;
+  const trend = trendSection(sel, unit);
+  main.innerHTML = html + trend.html;
   document.getElementById("back").onclick = e => { e.preventDefault(); tab = "History"; draw(); };
+  drawTrendCharts(trend, unit);
 }
 
 function openRuns(sha) {
@@ -557,12 +624,34 @@ def people(repo: str, authors: dict[str, str]) -> list[dict]:
     return sorted(rows, key=lambda p: p["last"], reverse=True)
 
 
+def _config_history(repo: str) -> list[str]:
+    """Every distinct 'since' config.json has ever held, oldest first: one entry per
+    CI-setup stream (a config save always sets since to that moment's HEAD)."""
+    pages = _paginate(f"repos/{repo}/commits?path=config.json&per_page=100")
+    commits = sorted((c for page in pages for c in page), key=lambda c: c["commit"]["committer"]["date"])
+    streams: list[str] = []
+    for c in commits:
+        content = _gh(f"repos/{repo}/contents/config.json?ref={c['sha']}")
+        if not content or not content.get("content"):
+            continue
+        try:
+            since = json.loads(base64.b64decode(content["content"])).get("since", "")
+        except (ValueError, TypeError):
+            continue
+        if since and (not streams or streams[-1] != since):
+            streams.append(since)
+    return streams
+
+
 def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, pie_repo: str,
           config: Path = Path("config.json"), lookup_commits: bool = True) -> dict:
     try:
         since = json.loads(config.read_text()).get("since", "") if config.is_file() else ""
     except json.JSONDecodeError:
         since = ""
+    streams = _config_history(repo) if lookup_commits else ([since] if since else [])
+    if since and (not streams or streams[-1] != since):
+        streams.append(since)
     tests = benchmarks(matrix)
     concurrency = {b["id"]: b["concurrency"] for b in tests}
     t = store.table(Tier.TARGETED)
@@ -611,7 +700,7 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
         m["has_results"] = m["id"] in have
     return {
         "repo": repo, "pie_repo": pie_repo, "default_model": DEFAULT_MODEL,
-        "benchmarks": tests, "since": since,
+        "benchmarks": tests, "since": since, "streams": streams,
         "commits": commits, "history": all_commits, "results": results, "models": models,
         "pool": _pool(live, matrix, last),
         "people": people(repo, {c["sha"]: c["author"] for c in [*known.values(), *commits]}) if lookup_commits else [],
