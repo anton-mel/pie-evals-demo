@@ -155,14 +155,13 @@ PAGE = """<!doctype html>
   <span id="who"></span>
 </div></header>
 <div class="controls" id="controls">
-  <select id="commit" aria-label="commit"></select>
   <div class="seg" id="unit" role="group" aria-label="unit"><button data-u="" class="on">tok/s</button><button data-u="_tflops">TFLOP/s</button></div>
 </div>
 <main id="main"></main>
 <div id="modal" class="modal" hidden><div class="sheet"><button class="x" id="close" aria-label="close">×</button><div id="sheet"></div></div></div>
 <script>
 const DATA = __DATA__;
-const TABS = ["Overview", "Configure CI", "History", "Machines", "People"];
+const TABS = ["Configure CI", "History", "Overview", "Machines", "People"];
 const NL = String.fromCharCode(10);
 const REPO_NAME = DATA.repo.split("/").pop();
 const esc = x => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
@@ -170,7 +169,7 @@ const RUNNABLE = [...new Map(DATA.pool.filter(m => m.os === "macos").map(m => [m
 const modelName = id => (DATA.models.find(m => m.id === id) || { name: id }).name;
 const macName = id => (DATA.pool.find(m => m.id === id) || DATA.results[id] || { name: id }).name;
 const PER_PAGE = 25;
-let tab = "Overview", back = "Overview", me = null, page = 0, denied = "";
+let tab = "History", back = "History", me = null, page = 0, denied = "";
 const token = () => { try { return localStorage.getItem("pie-evals-token"); } catch { return null; } };
 
 const when = d => d ? new Date(d) : null;
@@ -188,9 +187,10 @@ const parentOf = sha => { const i = ALL.findIndex(c => c.sha === sha); return i 
 const measured = [...DATA.commits].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 let sel = measured[0]?.sha || "";
 
-const commitSel = document.getElementById("commit"), unitSel = { value: "" };
-commitSel.innerHTML = measured.map(c => `<option value="${c.sha}">${c.sha.slice(0, 7)} · ${esc(c.message.slice(0, 60))}</option>`).join("");
-commitSel.onchange = () => { sel = commitSel.value; draw(); };
+const unitSel = { value: "" };
+const CI = (DATA.ci_changes || []).slice().sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+const groupOf = date => CI.filter(c => (c.date || "") <= (date || "")).length;
+const ciOf = at => at > 0 ? CI[at - 1] : null;
 document.querySelectorAll("#unit button").forEach(b => b.onclick = () => {
   unitSel.value = b.dataset.u;
   document.querySelectorAll("#unit button").forEach(x => x.classList.toggle("on", x === b));
@@ -200,7 +200,9 @@ document.querySelectorAll("#unit button").forEach(b => b.onclick = () => {
 function valueAt(mac, model, wl, sha) { return DATA.results[mac]?.models[model]?.[wl]?.[sha]; }
 function before(mac, model, wl, sha) {
   const order = [...DATA.commits].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+  const era = groupOf(commitOf(sha).date);
   for (let i = order.findIndex(c => c.sha === sha) - 1; i >= 0; i--) {
+    if (groupOf(order[i].date) !== era) return null;
     const v = valueAt(mac, model, wl, order[i].sha);
     if (v) return { sha: order[i].sha, ...v };
   }
@@ -224,7 +226,9 @@ function overview() {
   let html = `<div class="commit-head"><div class="title">${esc(c.message) || sel.slice(0, 7)}</div><div class="meta">` +
     `<a class="sha" href="https://github.com/${DATA.pie_repo}/commit/${sel}" target="_blank"><code>${sel.slice(0, 7)}</code></a>` +
     (c.author ? `<span><img class="avatar" src="https://github.com/${esc(c.author)}.png?size=40">${esc(c.author)}</span>` : "") +
-    (c.date ? `<span title="${fmtDate(c.date)} ${fmtTime(c.date)}">${relTime(c.date)}</span>` : "") + `</div></div>`;
+    (c.date ? `<span title="${fmtDate(c.date)} ${fmtTime(c.date)}">${relTime(c.date)}</span>` : "") +
+    (CI.length ? `<span class="muted">CI group ${groupOf(c.date)} of ${CI.length}${ciOf(groupOf(c.date)) ? ` · since ${esc(ciOf(groupOf(c.date)).message)}` : ""}</span>` : "") +
+    `</div></div>`;
   let any = false;
   for (const [mac, r] of Object.entries(DATA.results)) {
     for (const [model, byTest] of Object.entries(r.models)) {
@@ -316,13 +320,20 @@ function pushes() {
   const pages = Math.max(1, Math.ceil(ALL.length / PER_PAGE));
   page = Math.min(page, pages - 1);
   const isMeasured = new Set(DATA.commits.map(c => c.sha));
+  let era = null;
   for (const c of ALL.slice(page * PER_PAGE, (page + 1) * PER_PAGE)) {
+    const at = groupOf(c.date);
+    if (era !== null && at !== era) {
+      const change = ciOf(Math.max(at, era));
+      html += `<tr><td colspan="4" class="muted">— CI changed${change ? `: ${esc(change.message)} (${change.path})` : ""} —</td></tr>`;
+    }
+    era = at;
     html += `<tr class="push" data-sha="${c.sha}"><td class="clip" title="${esc(c.message)}"><code>${c.sha.slice(0, 7)}</code> ${esc(c.message)}${isMeasured.has(c.sha) ? ` <span class="dot on" title="measured"></span>` : ""}</td>` +
             `<td class="clip">${esc(c.author)}</td><td>${fmtDate(c.date)}</td><td class="muted">${fmtTime(c.date)}</td></tr>`;
   }
   document.getElementById("main").innerHTML = html + `</table>${pager(pages)}</div>`;
   document.querySelectorAll("tr.push").forEach(tr => tr.onclick = () => {
-    if (isMeasured.has(tr.dataset.sha)) { sel = tr.dataset.sha; commitSel.value = sel; tab = "Overview"; draw(); }
+    if (isMeasured.has(tr.dataset.sha)) { sel = tr.dataset.sha; tab = "Overview"; draw(); }
     else openRuns(tr.dataset.sha);
   });
   document.querySelectorAll(".pager button[data-page]").forEach(b => b.onclick = () => { page = +b.dataset.page; draw(); window.scrollTo(0, 0); });
@@ -446,6 +457,22 @@ def _gh(path: str) -> dict | list | None:
         return json.loads(out)
     except (OSError, subprocess.CalledProcessError, json.JSONDecodeError):
         return None
+
+
+CI_PATHS = ("matrix/suites.yaml", "config.json")
+
+
+def ci_changes(repo: str) -> list[dict]:
+    seen: dict[str, dict] = {}
+    for path in CI_PATHS:
+        for c in _gh(f"repos/{repo}/commits?path={path}&per_page=100") or []:
+            seen[c["sha"]] = {
+                "sha": c["sha"],
+                "date": (c["commit"]["committer"] or {}).get("date", ""),
+                "message": (c["commit"]["message"] or "").splitlines()[0][:90],
+                "path": path,
+            }
+    return sorted(seen.values(), key=lambda c: c["date"])
 
 
 def history(pie_repo: str) -> list[dict]:
@@ -598,6 +625,7 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
         "repo": repo, "pie_repo": pie_repo, "default_model": DEFAULT_MODEL,
         "benchmarks": tests,
         "commits": commits, "history": all_commits, "results": results, "models": models,
+        "ci_changes": ci_changes(repo) if lookup_commits else [],
         "pool": _pool(live, matrix, last),
         "people": people(repo, {c["sha"]: c["author"] for c in [*known.values(), *commits]}) if lookup_commits else [],
     }
