@@ -307,7 +307,7 @@ async function cicd() {
   const on = (list, id) => (list || []).includes(id);
   const sw = (kind, id, checked) => `<input type="checkbox" class="switch" data-kind="${kind}" value="${id}" ${checked ? "checked" : ""}>`;
   const gib = g => g == null ? "–" : `${g} GB`;
-  const by = last ? `changed by ${esc(last.author?.login || last.commit.author.name)} · ${fmtDate(last.commit.committer.date)}` : "";
+  const by = last ? `Last updated ${fmtDate(last.commit.committer.date)} ${fmtTime(last.commit.committer.date)} by ${esc(last.author?.login || last.commit.author.name)}` : "Not configured yet";
   let html = `<div class="card"><table class="compact"><tr><th>model</th><th class="num">size</th><th class="num">run</th></tr>`;
   for (const m of DATA.models) html += `<tr><td>${esc(m.name)}</td><td class="num">${gib(m.gib)}</td><td class="num">${sw("models", m.id, on(config.models, m.id))}</td></tr>`;
   html += `</table></div><div class="card"><table class="compact"><tr><th>machine</th><th>id</th><th>memory</th><th>status</th><th class="num">run</th></tr>`;
@@ -327,7 +327,8 @@ async function cicd() {
           message: `config: ${x.checked ? "run" : "stop"} ${x.value} (${me.login})`,
           content: btoa(JSON.stringify(config, null, 2) + NL), ...(configSha ? { sha: configSha } : {}) }) });
         configSha = res.content.sha;
-        note.textContent = `Saved · changed by ${me.login}`;
+        const t = new Date().toISOString();
+        note.textContent = `Last updated ${fmtDate(t)} ${fmtTime(t)} by ${me.login}`;
       } catch (e) { note.textContent = "Could not save: " + e.message; x.checked = !x.checked; }
     });
   });
