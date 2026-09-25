@@ -84,6 +84,14 @@ PAGE = """<!doctype html>
   button.act { background: #1f2328; border-color: #1f2328; color: #fff; font-weight: 600; }
   button.act:hover { background: #32383f; }
   label.check { display: block; padding: 4px 0; }
+  label.toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid #eaeef2; cursor: pointer; font-size: 14px; }
+  label.toggle:last-child { border-bottom: 0; }
+  input.switch { appearance: none; -webkit-appearance: none; flex: none; width: 34px; height: 20px; border-radius: 999px; background: #d0d7de;
+    position: relative; cursor: pointer; transition: background .15s; margin: 0; border: 0; padding: 0; }
+  input.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform .15s; }
+  input.switch:checked { background: #1f883d; }
+  input.switch:checked::after { transform: translateX(14px); }
   code { background: #eaeef2; border-radius: 4px; padding: 1px 5px; font-size: 13px; }
   a { color: #0969da; text-decoration: none; }
   .signin { background: #1f2328; border-color: #1f2328; color: #fff; font-weight: 600; }
@@ -298,10 +306,11 @@ async function cicd() {
   const models = (config.models || []).map(modelName), where = (config.machines || []).length ? config.machines.map(macName) : ["every connected machine"];
   const now = models.length ? `${models.map(tag).join("")}<span class="on-word">on</span>${where.map(tag).join("")}` : `<span class="tag off">nothing</span>`;
   const by = last ? `<span class="muted">changed by ${esc(last.author?.login || last.commit.author.name)} · ${fmtDate(last.commit.committer.date)}</span>` : "";
-  const pick = (name, items, checked) => items.map(x => `<label class="check"><input type="checkbox" name="${name}" value="${x.id}" ${checked.includes(x.id) ? "checked" : ""}> ${esc(x.name)}</label>`).join("");
+  const pick = (name, items, checked) => items.map(x => `<label class="toggle"><span>${esc(x.name)}${x.detail ? ` <span class="muted">${esc(x.detail)}</span>` : ""}</span>` +
+    `<input type="checkbox" class="switch" name="${name}" value="${x.id}" ${checked.includes(x.id) ? "checked" : ""}></label>`).join("");
   main.innerHTML = `<div class="auto" style="margin-bottom:12px"><span>Every push to pie main runs</span>${now}${by}</div>` +
     `<div class="card"><div class="row"><div><div class="label">Models</div>${pick("model", DATA.models, config.models || [])}</div>` +
-    `<div><div class="label">Machines</div><label class="check"><input type="checkbox" name="all" ${(config.machines || []).length ? "" : "checked"}> every connected machine</label>` +
+    `<div><div class="label">Machines</div><label class="toggle"><span>Every connected machine</span><input type="checkbox" class="switch" name="all" ${(config.machines || []).length ? "" : "checked"}></label>` +
     `${pick("mac", RUNNABLE, config.machines || [])}</div></div><button class="act" id="save">Save</button> <span id="msg" class="muted"></span></div>`;
   const picked = n => [...main.querySelectorAll(`input[name=${n}]:checked`)].map(x => x.value);
   document.getElementById("save").onclick = async () => {
@@ -476,18 +485,41 @@ def _pool(live: list[dict] | None, matrix: Matrix, last: dict[str, dict]) -> lis
     return sorted(pool, key=lambda m: (m["kind"] != "self-hosted", m["name"]))
 
 
+PUBLISHERS = {"qwen": "Qwen", "google": "Google", "mlx-community": "MLX", "openai": "OpenAI", "unsloth": "Unsloth",
+              "meta-llama": "Meta", "deepseek-ai": "DeepSeek", "moonshotai": "Moonshot"}
+DROP = {"it", "instruct", "4bit", "8bit", "mxfp4", "q4", "gguf", "bf16", "mlx"}
+
+
+def pretty(base_model: str, scheme: str) -> tuple[str, str]:
+    org, _, repo = base_model.partition("/")
+    words = []
+    for w in repo.replace("gpt-oss", "gpt_oss").split("-"):
+        if w.lower() in DROP:
+            continue
+        w = w.replace("gpt_oss", "gpt-oss")
+        if w[:1].isdigit() or (w[:1] in "aAeE" and w[1:2].isdigit()):
+            w = w.upper()
+        words.append(w)
+    name = " ".join(words)
+    name = name[:1].upper() + name[1:] if not name.startswith("gpt") else name
+    fmt = {"bf16": "BF16", "fp16": "FP16", "fp8": "FP8", "affine_u4_g64": "4-bit", "mxfp4": "MXFP4"}.get(scheme)
+    if not fmt:
+        fmt = "GGUF " + scheme.split("_", 1)[1].upper() if scheme.startswith("gguf_") else scheme.upper()
+    return name, f"{PUBLISHERS.get(org.lower(), org)} · {fmt}"
+
+
 def mac_models(matrix: Matrix) -> list[dict]:
     seen: dict[str, dict] = {}
     for c in matrix.expand():
         if (c.platform.os == "macos" and c.engine.value == "pie" and c.program.id == "text-completion-bench"
                 and c.mode.tp == 1 and c.declared_unsupported_reason is None and c.artifact.kind.value == "full"):
-            seen[c.artifact.id] = {"id": c.artifact.id, "name": c.artifact.base_model, "scheme": str(c.artifact.scheme)}
+            name, detail = pretty(c.artifact.base_model, str(c.artifact.scheme))
+            seen[c.artifact.id] = {"id": c.artifact.id, "name": name, "detail": detail}
     names = [m["name"] for m in seen.values()]
     for m in seen.values():
-        scheme = m.pop("scheme")
         if names.count(m["name"]) > 1:
-            m["name"] = f"{m['name']} ({scheme})"
-    return sorted(seen.values(), key=lambda m: m["name"])
+            m["name"] = f"{m['name']} ({m['detail'].split(' · ')[0]})"
+    return sorted(seen.values(), key=lambda m: m["name"].lower())
 
 
 def _paginate(path: str) -> list:
