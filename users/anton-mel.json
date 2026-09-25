@@ -2,6 +2,10 @@
   "models": [
     "qwen3.5-0.8b-bf16"
   ],
+  "machines": [],
+  "benchmarks": [
+    "ss-128-64"
+  ],
   "macs": [],
   "enabled": true
 }
