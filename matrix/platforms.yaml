@@ -192,6 +192,15 @@ platforms:
     interconnect: uma
     runner_labels: [self-hosted, macos, m5-max-48g]
     tiers: [smoke, nightly, weekly]
+  - id: m5-air-24g
+    os: macos
+    backend: metal
+    accelerator: Apple M5
+    arch: apple10
+    memory_gib: 24
+    interconnect: uma
+    runner_labels: [self-hosted, macos, m5-air-24g]
+    tiers: [smoke, nightly, weekly]
   - id: a100-pcie-x2
     os: linux
     backend: cuda
