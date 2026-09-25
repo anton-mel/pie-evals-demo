@@ -20,7 +20,6 @@ PAGE = """<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>benchmarks</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2067.89%2067.89'%3E%3Cpath%20d='M52.96,11.53l-43.52,6.4c-3.85.57-5.64,5.08-3.22,8.13l27.3,34.49c2.41,3.05,7.22,2.34,8.65-1.27l16.21-40.89c1.43-3.61-1.58-7.42-5.43-6.86Z'%20fill='none'%20stroke='%23000'%20stroke-miterlimit='10'%20stroke-width='8'/%3E%3C/svg%3E">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   * { box-sizing: border-box; }
   body { font: 15px/1.5 -apple-system, system-ui, sans-serif; margin: 0; color: #1f2328; background: #f6f8fa; }
@@ -39,6 +38,7 @@ PAGE = """<!doctype html>
   main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 48px; }
   .controls { max-width: 1000px; margin: 0 auto; padding: 16px 16px 0; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; color: #424a53; font-size: 14px; }
   .controls[hidden] { display: none; }
+  .up { color: #1a7f37; } .down { color: #b3261e; }
   .controls select { margin-left: 6px; }
   .card { background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
   h2 { font-size: 16px; margin: 0 0 12px; }
@@ -148,6 +148,7 @@ PAGE = """<!doctype html>
   <label>prefill <select id="fprefill"></select></label>
   <label>decode <select id="fdecode"></select></label>
   <label>show <select id="unit"><option value="v">tok/s</option><option value="tflops">TFLOP/s</option></select></label>
+  <label>commit <select id="commit"></select></label>
 </div>
 <main id="main"></main>
 <div id="modal" class="modal" hidden><div class="sheet"><button class="x" id="close" aria-label="close">×</button><div id="sheet"></div></div></div>
@@ -161,7 +162,7 @@ const esc = x => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").re
 const modelName = id => (DATA.models.find(m => m.id === id) || { name: id }).name;
 const RUNNABLE = [...new Map(DATA.pool.filter(m => m.os === "macos").map(m => [m.id, m])).values()];
 const macName = id => (DATA.pool.find(m => m.id === id) || DATA.results[id] || { name: id }).name;
-let tab = "Overview", charts = [], me = null, page = 0;
+let tab = "Overview", me = null, page = 0;
 const PER_PAGE = 25;
 const token = () => { try { return localStorage.getItem("pie-evals-token"); } catch { return null; } };
 
@@ -169,6 +170,7 @@ const modelSel = document.getElementById("model");
 modelSel.innerHTML = DATA.models.filter(m => m.has_results).map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join("");
 modelSel.value = DATA.default_model; modelSel.onchange = draw;
 const unitSel = document.getElementById("unit"); unitSel.onchange = draw;
+const commitSel = document.getElementById("commit"); commitSel.onchange = draw;
 const phaseSel = {};
 for (const [phase, id] of [["Prefill", "fprefill"], ["Decode", "fdecode"]]) {
   phaseSel[phase] = document.getElementById(id);
@@ -191,39 +193,48 @@ function ran(sha) {
   return out;
 }
 
+function measured() {
+  return DATA.commits.filter(c => macs().some(mac => DATA.metrics.some((m, i) =>
+    (((DATA.results[mac]?.models[modelSel.value] || {})[i] || {})[c.sha]))));
+}
+
 function overview() {
   const list = macs(), key = unitSel.value;
   if (!list.length) { document.getElementById("main").innerHTML = `<div class="card muted">No results for this model yet.</div>`; return; }
+  const runs = measured();
+  if (!runs.length) { document.getElementById("main").innerHTML = `<div class="card muted">No runs for this model yet.</div>`; return; }
+  const order = runs.slice().reverse();
+  commitSel.innerHTML = order.map(c => `<option value="${c.sha}">${c.sha.slice(0, 7)} — ${esc((c.message || "").slice(0, 48))}</option>`).join("");
+  if (!order.some(c => c.sha === commitSel.value)) commitSel.value = order[0].sha;
+  const at = runs.findIndex(c => c.sha === commitSel.value);
+  const now = runs[at], before = at > 0 ? runs[at - 1] : null;
   const fmt = v => key === "v" ? Math.round(v).toLocaleString() : v.toFixed(2);
-  let html = "";
+  const value = (mac, i, sha) => (((DATA.results[mac]?.models[modelSel.value] || {})[i] || {})[sha] || {})[key];
+
+  let html = `<div class="card"><h2 style="margin:0 0 4px"><a href="https://github.com/${DATA.pie_repo}/commit/${now.sha}" target="_blank"><code>${now.sha.slice(0, 7)}</code></a> ${esc(now.message || "")}</h2>` +
+             `<div class="muted">${esc(now.author || "")} · ${fmtDate(now.date)} ${fmtTime(now.date)} · ` +
+             (before ? `compared with <a href="#" class="sha" data-sha="${before.sha}"><code>${before.sha.slice(0, 7)}</code></a>` : "no earlier run to compare") +
+             `</div></div>`;
   for (const phase of ["Prefill", "Decode"]) {
     html += `<div class="phase">${phase}</div><div class="tiles">`;
     DATA.metrics.forEach((m, i) => {
       if (m.phase !== phase || (phaseSel[phase].value !== "" && +phaseSel[phase].value !== i)) return;
-      const now = list.map((mac, k) => {
-        const s = series(mac, i).filter(p => p[key] != null), last = s[s.length - 1];
-        return last ? `<span style="color:${COLORS[k % COLORS.length]}">${fmt(last[key])}</span>` : "";
-      }).filter(Boolean).join(" · ");
-      html += `<div class="tile"><div class="name">${m.name}</div><div class="now">${now || "–"} ${now ? unitName() : ""}</div>` +
-              `<div class="chart"><canvas data-metric="${i}"></canvas></div></div>`;
+      const cells = list.map((mac, k) => {
+        const got = value(mac, i, now.sha);
+        if (got == null) return "";
+        const was = before ? value(mac, i, before.sha) : null;
+        const change = was ? (got - was) / was * 100 : null;
+        const tone = change == null ? "" : change >= 0 ? "up" : "down";
+        return `<div><span style="color:${COLORS[k % COLORS.length]}">${fmt(got)}</span> ${unitName()}` +
+               (change == null ? "" : ` <span class="${tone}">${change >= 0 ? "+" : ""}${change.toFixed(1)}%</span>` +
+                                      ` <span class="muted">was ${fmt(was)}</span>`) + `</div>`;
+      }).filter(Boolean).join("");
+      html += `<div class="tile"><div class="name">${m.name}</div><div class="now">${cells || "–"}</div></div>`;
     });
     html += `</div>`;
   }
   document.getElementById("main").innerHTML = html;
-  document.querySelectorAll("canvas").forEach(cv => {
-    const i = +cv.dataset.metric;
-    const labels = DATA.commits.map(c => c.sha).filter(sha => list.some(mac => series(mac, i).some(p => p.sha === sha && p[key] != null)));
-    charts.push(new Chart(cv, { type: "line",
-      data: { labels: labels.map(s => s.slice(0, 7)), datasets: list.map((mac, k) => {
-        const by = Object.fromEntries(series(mac, i).map(p => [p.sha, p[key]]));
-        return { label: DATA.results[mac].name, data: labels.map(l => by[l] ?? null), borderColor: COLORS[k % COLORS.length],
-                 backgroundColor: COLORS[k % COLORS.length], pointRadius: 2, borderWidth: 2, spanGaps: true };
-      }) },
-      options: { responsive: true, maintainAspectRatio: false,
-                 plugins: { legend: { display: list.length > 1, position: "bottom", labels: { boxWidth: 8, font: { size: 11 } } } },
-                 scales: { x: { ticks: { font: { size: 10 }, maxRotation: 0, autoSkip: true } }, y: { ticks: { font: { size: 10 } } } },
-                 onClick: (e, el) => { if (el.length) openCommit(labels[el[0].index]); } } }));
-  });
+  document.querySelectorAll(".sha").forEach(a => a.onclick = e => { e.preventDefault(); openCommit(a.dataset.sha); });
 }
 
 const when = d => d ? new Date(d) : null;
@@ -438,7 +449,6 @@ function renderWho() {
 }
 
 function draw() {
-  charts.forEach(c => c.destroy()); charts = [];
   if (!me) tab = "Sign in";
   else if (tab === "Sign in") tab = back;
   document.getElementById("tabs").innerHTML = me ? TABS.map(t => `<button class="${t === tab ? "on" : ""}">${t}</button>`).join("") : "";
