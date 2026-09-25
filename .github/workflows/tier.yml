@@ -37,7 +37,7 @@ jobs:
       - name: matrix check (budgets, shard counts)
         run: .venv/bin/pie-evals check
       - name: validate RunPod GPU type ids
-        run: .venv/bin/pie-evals validate-platforms
+        run: '[ -z "$RUNPOD_API_KEY" ] || .venv/bin/pie-evals validate-platforms'
         env: { RUNPOD_API_KEY: "${{ secrets.RUNPOD_API_KEY }}" }
       - name: job specs
         id: jobs
@@ -139,7 +139,7 @@ jobs:
           echo "PIE_ROOT=${PIE_ROOT:-$HOME/pie}" >> "$GITHUB_ENV"
       - name: run
         run: .venv/bin/pie-evals-node run --job "jobs/${{ matrix.job_id }}.json" --pie-root "$PIE_ROOT" --out "out/${{ matrix.job_id }}" --download
-        env: { HF_TOKEN: "${{ secrets.HF_TOKEN }}" }  # a pod without the volume fetches checkpoints itself; anonymous pulls hit 429
+        env: { HF_TOKEN: "${{ secrets.HF_TOKEN }}", PIE_UPSTREAM: "${{ vars.PIE_UPSTREAM }}" }  # a pod without the volume fetches checkpoints itself; anonymous pulls hit 429
         # on RunPod every cache path comes from the runner's .env (written by the startup script)
       - uses: actions/upload-artifact@v4
         if: always()

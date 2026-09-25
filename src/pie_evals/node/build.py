@@ -20,7 +20,7 @@ import subprocess
 import time
 from pathlib import Path
 
-PIE_UPSTREAM = "https://github.com/pie-project/pie.git"  # public; pods have no SSH key
+PIE_UPSTREAM = os.environ.get("PIE_UPSTREAM") or "https://github.com/pie-project/pie.git"  # public; pods have no SSH key
 BENCH_DEPS = ["websockets", "msgpack", "blake3", "cryptography", "numpy"]  # pie_client + scripts/bench/common.py (pie_client itself rides on PYTHONPATH)
 
 
