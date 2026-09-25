@@ -39,7 +39,6 @@ PAGE = """<!doctype html>
   .controls { max-width: 1000px; margin: 0 auto; padding: 16px 16px 0; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; color: #424a53; font-size: 14px; }
   .controls[hidden] { display: none; }
   .up { color: #1a7f37; } .down { color: #b3261e; }
-  .controls #addruns { margin-left: auto; }
   .controls #commit { max-width: 440px; min-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .seg { display: inline-flex; height: 32px; border: 1px solid #d0d7de; border-radius: 999px; background: #fff; padding: 2px; box-sizing: border-box; }
   .seg button { border: 0; background: none; font: inherit; font-size: 13px; color: #424a53; padding: 0 12px; border-radius: 999px; cursor: pointer; }
@@ -157,8 +156,6 @@ PAGE = """<!doctype html>
 <div class="controls" id="controls">
   <select id="commit" aria-label="commit"></select>
   <div class="seg" id="unit" role="group" aria-label="unit"><button data-u="" class="on">tok/s</button><button data-u="_tflops">TFLOP/s</button></div>
-  <span class="grow"></span>
-  <button class="act" id="addruns"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2Z"/></svg>Add runs</button>
 </div>
 <main id="main"></main>
 <div id="modal" class="modal" hidden><div class="sheet"><button class="x" id="close" aria-label="close">×</button><div id="sheet"></div></div></div>
@@ -198,7 +195,6 @@ document.querySelectorAll("#unit button").forEach(b => b.onclick = () => {
   document.querySelectorAll("#unit button").forEach(x => x.classList.toggle("on", x === b));
   draw();
 });
-document.getElementById("addruns").onclick = () => openRuns(sel);
 
 function valueAt(mac, model, wl, sha) { return DATA.results[mac]?.models[model]?.[wl]?.[sha]; }
 function before(mac, model, wl, sha) {
