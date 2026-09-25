@@ -84,6 +84,7 @@ PAGE = """<!doctype html>
   button.act { background: #1f2328; border-color: #1f2328; color: #fff; font-weight: 600; }
   button.act:hover { background: #32383f; }
   label.check { display: block; padding: 4px 0; }
+  table.compact input.switch { vertical-align: middle; }
   label.toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid #eaeef2; cursor: pointer; font-size: 14px; }
   label.toggle:last-child { border-bottom: 0; }
   input.switch { appearance: none; -webkit-appearance: none; flex: none; width: 34px; height: 20px; border-radius: 999px; background: #d0d7de;
@@ -291,39 +292,48 @@ function openCommit(sha) {
   };
 }
 
-let config = null;
+let config = null, configSha = null;
 async function cicd() {
   const main = document.getElementById("main");
   main.innerHTML = `<div class="card muted">Loading…</div>`;
   const path = `repos/${DATA.repo}/contents/config.json`;
-  let file = null, last = null;
+  let last = null;
   try {
-    file = await gh(path);
+    const file = await gh(path);
+    config = file ? JSON.parse(atob(file.content)) : { models: [], machines: [] };
+    configSha = file?.sha || null;
     last = (await gh(`repos/${DATA.repo}/commits?path=config.json&per_page=1`) || [])[0];
   } catch (e) { main.innerHTML = `<div class="card down">${esc(e.message)}</div>`; return; }
-  config = file ? JSON.parse(atob(file.content)) : { models: [], machines: [] };
-  const tag = x => `<span class="tag">${esc(x)}</span>`;
-  const models = (config.models || []).map(modelName), where = (config.machines || []).length ? config.machines.map(macName) : ["every connected machine"];
-  const now = models.length ? `${models.map(tag).join("")}<span class="on-word">on</span>${where.map(tag).join("")}` : `<span class="tag off">nothing</span>`;
-  const by = last ? `<span class="muted">changed by ${esc(last.author?.login || last.commit.author.name)} · ${fmtDate(last.commit.committer.date)}</span>` : "";
-  const pick = (name, items, checked) => items.map(x => `<label class="toggle"><span>${esc(x.name)}${x.detail ? ` <span class="muted">${esc(x.detail)}</span>` : ""}</span>` +
-    `<input type="checkbox" class="switch" name="${name}" value="${x.id}" ${checked.includes(x.id) ? "checked" : ""}></label>`).join("");
-  main.innerHTML = `<div class="auto" style="margin-bottom:12px"><span>Every push to pie main runs</span>${now}${by}</div>` +
-    `<div class="card"><div class="row"><div><div class="label">Models</div>${pick("model", DATA.models, config.models || [])}</div>` +
-    `<div><div class="label">Machines</div><label class="toggle"><span>Every connected machine</span><input type="checkbox" class="switch" name="all" ${(config.machines || []).length ? "" : "checked"}></label>` +
-    `${pick("mac", RUNNABLE, config.machines || [])}</div></div><button class="act" id="save">Save</button> <span id="msg" class="muted"></span></div>`;
-  const picked = n => [...main.querySelectorAll(`input[name=${n}]:checked`)].map(x => x.value);
-  document.getElementById("save").onclick = async () => {
-    const data = { models: picked("model"), machines: picked("all").length ? [] : picked("mac") };
-    const msg = document.getElementById("msg"); msg.textContent = "Saving…";
-    try {
-      const cur = await gh(path);
-      await gh(path, { method: "PUT", body: JSON.stringify({
-        message: `config: pushes run ${data.models.join(", ") || "nothing"}${data.machines.length ? " on " + data.machines.join(", ") : ""}`,
-        content: btoa(JSON.stringify(data, null, 2) + NL), ...(cur ? { sha: cur.sha } : {}) }) });
-      draw();
-    } catch (e) { msg.textContent = "Could not save: " + e.message; }
-  };
+  const on = (list, id) => (list || []).includes(id);
+  const sw = (kind, id, checked) => `<input type="checkbox" class="switch" data-kind="${kind}" value="${id}" ${checked ? "checked" : ""}>`;
+  const gib = g => g == null ? "–" : `${g} GB`, ctx = c => c == null ? "–" : `${(c / 1024).toFixed(0)}k`;
+  const by = last ? `changed by ${esc(last.author?.login || last.commit.author.name)} · ${fmtDate(last.commit.committer.date)}` : "";
+  let html = `<div class="auto" style="margin-bottom:12px"><span>Every push to pie main runs the models and machines switched on below.</span>` +
+    `<span class="muted" id="saved">${by}</span></div>`;
+  html += `<div class="card"><table class="compact"><tr><th>model</th><th>publisher</th><th>family</th><th>format</th><th>source</th><th class="num">size</th><th class="num">context</th><th class="num">run</th></tr>`;
+  for (const m of DATA.models) html += `<tr><td>${esc(m.name)}</td><td class="muted">${esc(m.publisher)}</td><td>${esc(m.family)}</td><td>${esc(m.scheme)}</td>` +
+    `<td class="muted">${esc(m.format)}</td><td class="num">${gib(m.gib)}</td><td class="num">${ctx(m.context)}</td><td class="num">${sw("models", m.id, on(config.models, m.id))}</td></tr>`;
+  html += `</table></div><div class="card"><table class="compact"><tr><th>machine</th><th>id</th><th>memory</th><th>status</th><th class="num">run</th></tr>`;
+  for (const m of RUNNABLE) html += `<tr><td>${esc(m.name)}</td><td class="muted">${m.id}</td><td>${m.memory_gib ? m.memory_gib + " GB" : "–"}</td>` +
+    `<td><span class="dot ${m.status}"></span>${m.status}</td><td class="num">${sw("machines", m.id, on(config.machines, m.id))}</td></tr>`;
+  if (!RUNNABLE.length) html += `<tr><td colspan="5" class="muted">No machine is connected.</td></tr>`;
+  main.innerHTML = html + `</table></div>`;
+  let saving = Promise.resolve();
+  main.querySelectorAll("input.switch").forEach(x => x.onchange = () => {
+    const kind = x.dataset.kind, list = new Set(config[kind] || []);
+    x.checked ? list.add(x.value) : list.delete(x.value);
+    config = { ...config, [kind]: [...list] };
+    const note = document.getElementById("saved"); note.textContent = "Saving…";
+    saving = saving.then(async () => {
+      try {
+        const res = await gh(path, { method: "PUT", body: JSON.stringify({
+          message: `config: ${x.checked ? "run" : "stop"} ${x.value} (${me.login})`,
+          content: btoa(JSON.stringify(config, null, 2) + NL), ...(configSha ? { sha: configSha } : {}) }) });
+        configSha = res.content.sha;
+        note.textContent = `Saved · changed by ${me.login}`;
+      } catch (e) { note.textContent = "Could not save: " + e.message; x.checked = !x.checked; }
+    });
+  });
 }
 
 function pool() {
@@ -485,40 +495,19 @@ def _pool(live: list[dict] | None, matrix: Matrix, last: dict[str, dict]) -> lis
     return sorted(pool, key=lambda m: (m["kind"] != "self-hosted", m["name"]))
 
 
-PUBLISHERS = {"qwen": "Qwen", "google": "Google", "mlx-community": "MLX", "openai": "OpenAI", "unsloth": "Unsloth",
-              "meta-llama": "Meta", "deepseek-ai": "DeepSeek", "moonshotai": "Moonshot"}
-DROP = {"it", "instruct", "4bit", "8bit", "mxfp4", "q4", "gguf", "bf16", "mlx"}
-
-
-def pretty(base_model: str, scheme: str) -> tuple[str, str]:
-    org, _, repo = base_model.partition("/")
-    words = []
-    for w in repo.replace("gpt-oss", "gpt_oss").split("-"):
-        if w.lower() in DROP:
-            continue
-        w = w.replace("gpt_oss", "gpt-oss")
-        if w[:1].isdigit() or (w[:1] in "aAeE" and w[1:2].isdigit()):
-            w = w.upper()
-        words.append(w)
-    name = " ".join(words)
-    name = name[:1].upper() + name[1:] if not name.startswith("gpt") else name
-    fmt = {"bf16": "BF16", "fp16": "FP16", "fp8": "FP8", "affine_u4_g64": "4-bit", "mxfp4": "MXFP4"}.get(scheme)
-    if not fmt:
-        fmt = "GGUF " + scheme.split("_", 1)[1].upper() if scheme.startswith("gguf_") else scheme.upper()
-    return name, f"{PUBLISHERS.get(org.lower(), org)} · {fmt}"
-
-
 def mac_models(matrix: Matrix) -> list[dict]:
     seen: dict[str, dict] = {}
     for c in matrix.expand():
+        a = c.artifact
         if (c.platform.os == "macos" and c.engine.value == "pie" and c.program.id == "text-completion-bench"
-                and c.mode.tp == 1 and c.declared_unsupported_reason is None and c.artifact.kind.value == "full"):
-            name, detail = pretty(c.artifact.base_model, str(c.artifact.scheme))
-            seen[c.artifact.id] = {"id": c.artifact.id, "name": name, "detail": detail}
+                and c.mode.tp == 1 and c.declared_unsupported_reason is None and a.kind.value == "full"):
+            org, _, repo = a.base_model.partition("/")
+            seen[a.id] = {"id": a.id, "name": repo or org, "publisher": org if repo else "", "family": a.family,
+                          "scheme": str(a.scheme), "format": str(a.source_format), "gib": a.expected_gib, "context": a.max_context}
     names = [m["name"] for m in seen.values()]
     for m in seen.values():
         if names.count(m["name"]) > 1:
-            m["name"] = f"{m['name']} ({m['detail'].split(' · ')[0]})"
+            m["name"] = f"{m['name']} ({m['publisher']})"
     return sorted(seen.values(), key=lambda m: m["name"].lower())
 
 

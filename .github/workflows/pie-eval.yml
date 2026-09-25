@@ -42,7 +42,7 @@ jobs:
           if [ -f config.json ]; then
             models=$(jq -r '.models // [] | join(",")' config.json); macs=$(jq -r '.machines // [] | join(",")' config.json)
           fi
-          [ -n "$models" ] && skip=false
+          [ -n "$models" ] && [ -n "$macs" ] && skip=false
           if [ -n "$line" ]; then
             m=$(grep -oE 'models=[^ ]+' <<<"$line" | cut -d= -f2 || true); k=$(grep -oE 'macs=[^ ]+' <<<"$line" | cut -d= -f2 || true)
             [ -n "$m" ] && models=$m; [ -n "$k" ] && macs=$k; source="commit message"; skip=false
