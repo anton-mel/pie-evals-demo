@@ -130,6 +130,7 @@ PAGE = """<!doctype html>
   .auto .tag.off { background: #fff8c5; border-color: #eac54f; }
   .on-word { color: #656d76; }
   .pill.small { padding: 0 12px; gap: 6px; margin-left: 4px; }
+  tr.divider td { text-align: center; color: #656d76; font-size: 12px; font-weight: 600; letter-spacing: .04em; padding: 8px 0; background: #f6f8fa; }
   .pager { display: flex; justify-content: center; align-items: center; gap: 6px; padding: 14px 0 0; flex-wrap: wrap; }
   .pager .pill { padding: 0 12px; min-width: 32px; justify-content: center; }
   .pager .pill.on { background: #1f2328; border-color: #1f2328; color: #fff; }
@@ -362,6 +363,7 @@ function pushes() {
     era = at;
     html += `<tr class="push" data-sha="${c.sha}"><td class="clip" title="${esc(c.message)}"><code>${c.sha.slice(0, 7)}</code> ${esc(c.message)}${isMeasured.has(c.sha) ? ` <span class="dot on" title="measured"></span>` : ""}</td>` +
             `<td class="clip">${esc(c.author)}</td><td>${fmtDate(c.date)}</td><td class="muted">${fmtTime(c.date)}</td></tr>`;
+    if (c.sha === DATA.since) html += `<tr class="divider"><td colspan="4">CI changed</td></tr>`;
   }
   document.getElementById("main").innerHTML = html + `</table>${pager(pages)}</div>`;
   document.querySelectorAll("tr.push").forEach(tr => tr.onclick = () => {
@@ -617,7 +619,12 @@ def people(repo: str, authors: dict[str, str]) -> list[dict]:
     return sorted(rows, key=lambda p: p["last"], reverse=True)
 
 
-def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, pie_repo: str, lookup_commits: bool = True) -> dict:
+def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, pie_repo: str,
+          config: Path = Path("config.json"), lookup_commits: bool = True) -> dict:
+    try:
+        since = json.loads(config.read_text()).get("since", "") if config.is_file() else ""
+    except json.JSONDecodeError:
+        since = ""
     tests = benchmarks(matrix)
     concurrency = {b["id"]: b["concurrency"] for b in tests}
     t = store.table(Tier.TARGETED)
@@ -666,7 +673,7 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
         m["has_results"] = m["id"] in have
     return {
         "repo": repo, "pie_repo": pie_repo, "default_model": DEFAULT_MODEL,
-        "benchmarks": tests,
+        "benchmarks": tests, "since": since,
         "commits": commits, "history": all_commits, "results": results, "models": models,
         "ci_changes": ci_changes(repo) if lookup_commits else [],
         "streams": streams(repo) if lookup_commits else [],
@@ -676,8 +683,8 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
 
 
 def render(store: Store, matrix: Matrix, out: Path, live: list[dict] | None = None, *, repo: str = "pie-project/pie-evals",
-           pie_repo: str = "pie-project/pie", lookup_commits: bool = True) -> int:
-    data = build(store, matrix, live, repo=repo, pie_repo=pie_repo, lookup_commits=lookup_commits)
+           pie_repo: str = "pie-project/pie", config: Path = Path("config.json"), lookup_commits: bool = True) -> int:
+    data = build(store, matrix, live, repo=repo, pie_repo=pie_repo, config=config, lookup_commits=lookup_commits)
     out.mkdir(parents=True, exist_ok=True)
     (out / "index.html").write_text(PAGE.replace("__DATA__", json.dumps(data)))
     return len(data["commits"])

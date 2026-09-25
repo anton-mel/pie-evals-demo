@@ -91,6 +91,8 @@ def test_site_has_pushes_pool_and_people(tmp_path, matrix, monkeypatch):
     assert [b["id"] for b in data["benchmarks"]] == ["ss-128-64", "lc-1k-128", "lc-2k-128", "c8", "c32"]
     assert data["people"] == []
     assert any(m["id"] == "qwen3.5-0.8b-bf16" and m["has_results"] for m in data["models"])
+    (tmp_path / "config.json").write_text('{"since": "c1", "models": []}')
+    assert dashboard.build(st, matrix, live, repo="o/evals", pie_repo="o/pie", config=tmp_path / "config.json", lookup_commits=False)["since"] == "c1"
     assert dashboard.render(st, matrix, tmp_path / "site", live, repo="o/evals", lookup_commits=False) == 2
     assert "openRuns" in (tmp_path / "site" / "index.html").read_text()
 
