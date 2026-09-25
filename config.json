@@ -4,5 +4,8 @@
   ],
   "machines": [
     "m5-max-48g"
+  ],
+  "benchmarks": [
+    "ss-128-64"
   ]
 }
