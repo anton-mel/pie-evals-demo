@@ -19,7 +19,7 @@ jobs:
         with: { ref: main }
       - uses: astral-sh/setup-uv@v3
       - run: uv venv && uv pip install -e ".[orchestrate]"
-      - run: .venv/bin/pie-evals dashboard --out site
+      - run: .venv/bin/pie-evals dashboard --out site --pie-repo "${{ vars.PIE_REPO || 'pie-project/pie' }}"
         env: { HF_TOKEN: "${{ secrets.HF_TOKEN }}", GH_TOKEN: "${{ secrets.GH_RUNNER_PAT }}" }
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
