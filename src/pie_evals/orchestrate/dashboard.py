@@ -39,7 +39,6 @@ PAGE = """<!doctype html>
   .controls { max-width: 1000px; margin: 0 auto; padding: 16px 16px 0; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; color: #424a53; font-size: 14px; }
   .controls[hidden] { display: none; }
   .up { color: #1a7f37; } .down { color: #b3261e; }
-  .controls select { margin-left: 6px; }
   .controls #addruns { margin-left: auto; }
   .controls #commit { max-width: 440px; min-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .seg { display: inline-flex; height: 32px; border: 1px solid #d0d7de; border-radius: 999px; background: #fff; padding: 2px; box-sizing: border-box; }
