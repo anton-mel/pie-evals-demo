@@ -228,6 +228,12 @@ function overview() {
 const when = d => d ? new Date(d) : null;
 const fmtDate = d => { const t = when(d); return t && !isNaN(t) ? `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}` : ""; };
 const fmtTime = d => { const t = when(d); return t && !isNaN(t) && d.length > 10 ? `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}` : ""; };
+function relTime(d) {
+  const t = new Date(d), secs = (t - Date.now()) / 1000, rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  for (const [unit, n] of [["year", 31536000], ["month", 2592000], ["week", 604800], ["day", 86400], ["hour", 3600], ["minute", 60]])
+    if (Math.abs(secs) >= n) return rtf.format(Math.round(secs / n), unit);
+  return "just now";
+}
 const ALL = [...DATA.commits, ...DATA.history].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 const allCommits = () => ALL;
 function pushes() {
@@ -307,7 +313,7 @@ async function cicd() {
   const on = (list, id) => (list || []).includes(id);
   const sw = (kind, id, checked) => `<input type="checkbox" class="switch" data-kind="${kind}" value="${id}" ${checked ? "checked" : ""}>`;
   const gib = g => g == null ? "–" : `${g} GB`;
-  const by = last ? `Last updated ${fmtDate(last.commit.committer.date)} ${fmtTime(last.commit.committer.date)} by ${esc(last.author?.login || last.commit.author.name)}` : "Not configured yet";
+  const by = last ? `Last updated by <b>${esc(last.author?.login || last.commit.author.name)}</b> <span title="${fmtDate(last.commit.committer.date)} ${fmtTime(last.commit.committer.date)}">${relTime(last.commit.committer.date)}</span>` : "Not configured yet";
   let html = `<div class="card"><table class="compact"><tr><th>model</th><th class="num">size</th><th class="num">run</th></tr>`;
   for (const m of DATA.models) html += `<tr><td>${esc(m.name)}</td><td class="num">${gib(m.gib)}</td><td class="num">${sw("models", m.id, on(config.models, m.id))}</td></tr>`;
   html += `</table></div><div class="card"><table class="compact"><tr><th>machine</th><th>id</th><th>memory</th><th>status</th><th class="num">run</th></tr>`;
@@ -327,8 +333,7 @@ async function cicd() {
           message: `config: ${x.checked ? "run" : "stop"} ${x.value} (${me.login})`,
           content: btoa(JSON.stringify(config, null, 2) + NL), ...(configSha ? { sha: configSha } : {}) }) });
         configSha = res.content.sha;
-        const t = new Date().toISOString();
-        note.textContent = `Last updated ${fmtDate(t)} ${fmtTime(t)} by ${me.login}`;
+        note.innerHTML = `Last updated by <b>${esc(me.login)}</b> just now`;
       } catch (e) { note.textContent = "Could not save: " + e.message; x.checked = !x.checked; }
     });
   });
