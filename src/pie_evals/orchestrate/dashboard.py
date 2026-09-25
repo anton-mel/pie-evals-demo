@@ -236,7 +236,7 @@ function overview() {
       if (!tests.length) continue;
       any = true;
       html += `<div class="card"><h2>${esc(r.name)} · ${esc(modelName(model))}</h2><table class="compact fixed">` +
-        `<colgroup><col><col style="width:110px"><col style="width:80px"><col style="width:110px"><col style="width:80px"></colgroup>` +
+        `<colgroup><col style="width:36%"><col><col><col><col></colgroup>` +
         `<tr><th>benchmark</th><th class="num">prefill ${label}</th><th class="num">change</th><th class="num">decode ${label}</th><th class="num">change</th></tr>`;
       for (const b of tests) {
         const now = byTest[b.id][sel], was = before(mac, model, b.id, sel);
