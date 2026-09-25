@@ -1,6 +1,4 @@
 {
   "models": [],
-  "machines": [
-    "m5-max-48g"
-  ]
+  "machines": []
 }
