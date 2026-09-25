@@ -97,7 +97,7 @@ PAGE = """<!doctype html>
   .sheet { position: relative; background: #fff; border-radius: 10px; width: min(640px, 100%); max-height: 84vh; overflow: auto; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
   .sheet .card { border: 0; margin: 0; }
   .tag.new { background: #fff8c5; }
-  .signin-wrap { min-height: calc(100vh - 57px - 68px); display: flex; align-items: center; justify-content: center; }
+  .signin-wrap { min-height: calc(100vh - 57px - 68px); display: flex; align-items: center; justify-content: center; padding-bottom: 12vh; box-sizing: border-box; }
   .signin-page { width: 100%; max-width: 380px; margin: 0; padding: 32px 28px; text-align: center; display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
   .signin-page .gh-mark { align-self: center; fill: #1f2328; }
   .signin-page h2 { margin: 4px 0 0; font-size: 18px; }
