@@ -239,16 +239,14 @@ const ALL = [...DATA.commits, ...DATA.history].sort((a, b) => (b.date || "").loc
 const allCommits = () => ALL;
 function pushes() {
   const commits = allCommits();
-  let html = `<div class="card"><table class="compact fixed"><colgroup><col><col style="width:140px"><col style="width:96px"><col style="width:60px"><col style="width:120px"></colgroup>` +
-             `<tr><th>commit</th><th>author</th><th>date</th><th>time</th><th>benchmarks</th></tr>`;
+  let html = `<div class="card"><table class="compact fixed"><colgroup><col><col style="width:140px"><col style="width:96px"><col style="width:60px"></colgroup>` +
+             `<tr><th>commit</th><th>author</th><th>date</th><th>time</th></tr>`;
   const pages = Math.max(1, Math.ceil(commits.length / PER_PAGE));
   page = Math.min(page, pages - 1);
   const shown = commits.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
   for (const c of shown) {
-    const n = ran(c.sha).size;
     html += `<tr class="push" data-sha="${c.sha}"><td class="clip" title="${esc(c.message)}"><code>${c.sha.slice(0, 7)}</code> ${esc(c.message)}</td>` +
-            `<td class="clip">${esc(c.author)}</td><td>${fmtDate(c.date)}</td><td class="muted">${fmtTime(c.date)}</td>` +
-            `<td>${n ? `<span class="tag">${n} run${n > 1 ? "s" : ""}</span>` : `<span class="tag new">N/A</span>`}</td></tr>`;
+            `<td class="clip">${esc(c.author)}</td><td>${fmtDate(c.date)}</td><td class="muted">${fmtTime(c.date)}</td></tr>`;
   }
   document.getElementById("main").innerHTML = html + `</table>${pager(pages)}</div>`;
   document.querySelectorAll("tr.push").forEach(tr => tr.onclick = () => openCommit(tr.dataset.sha));
