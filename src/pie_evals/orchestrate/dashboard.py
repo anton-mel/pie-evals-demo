@@ -426,7 +426,9 @@ function renderWho() {
 
 function draw() {
   charts.forEach(c => c.destroy()); charts = [];
-  document.getElementById("tabs").innerHTML = TABS.map(t => `<button class="${t === tab ? "on" : ""}">${t}</button>`).join("");
+  if (!me) tab = "Sign in";
+  else if (tab === "Sign in") tab = back;
+  document.getElementById("tabs").innerHTML = me ? TABS.map(t => `<button class="${t === tab ? "on" : ""}">${t}</button>`).join("") : "";
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { tab = b.textContent; draw(); });
   document.getElementById("controls").hidden = tab !== "Overview";
   document.getElementById("in")?.classList.toggle("on", tab === "Sign in");
