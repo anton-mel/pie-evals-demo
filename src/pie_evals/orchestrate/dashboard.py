@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import json
 import subprocess
 from collections import defaultdict
@@ -131,6 +130,8 @@ PAGE = """<!doctype html>
   .on-word { color: #656d76; }
   .pill.small { padding: 0 12px; gap: 6px; margin-left: 4px; }
   tr.divider td { text-align: center; color: #656d76; }
+  .savebar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  button.act:disabled { opacity: .45; cursor: default; }
   .pager { display: flex; justify-content: center; align-items: center; gap: 6px; padding: 14px 0 0; flex-wrap: wrap; }
   .pager .pill { padding: 0 12px; min-width: 32px; justify-content: center; }
   .pager .pill.on { background: #1f2328; border-color: #1f2328; color: #fff; }
@@ -190,7 +191,7 @@ const measured = [...DATA.commits].sort((a, b) => (b.date || "").localeCompare(a
 let sel = measured[0]?.sha || "";
 
 const unitSel = { value: "" };
-const sinceDate = DATA.since ? commitOf(DATA.since).date || "" : "";
+const sinceDate = () => DATA.since ? commitOf(DATA.since).date || "" : "";
 document.querySelectorAll("#unit button").forEach(b => b.onclick = () => {
   unitSel.value = b.dataset.u;
   document.querySelectorAll("#unit button").forEach(x => x.classList.toggle("on", x === b));
@@ -201,7 +202,7 @@ function valueAt(mac, model, wl, sha) { return DATA.results[mac]?.models[model]?
 function before(mac, model, wl, sha) {
   const order = [...DATA.commits].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
   for (let i = order.findIndex(c => c.sha === sha) - 1; i >= 0; i--) {
-    if (sinceDate && (order[i].date || "") < sinceDate) return null;
+    if (sinceDate() && (order[i].date || "") < sinceDate()) return null;
     const v = valueAt(mac, model, wl, order[i].sha);
     if (v) return { sha: order[i].sha, ...v };
   }
@@ -293,53 +294,26 @@ async function configure() {
   html += `</table></div><div class="card"><table class="compact"><tr><th>benchmark</th><th class="num">run</th></tr>`;
   for (const b of DATA.benchmarks) html += `<tr><td>${esc(b.name)}</td><td class="num">${sw("benchmarks", b.id)}</td></tr>`;
   const by = last ? `Last updated <span title="${fmtDate(last.commit.committer.date)} ${fmtTime(last.commit.committer.date)}">${relTime(last.commit.committer.date)}</span>` : "Not set up yet: pushes run nothing";
-  const streams = setup.streams || [];
-  const current = streams[streams.length - 1];
-  html += `</table></div><div class="card"><h2>Streams</h2>` +
-    `<div class="muted">A stream is a run of commits measured with the same benchmarks. Start a new one after changing what runs, so the Overview never compares across a change.</div>` +
-    `<table class="compact"><tr><th>stream</th><th>started</th><th>benchmarks</th><th>by</th></tr>`;
-  for (const st of [...streams].reverse())
-    html += `<tr><td>${esc(st.name)}</td><td>${fmtDate(st.started_at)} <span class="muted">${fmtTime(st.started_at)}</span></td>` +
-            `<td class="clip">${st.benchmarks.length} benchmark${st.benchmarks.length === 1 ? "" : "s"}</td><td class="clip">${esc(st.by || "")}</td></tr>`;
-  if (!streams.length) html += `<tr><td colspan="4" class="muted">No stream yet: the Overview groups by config changes instead.</td></tr>`;
-  html += `</table><div class="label"><button id="newstream">Create New Stream</button></div></div>`;
-  main.innerHTML = html + `<div class="muted" id="saved">${by}</div>`;
-  const write = async (message, next) => {
-    const res = await gh(path, { method: "PUT", body: JSON.stringify({
-      message, content: btoa(JSON.stringify(next, null, 2) + NL), ...(sha ? { sha } : {}) }) });
-    sha = res.content.sha;
-    setup = next;
-  };
-  const button = document.getElementById("newstream");
-  if (button) button.onclick = async () => {
-    if (!me) { alert("Sign in to start a stream."); return; }
-    const name = prompt("Name this stream", `stream ${streams.length + 1}`);
-    if (!name) return;
-    const note = document.getElementById("saved"); note.textContent = "Starting…";
-    const stream = { name, started_at: new Date().toISOString().slice(0, 19) + "Z",
-                     benchmarks: [...(setup.benchmarks || [])], models: [...(setup.models || [])], by: me.login };
-    try {
-      await write(`config: start stream ${name} (${me.login})`, { ...setup, streams: [...streams, stream] });
-      note.textContent = "Stream started";
-      draw();
-    } catch (e) { note.textContent = "Could not start: " + e.message; }
-  };
-  let saving = Promise.resolve();
+  main.innerHTML = html + `</table></div><div class="savebar"><span class="muted" id="saved">${by}</span><button class="act" id="update" disabled>Update</button></div>`;
+  const note = document.getElementById("saved"), update = document.getElementById("update");
   main.querySelectorAll("input.switch").forEach(x => x.onchange = () => {
     const kind = x.dataset.kind, list = new Set(setup[kind] || []);
     x.checked ? list.add(x.value) : list.delete(x.value);
     setup = { ...setup, [kind]: [...list] };
-    const note = document.getElementById("saved"); note.textContent = "Saving…";
-    saving = saving.then(async () => {
-      try {
-        const res = await gh(path, { method: "PUT", body: JSON.stringify({
-          message: `config: ${x.checked ? "run" : "stop"} ${x.value} (${me.login})`,
-          content: btoa(JSON.stringify(setup, null, 2) + NL), ...(sha ? { sha } : {}) }) });
-        sha = res.content.sha;
-        note.textContent = "Last updated just now";
-      } catch (e) { note.textContent = "Could not save: " + e.message; x.checked = !x.checked; }
-    });
+    note.textContent = "Unsaved changes"; update.disabled = false;
   });
+  update.onclick = async () => {
+    const next = { ...setup, since: ALL[0]?.sha || setup.since };
+    const { streams, ...clean } = next;
+    update.disabled = true; note.textContent = "Saving…";
+    try {
+      const res = await gh(path, { method: "PUT", body: JSON.stringify({
+        message: `config: update from ${String(clean.since || "").slice(0, 7)} (${me.login})`,
+        content: btoa(JSON.stringify(clean, null, 2) + NL), ...(sha ? { sha } : {}) }) });
+      sha = res.content.sha; setup = clean; DATA.since = clean.since;
+      note.textContent = "Last updated just now";
+    } catch (e) { note.textContent = "Could not save: " + e.message; update.disabled = false; }
+  };
 }
 
 function pushes() {
@@ -479,17 +453,6 @@ def _gh(path: str) -> dict | list | None:
         return json.loads(out)
     except (OSError, subprocess.CalledProcessError, json.JSONDecodeError):
         return None
-
-
-def streams(repo: str) -> list[dict]:
-    file = _gh(f"repos/{repo}/contents/config.json")
-    if not isinstance(file, dict) or "content" not in file:
-        return []
-    try:
-        setup = json.loads(base64.b64decode(file["content"]).decode())
-    except (ValueError, UnicodeDecodeError):
-        return []
-    return [st for st in setup.get("streams", []) if st.get("started_at")]
 
 
 def history(pie_repo: str) -> list[dict]:
@@ -647,7 +610,6 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
         "repo": repo, "pie_repo": pie_repo, "default_model": DEFAULT_MODEL,
         "benchmarks": tests, "since": since,
         "commits": commits, "history": all_commits, "results": results, "models": models,
-        "streams": streams(repo) if lookup_commits else [],
         "pool": _pool(live, matrix, last),
         "people": people(repo, {c["sha"]: c["author"] for c in [*known.values(), *commits]}) if lookup_commits else [],
     }
