@@ -150,7 +150,7 @@ PAGE = """<!doctype html>
 <div id="modal" class="modal" hidden><div class="sheet"><button class="x" id="close" aria-label="close">×</button><div id="sheet"></div></div></div>
 <script>
 const DATA = __DATA__;
-const TABS = ["Overview", "CI/CD", "Pushes", "Machines", "People"];
+const TABS = ["Overview", "CI/CD", "History", "Machines", "People"];
 const COLORS = ["#0969da", "#bf8700", "#8250df", "#1a7f37", "#cf222e"];
 const NL = String.fromCharCode(10);
 const REPO_NAME = DATA.repo.split("/").pop();
@@ -432,7 +432,7 @@ function draw() {
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { tab = b.textContent; draw(); });
   document.getElementById("controls").hidden = tab !== "Overview";
   document.getElementById("in")?.classList.toggle("on", tab === "Sign in");
-  ({ "Overview": overview, "CI/CD": cicd, "Pushes": pushes, "Machines": pool, "People": people, "Sign in": signInPage })[tab]();
+  ({ "Overview": overview, "CI/CD": cicd, "History": pushes, "Machines": pool, "People": people, "Sign in": signInPage })[tab]();
 }
 signIn().then(draw);
 </script>
