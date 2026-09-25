@@ -105,9 +105,5 @@ def test_people_access_and_last_active(tmp_path, monkeypatch):
     monkeypatch.setattr(dashboard, "_paginate", lambda path: runs if "runs" in path else collaborators)
     used = dashboard.usage("o/evals", {"a" * 40: "author"})
     assert used == {"author": {"last": "2026-09-21T10:00:00Z"}, "friend": {"last": "2026-09-01T10:00:00Z"}}
-    users = tmp_path / "users"
-    users.mkdir()
-    (users / "friend.json").write_text('{"models": ["qwen3.5-0.8b-bf16"]}')
-    (users / "idle.json").write_text('{"models": []}')
-    rows = dashboard.people("o/evals", {"a" * 40: "author"}, users)
+    rows = dashboard.people("o/evals", {"a" * 40: "author"})
     assert [(r["login"], r["role"]) for r in rows] == [("author", "write"), ("friend", "admin"), ("idle", "write")]

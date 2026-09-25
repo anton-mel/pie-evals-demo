@@ -38,14 +38,14 @@ jobs:
           info=$(gh api "repos/$PIE_REPO/commits/$COMMIT" 2>/dev/null || echo '{}')
           author=$(jq -r '.author.login // empty' <<<"$info")
           line=$(jq -r '.commit.message // ""' <<<"$info" | grep -iE '^evals:' | tail -1 || true)
-          models=""; macs=""; source="not signed up"; skip=true
-          if [ -n "$author" ] && [ -f "users/$author.json" ]; then
-            models=$(jq -r '.models // [] | join(",")' "users/$author.json"); macs=$(jq -r '.macs // [] | join(",")' "users/$author.json"); source="users/$author.json"
-            [ -n "$models" ] && skip=false
-            if [ -n "$line" ]; then
-              m=$(grep -oE 'models=[^ ]+' <<<"$line" | cut -d= -f2 || true); k=$(grep -oE 'macs=[^ ]+' <<<"$line" | cut -d= -f2 || true)
-              [ -n "$m" ] && models=$m; [ -n "$k" ] && macs=$k; source="commit message"; skip=false
-            fi
+          models=""; macs=""; source=config.json; skip=true
+          if [ -f config.json ]; then
+            models=$(jq -r '.models // [] | join(",")' config.json); macs=$(jq -r '.machines // [] | join(",")' config.json)
+          fi
+          [ -n "$models" ] && skip=false
+          if [ -n "$line" ]; then
+            m=$(grep -oE 'models=[^ ]+' <<<"$line" | cut -d= -f2 || true); k=$(grep -oE 'macs=[^ ]+' <<<"$line" | cut -d= -f2 || true)
+            [ -n "$m" ] && models=$m; [ -n "$k" ] && macs=$k; source="commit message"; skip=false
           fi
           [ -n "$IN_MODELS" ] && { models=$IN_MODELS; source=manual; }
           [ -n "$IN_MACS" ] && { macs=$IN_MACS; source=manual; }

@@ -158,7 +158,7 @@ const esc = x => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").re
 const modelName = id => (DATA.models.find(m => m.id === id) || { name: id }).name;
 const RUNNABLE = [...new Map(DATA.pool.filter(m => m.os === "macos").map(m => [m.id, m])).values()];
 const macName = id => (DATA.pool.find(m => m.id === id) || DATA.results[id] || { name: id }).name;
-let tab = "Overview", charts = [], me = null, mine = null, page = 0;
+let tab = "Overview", charts = [], me = null, page = 0;
 const PER_PAGE = 25;
 const token = () => { try { return localStorage.getItem("pie-evals-token"); } catch { return null; } };
 
@@ -216,13 +216,6 @@ function overview() {
   });
 }
 
-function summary() {
-  const tag = x => `<span class="tag">${esc(x)}</span>`;
-  if (!(mine?.models || []).length) return `<span class="tag off">nothing, no models selected</span>`;
-  const models = mine.models.map(modelName);
-  const where = (mine?.macs || []).length ? mine.macs.map(macName) : ["every connected machine"];
-  return `${models.map(tag).join("")}<span class="on-word">on</span>${where.map(tag).join("")}`;
-}
 const when = d => d ? new Date(d) : null;
 const fmtDate = d => { const t = when(d); return t && !isNaN(t) ? `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}` : ""; };
 const fmtTime = d => { const t = when(d); return t && !isNaN(t) && d.length > 10 ? `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}` : ""; };
@@ -290,31 +283,36 @@ function openCommit(sha) {
   };
 }
 
-function cicd() {
+let config = null;
+async function cicd() {
   const main = document.getElementById("main");
-  if (!me) {
-    main.innerHTML = `<div class="card"><h2>Benchmark configuration</h2><p class="muted">Sign in to choose what runs on your pushes.</p>` +
-      `<button class="act" id="sig">Sign in</button></div>`;
-    document.getElementById("sig").onclick = openSignIn;
-    return;
-  }
-  const cur = mine || { models: [], macs: [] };
+  main.innerHTML = `<div class="card muted">Loading…</div>`;
+  const path = `repos/${DATA.repo}/contents/config.json`;
+  let file = null, last = null;
+  try {
+    file = await gh(path);
+    last = (await gh(`repos/${DATA.repo}/commits?path=config.json&per_page=1`) || [])[0];
+  } catch (e) { main.innerHTML = `<div class="card down">${esc(e.message)}</div>`; return; }
+  config = file ? JSON.parse(atob(file.content)) : { models: [], machines: [] };
+  const tag = x => `<span class="tag">${esc(x)}</span>`;
+  const models = (config.models || []).map(modelName), where = (config.machines || []).length ? config.machines.map(macName) : ["every connected machine"];
+  const now = models.length ? `${models.map(tag).join("")}<span class="on-word">on</span>${where.map(tag).join("")}` : `<span class="tag off">nothing</span>`;
+  const by = last ? `<span class="muted">changed by ${esc(last.author?.login || last.commit.author.name)} · ${fmtDate(last.commit.committer.date)}</span>` : "";
   const pick = (name, items, checked) => items.map(x => `<label class="check"><input type="checkbox" name="${name}" value="${x.id}" ${checked.includes(x.id) ? "checked" : ""}> ${esc(x.name)}</label>`).join("");
-  main.innerHTML = `<div class="auto" style="margin-bottom:12px"><span>Your pushes run</span>${summary()}</div>` +
-    `<div class="card"><div class="row"><div><div class="label">Models</div>${pick("model", DATA.models, cur.models || [])}</div>` +
-    `<div><div class="label">Machines</div><label class="check"><input type="checkbox" name="all" ${(cur.macs || []).length ? "" : "checked"}> every connected machine</label>` +
-    `${pick("mac", RUNNABLE, cur.macs || [])}</div></div><button class="act" id="save">Save</button> <span id="msg" class="muted"></span></div>`;
+  main.innerHTML = `<div class="auto" style="margin-bottom:12px"><span>Every push to pie main runs</span>${now}${by}</div>` +
+    `<div class="card"><div class="row"><div><div class="label">Models</div>${pick("model", DATA.models, config.models || [])}</div>` +
+    `<div><div class="label">Machines</div><label class="check"><input type="checkbox" name="all" ${(config.machines || []).length ? "" : "checked"}> every connected machine</label>` +
+    `${pick("mac", RUNNABLE, config.machines || [])}</div></div><button class="act" id="save">Save</button> <span id="msg" class="muted"></span></div>`;
   const picked = n => [...main.querySelectorAll(`input[name=${n}]:checked`)].map(x => x.value);
   document.getElementById("save").onclick = async () => {
-    const { enabled, ...keep } = mine || {};
-    const data = { ...keep, models: picked("model"), macs: picked("all").length ? [] : picked("mac") };
+    const data = { models: picked("model"), machines: picked("all").length ? [] : picked("mac") };
     const msg = document.getElementById("msg"); msg.textContent = "Saving…";
     try {
-      const path = `repos/${DATA.repo}/contents/users/${me.login}.json`, now = await gh(path);
+      const cur = await gh(path);
       await gh(path, { method: "PUT", body: JSON.stringify({
-        message: `users: ${me.login} ${data.models.length ? "runs " + data.models.join(", ") : "runs nothing"}`,
-        content: btoa(JSON.stringify(data, null, 2) + NL), ...(now ? { sha: now.sha } : {}) }) });
-      mine = data; draw();
+        message: `config: pushes run ${data.models.join(", ") || "nothing"}${data.machines.length ? " on " + data.machines.join(", ") : ""}`,
+        content: btoa(JSON.stringify(data, null, 2) + NL), ...(cur ? { sha: cur.sha } : {}) }) });
+      draw();
     } catch (e) { msg.textContent = "Could not save: " + e.message; }
   };
 }
@@ -385,7 +383,7 @@ function closeMenu() { document.querySelector(".menu")?.remove(); }
 document.addEventListener("click", e => { if (!e.target.closest("#who")) closeMenu(); });
 let denied = "";
 async function signIn() {
-  me = null; mine = null; denied = "";
+  me = null; denied = "";
   if (token()) {
     try { me = await gh("user"); } catch { me = null; denied = "That token did not work."; }
     if (me) {
@@ -398,14 +396,6 @@ async function signIn() {
       }
     }
     if (me) {
-      try {
-        const path = `repos/${DATA.repo}/contents/users/${me.login}.json`, f = await gh(path);
-        if (f) mine = JSON.parse(atob(f.content));
-        else {
-          mine = { models: [], macs: [], joined: new Date().toISOString().slice(0, 10) };
-          await gh(path, { method: "PUT", body: JSON.stringify({ message: `users: ${me.login} joined`, content: btoa(JSON.stringify(mine, null, 2) + NL) }) });
-        }
-      } catch { mine = null; }
     }
   }
   renderWho();
@@ -420,7 +410,7 @@ function renderWho() {
   if (m) m.onclick = () => {
     if (document.querySelector(".menu")) return closeMenu();
     who.insertAdjacentHTML("beforeend", `<div class="menu"><button id="out"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 2.75C2 1.784 2.784 1 3.75 1h2.5a.75.75 0 0 1 0 1.5h-2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h2.5a.75.75 0 0 1 0 1.5h-2.5A1.75 1.75 0 0 1 2 13.25Zm10.44 4.5-1.97-1.97a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l3.25 3.25a.75.75 0 0 1 0 1.06l-3.25 3.25a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.97-1.97H6.75a.75.75 0 0 1 0-1.5Z"/></svg>Sign out</button></div>`);
-    document.getElementById("out").onclick = () => { closeMenu(); try { localStorage.removeItem("pie-evals-token"); } catch {} me = null; mine = null; renderWho(); draw(); };
+    document.getElementById("out").onclick = () => { closeMenu(); try { localStorage.removeItem("pie-evals-token"); } catch {} me = null; renderWho(); draw(); };
   };
 }
 
@@ -521,18 +511,16 @@ def usage(repo: str, authors: dict[str, str]) -> dict[str, dict]:
     return out
 
 
-def people(repo: str, authors: dict[str, str], users_dir: Path) -> list[dict]:
-    members = {f.stem for f in users_dir.glob("*.json")} if users_dir.is_dir() else set()
+def people(repo: str, authors: dict[str, str]) -> list[dict]:
     roles = {c["login"]: c.get("role_name", "") for page in _paginate(f"repos/{repo}/collaborators?affiliation=all&per_page=100") for c in page}
     used = usage(repo, authors)
     none = {"last": ""}
-    rows = [{"login": who, "role": roles.get(who, ""), **used.get(who, none)} for who in set(roles) | members | set(used)]
+    rows = [{"login": who, "role": roles.get(who, ""), **used.get(who, none)} for who in set(roles) | set(used)]
     rows.sort(key=lambda p: p["login"].lower())
     return sorted(rows, key=lambda p: p["last"], reverse=True)
 
 
-def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, pie_repo: str,
-          users_dir: Path = Path("users"), lookup_commits: bool = True) -> dict:
+def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, pie_repo: str, lookup_commits: bool = True) -> dict:
     t = store.table(Tier.TARGETED)
     rows = [r for r in t.to_pylist() if r["status"] == str(CellStatus.PASS) and r["pie_commit"]] if t.num_rows else []
     rows.sort(key=lambda r: r["started_at"])
@@ -581,13 +569,13 @@ def build(store: Store, matrix: Matrix, live: list[dict] | None, *, repo: str, p
         "metrics": [{"phase": p, "name": n} for p, n, *_ in METRICS],
         "commits": commits, "history": all_commits, "results": results, "models": models,
         "pool": _pool(live, matrix, last),
-        "people": people(repo, {c["sha"]: c["author"] for c in [*known.values(), *commits]}, users_dir) if lookup_commits else [],
+        "people": people(repo, {c["sha"]: c["author"] for c in [*known.values(), *commits]}) if lookup_commits else [],
     }
 
 
 def render(store: Store, matrix: Matrix, out: Path, live: list[dict] | None = None, *, repo: str = "pie-project/pie-evals",
-           pie_repo: str = "pie-project/pie", users_dir: Path = Path("users"), lookup_commits: bool = True) -> int:
-    data = build(store, matrix, live, repo=repo, pie_repo=pie_repo, users_dir=users_dir, lookup_commits=lookup_commits)
+           pie_repo: str = "pie-project/pie", lookup_commits: bool = True) -> int:
+    data = build(store, matrix, live, repo=repo, pie_repo=pie_repo, lookup_commits=lookup_commits)
     out.mkdir(parents=True, exist_ok=True)
     (out / "index.html").write_text(PAGE.replace("__DATA__", json.dumps(data)))
     return len(data["commits"])
