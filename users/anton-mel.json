@@ -4,7 +4,9 @@
   ],
   "machines": [],
   "benchmarks": [
-    "ss-128-64"
+    "ss-128-64",
+    "lc-1k-128",
+    "lc-2k-128"
   ],
   "macs": [],
   "enabled": true
