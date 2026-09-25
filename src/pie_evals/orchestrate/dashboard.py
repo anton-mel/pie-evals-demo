@@ -308,8 +308,7 @@ async function cicd() {
   const sw = (kind, id, checked) => `<input type="checkbox" class="switch" data-kind="${kind}" value="${id}" ${checked ? "checked" : ""}>`;
   const gib = g => g == null ? "–" : `${g} GB`;
   const by = last ? `changed by ${esc(last.author?.login || last.commit.author.name)} · ${fmtDate(last.commit.committer.date)}` : "";
-  let html = `<div class="auto" style="margin-bottom:12px"><span>Every push to pie main runs the models and machines switched on below.</span>` +
-    `<span class="muted" id="saved">${by}</span></div>`;
+  let html = `<div class="muted" id="saved" style="margin-bottom:12px">${by}</div>`;
   html += `<div class="card"><table class="compact"><tr><th>model</th><th class="num">size</th><th class="num">run</th></tr>`;
   for (const m of DATA.models) html += `<tr><td>${esc(m.name)}</td><td class="num">${gib(m.gib)}</td><td class="num">${sw("models", m.id, on(config.models, m.id))}</td></tr>`;
   html += `</table></div><div class="card"><table class="compact"><tr><th>machine</th><th>id</th><th>memory</th><th>status</th><th class="num">run</th></tr>`;
