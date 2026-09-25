@@ -41,10 +41,9 @@ jobs:
           info=$(gh api "repos/$PIE_REPO/commits/$COMMIT" 2>/dev/null || echo '{}')
           author=$(jq -r '.author.login // empty' <<<"$info")
           line=$(jq -r '.commit.message // ""' <<<"$info" | grep -iE '^evals:' | tail -1 || true)
-          models=""; macs=""; workloads=""; source="no setup"; skip=true
-          if [ -n "$author" ] && [ -f "users/$author.json" ]; then
-            f="users/$author.json"; source=$f
-            models=$(jq -r '.models // [] | join(",")' "$f"); macs=$(jq -r '.machines // [] | join(",")' "$f"); workloads=$(jq -r '.benchmarks // [] | join(",")' "$f")
+          models=""; macs=""; workloads=""; source=config.json; skip=true
+          if [ -f config.json ]; then
+            models=$(jq -r '.models // [] | join(",")' config.json); macs=$(jq -r '.machines // [] | join(",")' config.json); workloads=$(jq -r '.benchmarks // [] | join(",")' config.json)
             [ -n "$models" ] && [ -n "$macs" ] && [ -n "$workloads" ] && skip=false
           fi
           if [ -n "$line" ]; then

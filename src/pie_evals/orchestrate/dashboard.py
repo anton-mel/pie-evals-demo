@@ -276,12 +276,12 @@ function openRuns(sha) {
 async function configure() {
   const main = document.getElementById("main");
   main.innerHTML = `<div class="card muted">Loading…</div>`;
-  const path = `repos/${DATA.repo}/contents/users/${me.login}.json`;
+  const path = `repos/${DATA.repo}/contents/config.json`;
   let setup = { models: [], machines: [], benchmarks: [] }, sha = null, last = null;
   try {
     const file = await gh(path);
     if (file) { setup = { ...setup, ...JSON.parse(atob(file.content)) }; sha = file.sha; }
-    last = (await gh(`repos/${DATA.repo}/commits?path=users/${me.login}.json&per_page=1`) || [])[0];
+    last = (await gh(`repos/${DATA.repo}/commits?path=config.json&per_page=1`) || [])[0];
   } catch (e) { main.innerHTML = `<div class="card down">${esc(e.message)}</div>`; return; }
   const sw = (kind, id) => `<input type="checkbox" class="switch" data-kind="${kind}" value="${id}" ${(setup[kind] || []).includes(id) ? "checked" : ""}>`;
   const gib = g => g == null ? "–" : `${g} GB`;
@@ -293,7 +293,7 @@ async function configure() {
   if (!RUNNABLE.length) html += `<tr><td colspan="5" class="muted">No machine is connected.</td></tr>`;
   html += `</table></div><div class="card"><table class="compact"><tr><th>benchmark</th><th class="num">run</th></tr>`;
   for (const b of DATA.benchmarks) html += `<tr><td>${esc(b.name)}</td><td class="num">${sw("benchmarks", b.id)}</td></tr>`;
-  const by = last ? `Last updated <span title="${fmtDate(last.commit.committer.date)} ${fmtTime(last.commit.committer.date)}">${relTime(last.commit.committer.date)}</span>` : "Not set up yet: your pushes run nothing";
+  const by = last ? `Last updated <span title="${fmtDate(last.commit.committer.date)} ${fmtTime(last.commit.committer.date)}">${relTime(last.commit.committer.date)}</span>` : "Not set up yet: pushes run nothing";
   main.innerHTML = html + `</table></div><div class="muted" id="saved">${by}</div>`;
   let saving = Promise.resolve();
   main.querySelectorAll("input.switch").forEach(x => x.onchange = () => {
@@ -304,7 +304,7 @@ async function configure() {
     saving = saving.then(async () => {
       try {
         const res = await gh(path, { method: "PUT", body: JSON.stringify({
-          message: `users: ${me.login} ${x.checked ? "runs" : "stops"} ${x.value}`,
+          message: `config: ${x.checked ? "run" : "stop"} ${x.value} (${me.login})`,
           content: btoa(JSON.stringify(setup, null, 2) + NL), ...(sha ? { sha } : {}) }) });
         sha = res.content.sha;
         note.textContent = "Last updated just now";
