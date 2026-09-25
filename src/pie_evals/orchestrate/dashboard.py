@@ -41,6 +41,10 @@ PAGE = """<!doctype html>
   .up { color: #1a7f37; } .down { color: #b3261e; }
   .controls select { margin-left: 6px; }
   .controls #addruns { margin-left: auto; }
+  .controls #commit { max-width: 440px; min-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .seg { display: inline-flex; height: 32px; border: 1px solid #d0d7de; border-radius: 999px; background: #fff; padding: 2px; box-sizing: border-box; }
+  .seg button { border: 0; background: none; font: inherit; font-size: 13px; color: #424a53; padding: 0 12px; border-radius: 999px; cursor: pointer; }
+  .seg button.on { background: #1f2328; color: #fff; }
   .commit-head { margin: 0 0 16px; }
   .commit-head .title { font-size: 18px; font-weight: 600; color: #1f2328; line-height: 1.35; }
   .commit-head .meta { display: flex; align-items: center; gap: 14px; margin-top: 6px; color: #656d76; font-size: 13px; flex-wrap: wrap; }
@@ -152,10 +156,10 @@ PAGE = """<!doctype html>
   <span id="who"></span>
 </div></header>
 <div class="controls" id="controls">
-  <label>commit <select id="commit"></select></label>
-  <label>show <select id="unit"><option value="">tok/s</option><option value="_tflops">TFLOP/s</option></select></label>
+  <select id="commit" aria-label="commit"></select>
+  <div class="seg" id="unit" role="group" aria-label="unit"><button data-u="" class="on">tok/s</button><button data-u="_tflops">TFLOP/s</button></div>
   <span class="grow"></span>
-  <button class="pill" id="addruns">+ Add runs</button>
+  <button class="act" id="addruns"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2Z"/></svg>Add runs</button>
 </div>
 <main id="main"></main>
 <div id="modal" class="modal" hidden><div class="sheet"><button class="x" id="close" aria-label="close">×</button><div id="sheet"></div></div></div>
@@ -187,10 +191,14 @@ const parentOf = sha => { const i = ALL.findIndex(c => c.sha === sha); return i 
 const measured = [...DATA.commits].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 let sel = measured[0]?.sha || "";
 
-const commitSel = document.getElementById("commit"), unitSel = document.getElementById("unit");
+const commitSel = document.getElementById("commit"), unitSel = { value: "" };
 commitSel.innerHTML = measured.map(c => `<option value="${c.sha}">${c.sha.slice(0, 7)} · ${esc(c.message.slice(0, 60))}</option>`).join("");
 commitSel.onchange = () => { sel = commitSel.value; draw(); };
-unitSel.onchange = draw;
+document.querySelectorAll("#unit button").forEach(b => b.onclick = () => {
+  unitSel.value = b.dataset.u;
+  document.querySelectorAll("#unit button").forEach(x => x.classList.toggle("on", x === b));
+  draw();
+});
 document.getElementById("addruns").onclick = () => openRuns(sel);
 
 function valueAt(mac, model, wl, sha) { return DATA.results[mac]?.models[model]?.[wl]?.[sha]; }
