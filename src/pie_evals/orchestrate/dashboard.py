@@ -41,6 +41,12 @@ PAGE = """<!doctype html>
   .up { color: #1a7f37; } .down { color: #b3261e; }
   .controls select { margin-left: 6px; }
   .controls #addruns { margin-left: auto; }
+  .commit-head { margin: 0 0 16px; }
+  .commit-head .title { font-size: 18px; font-weight: 600; color: #1f2328; line-height: 1.35; }
+  .commit-head .meta { display: flex; align-items: center; gap: 14px; margin-top: 6px; color: #656d76; font-size: 13px; flex-wrap: wrap; }
+  .commit-head .meta span { display: inline-flex; align-items: center; }
+  .commit-head .avatar { width: 18px; height: 18px; }
+  .commit-head .sha code { background: #fff; border: 1px solid #d0d7de; border-radius: 999px; padding: 2px 8px; color: #0969da; }
   .card { background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
   h2 { font-size: 16px; margin: 0 0 12px; }
   .muted { color: #656d76; font-size: 13px; }
@@ -211,8 +217,10 @@ function overview() {
   const main = document.getElementById("main");
   if (!sel) { main.innerHTML = `<div class="card muted">Nothing has been benchmarked yet.</div>`; return; }
   const c = commitOf(sel), unit = unitSel.value, label = unit ? "TFLOP/s" : "tok/s";
-  let html = `<div class="muted" style="margin-bottom:12px"><a href="https://github.com/${DATA.pie_repo}/commit/${sel}" target="_blank"><code>${sel.slice(0, 7)}</code></a> ` +
-    `${esc(c.message)} · ${esc(c.author)} · ${fmtDate(c.date)} ${fmtTime(c.date)}</div>`;
+  let html = `<div class="commit-head"><div class="title">${esc(c.message) || sel.slice(0, 7)}</div><div class="meta">` +
+    `<a class="sha" href="https://github.com/${DATA.pie_repo}/commit/${sel}" target="_blank"><code>${sel.slice(0, 7)}</code></a>` +
+    (c.author ? `<span><img class="avatar" src="https://github.com/${esc(c.author)}.png?size=40">${esc(c.author)}</span>` : "") +
+    (c.date ? `<span title="${fmtDate(c.date)} ${fmtTime(c.date)}">${relTime(c.date)}</span>` : "") + `</div></div>`;
   let any = false;
   for (const [mac, r] of Object.entries(DATA.results)) {
     for (const [model, byTest] of Object.entries(r.models)) {
