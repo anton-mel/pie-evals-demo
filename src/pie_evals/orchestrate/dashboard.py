@@ -224,7 +224,7 @@ function cell(now, was, key) {
 function overview() {
   const main = document.getElementById("main");
   if (!sel) { main.innerHTML = `<div class="card muted">Nothing has been benchmarked yet.</div>`; return; }
-  const c = commitOf(sel), unit = unitSel.value, label = unit ? "TFLOP/s" : "tok/s";
+  const c = commitOf(sel), unit = unitSel.value;
   let html = `<div class="commit-head"><div class="title">${esc(c.message) || sel.slice(0, 7)}</div><div class="meta">` +
     `<a class="sha" href="https://github.com/${DATA.pie_repo}/commit/${sel}" target="_blank"><code>${sel.slice(0, 7)}</code></a>` +
     (c.author ? `<span><img class="avatar" src="https://github.com/${esc(c.author)}.png?size=40">${esc(c.author)}</span>` : "") +
@@ -237,7 +237,7 @@ function overview() {
       any = true;
       html += `<div class="card"><h2>${esc(r.name)} · ${esc(modelName(model))}</h2><table class="compact fixed">` +
         `<colgroup><col style="width:36%"><col><col><col><col></colgroup>` +
-        `<tr><th>benchmark</th><th class="num">prefill ${label}</th><th class="num">change</th><th class="num">decode ${label}</th><th class="num">change</th></tr>`;
+        `<tr><th>benchmark</th><th class="num">prefill</th><th class="num">change</th><th class="num">decode</th><th class="num">change</th></tr>`;
       for (const b of tests) {
         const now = byTest[b.id][sel], was = before(mac, model, b.id, sel);
         html += `<tr><td class="clip">${esc(b.name)}</td>${cell(now, was, "prefill" + unit)}${cell(now, was, "decode" + unit)}</tr>`;
