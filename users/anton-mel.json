@@ -2,7 +2,9 @@
   "models": [
     "qwen3.5-0.8b-bf16"
   ],
-  "machines": [],
+  "machines": [
+    "m5-max-48g"
+  ],
   "benchmarks": [
     "ss-128-64",
     "lc-1k-128",
