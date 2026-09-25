@@ -223,6 +223,12 @@ class NodeRunner:
             for c in job.cells:
                 self.emit(self._failed(c, ErrorClass.HARNESS_INVALID, f"GPU not clean at job start: {machine_before['gpu_drain_error']}", None))
             return []
+        try:
+            from .reclaim import reclaim
+
+            reclaim(job, self.hf_cache, log=self.log)  # a pod that hosts a whole queue fills its disk otherwise
+        except Exception as e:  # noqa: BLE001 — room-making must never fail the shard
+            self.log(f"disk reclaim skipped: {str(e)[:120]}")
         fingerprint = prov.hardware_fingerprint()
         records: list[Record] = []
         groups = job.cells_by_process()
