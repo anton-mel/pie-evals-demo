@@ -99,7 +99,7 @@ PAGE = """<!doctype html>
   .tag.new { background: #fff8c5; }
   .signin-page { max-width: 560px; margin: 24px auto; }
   .signrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .err { font-size: 12px; color: #cf222e; margin: 6px 0 0 14px; min-height: 16px; }
+  .err { font-size: 12px; color: #cf222e; margin: 6px 0 0; min-height: 16px; }
   .x { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 22px; line-height: 1; cursor: pointer; color: #656d76; }
   tr.push { cursor: pointer; } tr.push:hover { background: #f6f8fa; }
   .auto { font-size: 14px; color: #424a53; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
