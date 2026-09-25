@@ -145,6 +145,7 @@ const DATA = __DATA__;
 const TABS = ["Overview", "CI/CD", "Pushes", "Machines", "People"];
 const COLORS = ["#0969da", "#bf8700", "#8250df", "#1a7f37", "#cf222e"];
 const NL = String.fromCharCode(10);
+const REPO_NAME = DATA.repo.split("/").pop();
 const esc = x => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 const modelName = id => (DATA.models.find(m => m.id === id) || { name: id }).name;
 const RUNNABLE = [...new Map(DATA.pool.filter(m => m.os === "macos").map(m => [m.id, m])).values()];
@@ -361,7 +362,7 @@ function openSignIn() {
   tab = "Sign in"; closeSheet(); draw();
 }
 function signInPage() {
-  document.getElementById("main").innerHTML = `<div class="card signin-page"><h2>Sign in with GitHub</h2><p class="muted">Paste a GitHub token with access to ${DATA.repo}.</p>` +
+  document.getElementById("main").innerHTML = `<div class="card signin-page"><h2>Sign in with GitHub</h2><p class="muted">Paste a GitHub token with access to ${REPO_NAME}.</p>` +
     `<div class="signrow"><input id="tok" type="password" placeholder="Paste GitHub access token" size="40"><button class="act" id="go">Sign in</button></div><div id="err" class="err"></div></div>`;
   const tok = document.getElementById("tok"), go = document.getElementById("go");
   tok.focus();
@@ -383,7 +384,7 @@ async function signIn() {
       let repo = null;
       try { repo = await gh(`repos/${DATA.repo}`); } catch { repo = null; }
       if (!repo?.permissions?.push) {
-        denied = `${me.login} does not have write access to ${DATA.repo}. Ask an admin to add you.`;
+        denied = `${me.login} does not have write access to ${REPO_NAME}. Ask an admin to add you.`;
         me = null;
         try { localStorage.removeItem("pie-evals-token"); } catch {}
       }
