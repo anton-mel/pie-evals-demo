@@ -45,6 +45,8 @@ PAGE = """<!doctype html>
   .seg button { border: 0; background: none; font: inherit; font-size: 13px; color: #424a53; padding: 0 12px; border-radius: 999px; cursor: pointer; }
   .seg button.on { background: #1f2328; color: #fff; }
   .commit-head { margin: 0 0 16px; }
+  .backlink { display: inline-block; font-size: 13px; color: #656d76; margin-bottom: 8px; }
+  .backlink:hover { color: #1f2328; }
   .commit-head .title { font-size: 18px; font-weight: 600; color: #1f2328; line-height: 1.35; }
   .commit-head .meta { display: flex; align-items: center; gap: 14px; margin-top: 6px; color: #656d76; font-size: 13px; flex-wrap: wrap; }
   .commit-head .meta span { display: inline-flex; align-items: center; }
@@ -164,7 +166,7 @@ PAGE = """<!doctype html>
 <div id="modal" class="modal" hidden><div class="sheet"><button class="x" id="close" aria-label="close">×</button><div id="sheet"></div></div></div>
 <script>
 const DATA = __DATA__;
-const TABS = ["Configure CI", "History", "Overview", "Machines", "People"];
+const TABS = ["Configure CI", "History", "Machines", "People"];
 const NL = String.fromCharCode(10);
 const REPO_NAME = DATA.repo.split("/").pop();
 const esc = x => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
@@ -223,7 +225,7 @@ function overview() {
   const main = document.getElementById("main");
   if (!sel) { main.innerHTML = `<div class="card muted">Nothing has been benchmarked yet.</div>`; return; }
   const c = commitOf(sel), unit = unitSel.value;
-  let html = `<div class="commit-head"><div class="title">${esc(c.message) || sel.slice(0, 7)}</div><div class="meta">` +
+  let html = `<div class="commit-head"><a href="#" class="backlink" id="back">‹ History</a><div class="title">${esc(c.message) || sel.slice(0, 7)}</div><div class="meta">` +
     `<a class="sha" href="https://github.com/${DATA.pie_repo}/commit/${sel}" target="_blank"><code>${sel.slice(0, 7)}</code></a>` +
     (c.author ? `<span><img class="avatar" src="https://github.com/${esc(c.author)}.png?size=40">${esc(c.author)}</span>` : "") +
     (c.date ? `<span title="${fmtDate(c.date)} ${fmtTime(c.date)}">${relTime(c.date)}</span>` : "") +
@@ -246,6 +248,7 @@ function overview() {
   }
   if (!any) html += `<div class="card muted">No benchmarks ran on this commit.</div>`;
   main.innerHTML = html;
+  document.getElementById("back").onclick = e => { e.preventDefault(); tab = "History"; draw(); };
 }
 
 function openRuns(sha) {
@@ -434,7 +437,7 @@ function renderWho() {
 function draw() {
   if (!me) tab = "Sign in";
   else if (tab === "Sign in") tab = back;
-  document.getElementById("tabs").innerHTML = me ? TABS.map(t => `<button class="${t === tab ? "on" : ""}">${t}</button>`).join("") : "";
+  document.getElementById("tabs").innerHTML = me ? TABS.map(t => `<button class="${t === tab || (t === "History" && tab === "Overview") ? "on" : ""}">${t}</button>`).join("") : "";
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { tab = b.textContent; draw(); });
   document.getElementById("controls").hidden = tab !== "Overview";
   document.getElementById("in")?.classList.toggle("on", tab === "Sign in");
