@@ -90,11 +90,17 @@ def jobs(obj, tier, pie_commit, platforms, engines, programs, artifacts, workloa
     plats = list(platforms) or None
     if skip_unavailable:
         ok, skipped = available_platforms(m, repo or os.environ.get("GITHUB_REPOSITORY", "pie-project/pie-evals"))
-        plats = [p for p in (plats or list(m.platforms))] if plats else list(m.platforms)
-        plats = [p for p in plats if p in ok]
+        requested = plats if plats is not None else list(m.platforms)
+        plats = [p for p in requested if p in ok]
         (outp / "skipped-platforms.json").write_text(json.dumps(skipped, indent=1))
         for pid, why in skipped.items():
             click.echo(f"skip platform {pid}: {why}", err=True)
+        if plats == [] and platforms:
+            # every explicitly-requested platform was unavailable: stop here
+            # rather than silently falling through to "every platform" (a job
+            # queued for a runner that never shows up sits for 24h and holds
+            # the workflow's concurrency group — see available_platforms).
+            click.echo(f"::error::none of the requested platforms ({','.join(platforms)}) has an online runner or RunPod type; nothing to schedule", err=True)
     cells = m.expand()
     if programs:
         cells = [c for c in cells if c.program.id in programs]
