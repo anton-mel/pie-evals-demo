@@ -89,7 +89,10 @@ def make_jobs(
     label: str | None = None,
 ) -> list[JobSpec]:
     cells = matrix.runnable(tier, cells)
-    if platforms:
+    if platforms is not None:
+        # `[]` (every requested platform was filtered out, e.g. by
+        # --skip-unavailable) must restrict to nothing, not fall through to
+        # "no restriction" the way a falsy-but-unset `None` would.
         cells = [c for c in cells if c.platform.id in platforms]
     if engines:
         cells = [c for c in cells if str(c.engine) in engines]
